@@ -27,7 +27,7 @@ function wpslBorlabsCallback() {
 function wpslCallback() {
 	jQuery( document ).ready( function( $ ) {
 		initWpsl();
-	})
+	});
 }
 
 function initWpsl() {
@@ -43,7 +43,7 @@ function initWpsl() {
 		if ( typeof wpslAddons === 'object' ) {
 			for ( const key in wpslAddons ) {
 				if ( wpslAddons.hasOwnProperty( key ) ) {
-					wpslAddons[key].init()
+					wpslAddons[key].init();
 				}
 			}
 		}
@@ -174,7 +174,7 @@ wpsl.gmaps.init = function( mapId, mapIndex ) {
 	 * Make sure the 'back' button works
 	 * when the directions are shown.
 	 */
-	bindRemoveDirections();
+	directions.restore();
 
 	/**
 	 * Bind the 'more info' events
@@ -223,7 +223,7 @@ wpsl.gmaps.init = function( mapId, mapIndex ) {
 	// Only run this part if the store locator exist, and we don't just have a basic map.
 	if ( $( "#wpsl-gmap" ).length ) {
 		if ( wpslSettings.autoComplete == 1 ) {
-			activateAutocomplete();
+			autocomplete.init();
 		}
 
 		/*
@@ -281,61 +281,6 @@ wpsl.gmaps.init = function( mapId, mapIndex ) {
 	// Bind the zoom_changed listener.
 	zoomChangedListener();
 };
-
-
-/**
- * Activate the autocomplete for the store search.
- * 
- * @since 2.2.0
- * @link https://developers.google.com/maps/documentation/javascript/places-autocomplete
- * @returns {void}
- */
-function activateAutocomplete() {
-	var input, autocomplete, place,
-		options = {};
-
-	// Handle autocomplete queries submitted by the user using the 'enter' key.
-	keyboardAutoCompleteSubmit();
-
-    /**
-	 * Check if we need to set the geocode component restrictions.
-	 * This is automatically included when a fixed map region is
-	 * selected on the WPSL settings page.
-     */
-	if ( typeof wpslSettings.geocodeComponents !== "undefined" && !$.isEmptyObject( wpslSettings.geocodeComponents ) ) {
-		options.componentRestrictions = wpslSettings.geocodeComponents;
-
-		/**
-		 * If the postalCode is included in the autocomplete together with '(regions)' ( which is included ),
-		 * then it will break it. So we have to remove it.
-		 */
-		options.componentRestrictions = _.omit( options.componentRestrictions, 'postalCode' );
-	}
-
-	// Check if we need to restrict the autocomplete data.
-    if ( typeof wpslSettings.autoCompleteOptions !== "undefined" && !$.isEmptyObject( wpslSettings.autoCompleteOptions ) ) {
-        for ( var key in wpslSettings.autoCompleteOptions ) {
-            if ( wpslSettings.autoCompleteOptions.hasOwnProperty( key ) ) {
-                options[key] = wpslSettings.autoCompleteOptions[key];
-            }
-        }
-    }
-
-	input		 = document.getElementById( "wpsl-search-input" );
-	autocomplete = new google.maps.places.Autocomplete( input, options );
-
-	autocomplete.addListener( "place_changed", function() {
-		place = autocomplete.getPlace();
-
-		/**
-		 * Assign the returned latlng to the autoCompleteLatLng var.
-		 * This var is used when the users submits the search.
-		 */
-		if ( place.geometry ) {
-            autoCompleteLatLng = place.geometry.location;
-		}
-    });
-}
 
 /**
  * Make sure that the 'Zoom here' link in the info window 
@@ -734,6 +679,10 @@ function searchLocationBtn( infoWindow ) {
 		} else {
 			resetSearchResults();
 
+			if ( wpslSettings.autoComplete == 1 ) {
+				$( '.wpsl-autocomplete-search-results' ).hide();
+			}
+
 			/*
              * Check if we need to geocode the user input,
              * or if autocomplete is enabled and we already
@@ -760,9 +709,9 @@ function searchLocationBtn( infoWindow ) {
  * @return {void}
  */
 function closeInfoBoxWindow() {
-	if ( ( typeof wpslSettings.infoWindowStyle !== "undefined" ) && ( wpslSettings.infoWindowStyle == "infobox" ) && typeof openInfoWindow[0] !== "undefined" ) {
+	if ( typeof openInfoWindow[0] !== "undefined" ) {
 		openInfoWindow[0].close();
-	}	
+	}
 }
 
 /**
@@ -945,41 +894,6 @@ function resetDropdowns() {
 	}
 }
 
-function bindRemoveDirections() {
-
-	// Handle the click on the back button when the route directions are displayed.
-	$( "#wpsl-result-list" ).on( "click", ".wpsl-back", function() {
-		var i, len;
-
-		// Remove the directions from the map.
-		directionsDisplay.setMap( null );
-
-		// Restore the store markers on the map.
-		for ( i = 0, len = markersArray.length; i < len; i++ ) {
-			markersArray[i].setMap( map );
-		}
-
-		// Restore the start marker on the map.
-		if ( ( typeof( startMarkerData ) !== "undefined" )  && ( startMarkerData !== "" ) ) {
-			startMarkerData.setMap( map );
-		}
-
-		// If marker clusters are enabled, restore them.
-		if ( markerClusterer ) {
-			checkMarkerClusters();
-		}
-
-		map.setCenter( directionMarkerPosition.centerLatlng );
-		map.setZoom( directionMarkerPosition.zoomLevel );
-
-		$( ".wpsl-direction-before, .wpsl-direction-after" ).remove();
-		$( "#wpsl-stores" ).show();
-		$( "#wpsl-direction-details" ).hide();
-
-		return false;
-	});
-}
-
 /**
  * Show the driving directions.
  * 
@@ -1026,9 +940,15 @@ function renderDirections( e ) {
     }
 	
     if ( start && end ) {
+		const args = {
+			storeId: storeId,
+			start: start,
+			end: end
+		};
+
 		$( "#wpsl-direction-details ul" ).empty();
 		$( ".wpsl-direction-before, .wpsl-direction-after" ).remove();
-		calcRoute( start, end );
+		directions.calcRoute( args );
     } else {
 		alert( wpslLabels.generalError );
     } 
@@ -1084,83 +1004,6 @@ function letsBounce( storeId, status ) {
 			}
 		}
     }	
-}
-
-/**
- * Calculate the route from the start to the end.
- * 
- * @since	1.0.0
- * @param	{object} start The latlng from the start point
- * @param	{object} end   The latlng from the end point
- * @returns {void}
- */
-function calcRoute( start, end ) {
-    var legs, len, step, index, direction, i, j,
-		distanceUnit, directionOffset, request,
-		directionStops = "";
-		
-	if ( wpslSettings.distanceUnit == "km" ) {
-		distanceUnit = 'METRIC';
-	} else {
-		distanceUnit = 'IMPERIAL';
-	}
-
-	request = {
-		origin: start,
-		destination: end,
-		travelMode: wpslSettings.directionsTravelMode,
-		unitSystem: google.maps.UnitSystem[ distanceUnit ] 
-	};
-
-    directionsService.route( request, function( response, status ) {
-		if ( status == google.maps.DirectionsStatus.OK ) {
-			directionsDisplay.setMap( map );
-			directionsDisplay.setDirections( response );
-
-			if ( response.routes.length > 0 ) {
-				direction = response.routes[0];
-
-				// Loop over the legs and steps of the directions.
-				for ( i = 0; i < direction.legs.length; i++ ) {
-					legs = direction.legs[i];
-
-					for ( j = 0, len = legs.steps.length; j < len; j++ ) {
-						step = legs.steps[j];
-						index = j+1;
-						directionStops = directionStops + "<li><div class='wpsl-direction-index'>" + index + "</div><div class='wpsl-direction-txt'>" + step.instructions + "</div><div class='wpsl-direction-distance'>" + step.distance.text + "</div></li>";
-					}
-				}
-
-				$( "#wpsl-direction-details ul" ).append( directionStops ).before( "<div class='wpsl-direction-before'><a class='wpsl-back' id='wpsl-direction-start' href='#'>" + wpslLabels.back + "</a><div><span class='wpsl-total-distance'>" + direction.legs[0].distance.text + "</span> - <span class='wpsl-total-durations'>" + direction.legs[0].duration.text + "</span></div></div>" ).after( "<p class='wpsl-direction-after'>" + response.routes[0].copyrights + "</p>" );
-				$( "#wpsl-direction-details" ).show();
-				
-				// Remove all single markers from the map.
-				for ( i = 0, len = markersArray.length; i < len; i++ ) {
-					markersArray[i].setMap( null );
-				}
-
-				// Remove the marker clusters from the map.
-				if ( markerClusterer ) {
-					markerClusterer.clearMarkers();
-				}
-
-				// Remove the start marker from the map.
-				if ( ( typeof( startMarkerData ) !== "undefined" ) && ( startMarkerData !== "" ) ) {
-					startMarkerData.setMap( null );
-				}
-
-				$( "#wpsl-stores" ).hide();
-
-				// Make sure the start of the route directions are visible if the store listings are shown below the map.
-				if ( wpslSettings.templateId == 1 ) {
-					directionOffset = $( "#wpsl-gmap" ).offset();
-					$( window ).scrollTop( directionOffset.top );
-				}
-			}
-		} else {
-			directionErrors( status );
-		}
-    });
 }
 
 /**
@@ -1969,7 +1812,7 @@ function decodeHtmlEntity( str ) {
  * We do this by listening to "zoom_changed" and "idle".
  *
  * This needs to happen to make sure all info windows
- * are closed then the markers are merged together.
+ * are closed then the markers are merged.
  */
 function clusterListener() {
 	var clusters, clusterLen, markerLen, i, j;
@@ -2059,6 +1902,7 @@ function setInfoWindowContent( marker, infoWindowContent, infoWindow, currentMap
  * @returns {void}
  */
 function infoWindowClickActions( marker, currentMap ) {
+
 	$( ".wpsl-info-actions a" ).on( "click", function( e ) {
 		var maxZoom = Number( wpslSettings.autoZoomLevel );
 
@@ -2344,7 +2188,7 @@ function fitBounds() {
     attachBoundsChangedListener( map, maxZoom );
 
     for ( i = 0, markerLen = markersArray.length; i < markerLen; i++ ) {
-		bounds.extend ( markersArray[i].position );
+		bounds.extend( markersArray[i].position );
     }
 
     map.fitBounds( bounds );
@@ -2358,8 +2202,8 @@ function fitBounds() {
  */
 function deleteOverlays() {
 	var markerLen, i;
-	
-    directionsDisplay.setMap( null );
+
+	directions.removeRoute();
 
     // Remove all the markers from the map, and empty the array.
     if ( markersArray ) {
@@ -2746,5 +2590,383 @@ function resetSearchResults() {
 	deleteOverlays();
 	deleteStartMarker();
 }
+
+//@todo infowindow close when direction clicked?
+
+/**
+ * Handle the request for the directions.
+ *
+ * The current Javascript Directions Service has been
+ * moved to legacy status( as of March 1, 2025. See https://developers.google.com/maps/legacy ),
+ * but no alternative exists yet ( "New JavaScript services will be provided in the future" ).
+ *
+ * We will extend this when a new service is available.
+ *
+ * @since 2.2.250
+ * @todo move to module in 3.0.0 update
+ */
+const directions = {
+	polyline: '',
+	distanceUnit: ( wpslSettings.distanceUnit == 'km' ) ? 'METRIC' : 'IMPERIAL',
+	startEndmarkers: [],
+	openInfoWindow: null,
+	calcRoute: function( args ) {
+		directions.apiRequest.legacy( args );
+	},
+	apiRequest: {
+		/**
+		 * Calculate the route from the start to the end ( legacy Directions API ).
+		 *
+		 * @since	1.0.0
+		 * @see 	https://developers.google.com/maps/documentation/directions
+		 * @param   {object} args The latlng from the start / end point, and the storeId of the destination
+		 * @returns {void}
+		 */
+		legacy: function( args ) {
+			var legs, step, index,
+				directionStops = "";
+
+			const request = {
+				origin: args.start,
+				destination: args.end,
+				travelMode: wpslSettings.directionsTravelMode,
+				unitSystem: google.maps.UnitSystem[ directions.distanceUnit ]
+			};
+
+			directionsService.route( request, function( response, status ) {
+				if ( status == google.maps.DirectionsStatus.OK ) {
+					directionsDisplay.setMap( map );
+					directionsDisplay.setDirections( response );
+
+					if ( response.routes.length > 0 ) {
+						const direction = response.routes[0];
+
+						// Loop over the legs and steps of the directions.
+						for ( let i = 0; i < direction.legs.length; i++ ) {
+							legs = direction.legs[i];
+
+							for ( let j = 0, len = legs.steps.length; j < len; j++ ) {
+								step = legs.steps[j];
+								index = j+1;
+								directionStops = directionStops + "<li><div class='wpsl-direction-index'>" + index + "</div><div class='wpsl-direction-txt'>" + step.instructions + "</div><div class='wpsl-direction-distance'>" + step.distance.text + "</div></li>";
+							}
+						}
+
+						$( "#wpsl-direction-details ul" ).append( directionStops ).before( "<div class='wpsl-direction-before'><a class='wpsl-back' id='wpsl-direction-start' href='#'>" + wpslLabels.back + "</a><div><span class='wpsl-total-distance'>" + direction.legs[0].distance.text + "</span> - <span class='wpsl-total-durations'>" + direction.legs[0].duration.text + "</span></div></div>" ).after( "<p class='wpsl-direction-after'>" + response.routes[0].copyrights + "</p>" );
+						$( "#wpsl-direction-details" ).show();
+
+						// Remove all single markers from the map.
+						for ( let i = 0, len = markersArray.length; i < len; i++ ) {
+							markersArray[i].setMap( null );
+						}
+
+						// Remove the marker clusters from the map.
+						if ( markerClusterer ) {
+							markerClusterer.clearMarkers();
+						}
+
+						// Remove the start marker from the map.
+						if ( ( typeof( startMarkerData ) !== "undefined" ) && ( startMarkerData !== "" ) ) {
+							startMarkerData.setMap( null );
+						}
+
+						$( "#wpsl-stores" ).hide();
+
+						// Make sure the start of the route directions are visible if the store listings are shown below the map.
+						if ( wpslSettings.templateId == 1 ) {
+							const directionOffset = $( "#wpsl-gmap" ).offset();
+
+							$( window ).scrollTop( directionOffset.top );
+						}
+					}
+				} else {
+					directionErrors( status );
+				}
+			});
+		},
+	},
+	/**
+	 * Remove the route and start / end marker from the map
+	 *
+	 * @since 2.2.250
+	 */
+	removeRoute: function() {
+		directionsDisplay.setMap( null );
+	},
+	/**
+	 * Bind the 'back' button in the direction results to allow users 
+	 * to return to the results page and clear the route details.
+	 */
+	restore: function() {
+
+		$( "#wpsl-result-list" ).on( "click", ".wpsl-back", function() {
+			var i, len;
+
+			// Remove the directions from the map.
+			directionsDisplay.setMap( null );
+
+			// Restore the store markers on the map.
+			for ( i = 0, len = markersArray.length; i < len; i++ ) {
+				markersArray[i].setMap( map );
+			}
+
+			// Restore the start marker on the map.
+			if ( ( typeof( startMarkerData ) !== "undefined" )  && ( startMarkerData !== "" ) ) {
+				startMarkerData.setMap( map );
+			}
+
+			// If marker clusters are enabled, restore them.
+			if ( markerClusterer ) {
+				checkMarkerClusters();
+			}
+
+			map.setCenter( directionMarkerPosition.centerLatlng );
+			map.setZoom( directionMarkerPosition.zoomLevel );
+
+			$( ".wpsl-direction-before, .wpsl-direction-after" ).remove();
+			$( "#wpsl-stores" ).show();
+			$( "#wpsl-direction-details" ).hide();
+
+			return false;
+		});
+	},
+};
+
+/**
+ * Handle the request the new Places API, and
+ * the legacy ( since March 1, 2025 ) places API.
+ *
+ * @since 2.2.250
+ * @todo move to module in 3.0.0 update
+ */
+const autocomplete = {
+	init: function() {
+
+		if ( wpslSettings.apiVersions.autocomplete === 'legacy' ) {
+			autocomplete.makeLegacyRequest();
+		} else {
+
+			// Add ESC key handler
+			$( document ).on( 'keydown.wpslAutocomplete', function( e ) {
+				if ( e.key === 'Escape' ) {
+					$( '.wpsl-autocomplete-search-results' ).hide();
+				}
+			});
+
+			// Loop over the wpslSettings.placesApiOptions object
+			for ( const key in wpslSettings.placesApiOptions ) {
+				if ( wpslSettings.placesApiOptions.hasOwnProperty( key ) ) {
+					const value = wpslSettings.placesApiOptions[ key ];
+
+					// Check if the value is not empty
+					if ( value !== '' && value !== null && value !== undefined ) {
+						autocomplete.current.request[ key ] = value;
+					}
+				}
+			}
+
+			this.current.refreshToken();
+			$( '#wpsl-search-input' ).on( 'input', this.current.makeRequest );
+		}
+	},
+	/**
+	 * Use the new places API
+	 *
+	 * @since 2.2.250
+	 * @see https://developers.google.com/maps/documentation/javascript/places-js
+	 */
+	current: {
+		/**
+		 * Hold the different options for the autocomplete suggestions
+		 *
+		 * @see https://developers.google.com/maps/documentation/javascript/reference/autocomplete-data#AutocompleteRequest.input
+		 */
+		request: {
+			input: '',
+		},
+		newestRequestId: 0,
+		/**
+		 * Make a request to the new Places API for matching
+		 * location names based on the provided user input.
+		 *
+		 * @param  {object} inputEvent
+		 * @return {Promise<void>}
+		 */
+		makeRequest: async function( inputEvent ) {
+			const query = inputEvent.target.value.trim();
+
+			try {
+				// Reset elements and exit if an empty string is received.
+				if ( query == '' ) {
+					$( '.wpsl-autocomplete-search-results' ).find( 'ul' ).empty().end().hide();
+
+					return;
+				}
+
+				// Add the latest char sequence to the request.
+				autocomplete.current.request.input = query;
+
+				// To avoid race conditions, store the request ID and compare after the request.
+				const requestId = ++autocomplete.current.newestRequestId;
+				const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions( autocomplete.current.request );
+
+				// If the request has been superseded by a newer request, do not render the output.
+				if ( requestId !== autocomplete.current.newestRequestId )
+					return;
+
+				// Add the HTML required to render the returned autocomplete results.
+				if ( ! $( '.wpsl-autocomplete-search-container' ).length ) {
+					$( '#wpsl-search-input' ).wrap( '<div class="wpsl-autocomplete-search-container"></div>' );
+
+					const resultsListHtml = '<div class="wpsl-autocomplete-search-results">\n' +
+						'            <ul>\n' +
+						'            </ul>\n' +
+						'        </div>';
+
+					$( '#wpsl-search-input' ).after( resultsListHtml );
+					$( '#wpsl-search-input' ).focus();
+				}
+
+				// Show the results container if we have results
+				if ( suggestions.length > 0 ) {
+					$( '.wpsl-autocomplete-search-results' ).show();
+
+					// Ensure exact width match with input field
+					const inputWidth = $( '#wpsl-search-input' ).outerWidth();
+
+					$( '.wpsl-autocomplete-search-results' ).outerWidth( inputWidth );
+				} else {
+					$( '.wpsl-autocomplete-search-results' ).hide();
+				}
+
+				// Clear the list first.
+				$( '.wpsl-autocomplete-search-results ul' ).empty();
+
+				// Loop over the returned results.
+				for ( const suggestion of suggestions ) {
+					const placePrediction = suggestion.placePrediction;
+					const item = placePrediction.text.toString();
+					const lowerCaseQuery = query.toLowerCase().replace( /[^a-z0-9\s'-,]/gi, '' );
+
+					const $a = $( '<a>' );
+					const $li = $( '<li>' ).attr( 'role', 'option' ).attr( 'tabindex', '0' );
+
+					// Add keyboard support for the list item itself
+					$li.on( 'keydown', ( e ) => {
+						if ( e.key === 'Enter' || e.key === ' ' ) {
+							e.preventDefault();
+							autocomplete.current.onPlaceSelected( placePrediction.toPlace() );
+						}
+					});
+
+					// Add the click event to the <li> element
+					$li.on( 'click', () => {
+						autocomplete.current.onPlaceSelected( placePrediction.toPlace() );
+					});
+
+					const matchIndex = item.toLowerCase().indexOf( lowerCaseQuery );
+
+					/**
+					 * Highlight the part of the returned data
+					 * that matches with the provided user input.
+					 */
+					const beforeMatch = item.slice( 0, matchIndex );
+					const match = item.slice( matchIndex, matchIndex + lowerCaseQuery.length );
+					const afterMatch = item.slice( matchIndex + lowerCaseQuery.length );
+
+					$a.html( beforeMatch + '<span class="wpsl-autocomplete-highlight">' + match + '</span>' + afterMatch );
+
+					$li.append( $a );
+
+					$( '.wpsl-autocomplete-search-results ul' ).append( $li );
+				}
+			} catch ( error ) {
+				$( '#wpsl-search-input' ).off( 'input', autocomplete.current.makeRequest );
+				console.log( error );
+			}
+		},
+		/**
+		 * When the user clicks on an autocomplete result,
+		 * we get the location details ( coordinates )
+		 * and formatted address which is show in the
+		 * input field.
+		 *
+		 * @param place
+		 * @return {Promise<void>}
+		 */
+		onPlaceSelected: async function( place ) {
+
+			await place.fetchFields({
+				fields: ['formattedAddress', 'location'],
+			});
+
+			autoCompleteLatLng = place.location;
+
+			$( '#wpsl-search-input' ).val( place.formattedAddress );
+			$( '.wpsl-autocomplete-search-results' ).hide();
+
+			autocomplete.current.refreshToken();
+		},
+		/**
+		 * Refresh the token used in the autocomplete request.
+		 *
+		 * @see https://developers.google.com/maps/documentation/javascript/reference/autocomplete-data#AutocompleteSessionToken
+		 */
+		refreshToken: function() {
+			autocomplete.current.request.sessionToken = new google.maps.places.AutocompleteSessionToken();
+		},
+	},
+	/**
+	 * Keep support the legacy places API for
+	 * API keys created before March 1st, 2025
+	 *
+	 * @see https://developers.google.com/maps/documentation/javascript/places
+	 */
+	makeLegacyRequest: function() {
+		let options = {};
+
+		// Handle autocomplete queries submitted by the user using the 'enter' key.
+		keyboardAutoCompleteSubmit();
+
+		/**
+		 * Check if we need to set the geocode component restrictions.
+		 * This is automatically included when a fixed map region is
+		 * selected on the WPSL settings page.
+		 */
+		if ( typeof wpslSettings.geocodeComponents !== 'undefined' && ! $.isEmptyObject( wpslSettings.geocodeComponents ) ) {
+			options.componentRestrictions = wpslSettings.geocodeComponents;
+
+			/**
+			 * If the postalCode is included in the autocomplete together with '(regions)' ( which is included ),
+			 * then it will break it. So we have to remove it.
+			 */
+			options.componentRestrictions = _.omit( options.componentRestrictions, 'postalCode' );
+		}
+
+		// Check if we need to restrict the autocomplete data.
+		if ( typeof wpslSettings.autoCompleteOptions !== 'undefined' && ! $.isEmptyObject( wpslSettings.autoCompleteOptions ) ) {
+			for ( let key in wpslSettings.autoCompleteOptions ) {
+				if ( wpslSettings.autoCompleteOptions.hasOwnProperty( key ) ) {
+					options[key] = wpslSettings.autoCompleteOptions[key];
+				}
+			}
+		}
+
+		const input	= document.getElementById( 'wpsl-search-input' );
+		const autocomplete = new google.maps.places.Autocomplete( input, options );
+
+		autocomplete.addListener( 'place_changed', function() {
+			const place = autocomplete.getPlace();
+
+			/**
+			 * Assign the returned latlng to the autoCompleteLatLng var.
+			 * This var is used when the users submits the search.
+			 */
+			if ( place.geometry ) {
+				autoCompleteLatLng = place.geometry.location;
+			}
+		});
+	},
+};
 
 });

@@ -118,9 +118,10 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			$output['api_language']          = wp_filter_nohtml_kses( $_POST['wpsl_api']['language'] );
 			$output['api_region']            = wp_filter_nohtml_kses( $_POST['wpsl_api']['region'] );
             $output['api_geocode_component'] = isset( $_POST['wpsl_api']['geocode_component'] ) ? 1 : 0;
-                        
+
+            $output['autocomplete'] = isset( $_POST['wpsl_search']['autocomplete'] ) ? 1 : 0;
+
             // Check the search filter.
-            $output['autocomplete']         = isset( $_POST['wpsl_search']['autocomplete'] ) ? 1 : 0;
             $output['results_dropdown']     = isset( $_POST['wpsl_search']['results_dropdown'] ) ? 1 : 0;
             $output['radius_dropdown']      = isset( $_POST['wpsl_search']['radius_dropdown'] ) ? 1 : 0;
             $output['category_filter']      = isset( $_POST['wpsl_search']['category_filter'] ) ? 1 : 0;
@@ -323,6 +324,13 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             // Check if there is a reason to delete the autoload transient.
             if ( $wpsl_settings['autoload'] ) {
                 $this->set_delete_transient_option( $output );
+            }
+
+            // See which autocomplete API is used.
+            if ( in_array( $_POST['wpsl_search']['autocomplete_api_version'], array( 'legacy', 'latest' ) ) ) {
+                $output['api_versions']['autocomplete'] = sanitize_text_field( $_POST['wpsl_search']['autocomplete_api_version'] );
+            } else {
+                $output['api_versions']['autocomplete'] = 'latest';
             }
             
 			return $output;
@@ -1171,7 +1179,16 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                     'id'       => 'wpsl-cat-filter-types',
                     'name'     => 'wpsl_search[category_filter_type]',
                     'selected' => $wpsl_settings['category_filter_type']
-                )
+                ),
+                'autocomplete_api_versions' => array(
+                    'values' => array(
+                        'legacy' => __( 'Places Autocomplete Service (legacy)', 'wpsl' ),
+                        'latest'    => __( 'Autocomplete Data API (new)', 'wpsl' )
+                    ),
+                    'id'       => 'wpsl-autocomplete-api-versions',
+                    'name'     => 'wpsl_search[autocomplete_api_version]',
+                    'selected' => $wpsl_settings['api_versions']['autocomplete']
+                ),
             ) );
                         
 			$dropdown = '<select id="' . esc_attr( $dropdown_lists[$type]['id'] ) . '" name="' . esc_attr( $dropdown_lists[$type]['name'] ) . '" autocomplete="off">';

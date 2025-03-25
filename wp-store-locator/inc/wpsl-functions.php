@@ -15,6 +15,7 @@ function wpsl_get_gmap_api_params( $api_key_type, $geocode_params = false, $call
     global $wpsl, $wpsl_settings;
 
     $api_params = '';
+    $libraries = array();
     $param_keys = array( 'language', 'region', 'key' );
 
     /*
@@ -58,7 +59,11 @@ function wpsl_get_gmap_api_params( $api_key_type, $geocode_params = false, $call
 
     // Do we need to include the autocomplete library?
     if ( ( $wpsl_settings['autocomplete'] && $api_key_type == 'browser_key' ) || is_admin() ) {
-        $api_params .= '&libraries=places';
+        $libraries[] = 'places';
+    }
+
+    if ( ! empty( $libraries ) ) {
+        $api_params .= '&libraries=' . implode(',', $libraries );
     }
 
     if ( $api_key_type == 'browser_key' ) {
@@ -84,6 +89,7 @@ function wpsl_get_default_settings() {
         'api_language'              => 'en',
         'api_region'                => '',
         'api_geocode_component'     => 0,
+        'api_versions'              => array( 'autocomplete' => 'latest' ),
         'distance_unit'             => 'km',
         'max_results'               => '[25],50,75,100',
         'search_radius'             => '10,25,[50],100,200,500',

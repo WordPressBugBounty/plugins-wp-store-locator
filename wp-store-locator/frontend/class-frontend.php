@@ -1768,6 +1768,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             );
 
             $locator_map_settings = array(
+                'apiVersions'        => $wpsl_settings['api_versions'],
                 'startMarker'        => $this->create_retina_filename( $wpsl_settings['start_marker'] ),
                 'markerClusters'     => $wpsl_settings['marker_clusters'],
                 'streetView'         => $wpsl_settings['streetview'],
@@ -1790,6 +1791,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 'distanceUnit'       => wpsl_get_distance_unit(),
                 'geoLocationTimeout' => apply_filters( 'wpsl_geolocation_timeout', 7500 ),
                 'ajaxurl'            => wpsl_get_ajax_url(),
+                'language'           => ( $wpsl_settings['api_language'] ) ? $wpsl_settings['api_language'] : '',
                 'mapControls'        => $this->get_map_controls()
             );
 
@@ -1827,9 +1829,22 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
              * and other possible options to target here https://developers.google.com/maps/documentation/javascript/reference/places-widget#AutocompleteOptions
              */
             if ( $wpsl_settings['autocomplete'] ) {
+
+                // Legacy Places API
                 $locator_map_settings['autoCompleteOptions'] = apply_filters( 'wpsl_autocomplete_options', array(
                     'fields' => array( 'geometry.location' ),
                     'types'  => array( '(regions)' )
+                ) );
+
+                /**
+                 * New Places API ( for API keys created after March 1, 2025 )
+                 *
+                 * @see https://developers.google.com/maps/documentation/javascript/reference/autocomplete-data
+                 * for a full list of supported fields.
+                 */
+                $locator_map_settings['placesApiOptions'] = apply_filters( 'wpsl_places_options', array(
+                    'includedRegionCodes' => ( $wpsl_settings['api_region'] ) ? array( $wpsl_settings['api_region'] ) : '',
+                    'language' => ( $wpsl_settings['api_language'] ) ? $wpsl_settings['api_language'] : ''
                 ) );
             }
 
@@ -1870,7 +1885,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     'startPoint'        => $wpsl->i18n->get_translation( 'start_label', __( 'Start location', 'wpsl' ) ),
                     'back'              => $wpsl->i18n->get_translation( 'back_label', __( 'Back', 'wpsl' ) ),
                     'streetView'        => $wpsl->i18n->get_translation( 'street_view_label', __( 'Street view', 'wpsl' ) ),
-                    'zoomHere'          => $wpsl->i18n->get_translation( 'zoom_here_label', __( 'Zoom here', 'wpsl' ) )
+                    'zoomHere'          => $wpsl->i18n->get_translation( 'zoom_here_label', __( 'Zoom here', 'wpsl' ) ),
+                    'copyright'         => sprintf( __( 'Powered by Google, ©%d Google', 'wpsl' ), date( 'Y' ) ),
                 );
 
                 wp_localize_script( 'wpsl-js', 'wpslLabels', $labels );

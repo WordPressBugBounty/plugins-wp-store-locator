@@ -392,7 +392,7 @@ jQuery( document ).ready( function( $ ) {
     /**
      * If we are on the settings page, then init the API tools.
      */
-    if ( $( "#wpsl-map-settings").length ) {
+    if ( $( "#wpsl-map-settings" ).length ) {
         wpslAdmin.verifyKeys.init();
         wpslAdmin.showApiResponse.init();
     }
@@ -426,7 +426,7 @@ jQuery( document ).ready( function( $ ) {
         checkEditStoreMarker();
 
         // If we have a city/country input field enable the autocomplete.
-        if ( $( "#wpsl-start-name" ).length ) {
+        if ( $( "#wpsl-start-name" ).length && $( '#wpsl-autocomplete-api-versions' ).val() == 'legacy' ) {
             activateAutoComplete();
         }
 

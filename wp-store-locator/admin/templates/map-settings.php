@@ -5,7 +5,6 @@ global $wpdb, $wpsl, $wpsl_admin, $wp_version, $wpsl_settings;
 
 $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
 ?>
-
 <div id="wpsl-wrap" class="wrap wpsl-settings <?php if ( floatval( $wp_version ) < 3.8 ) { echo 'wpsl-pre-38'; } // Fix CSS issue with < 3.8 versions ?>">
 	<h2>WP Store Locator <?php _e( 'Settings', 'wpsl' ); ?></h2>
 
@@ -141,9 +140,16 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                         <div class="inside">
                             <p>
                                 <label for="wpsl-search-autocomplete"><?php _e( 'Enable autocomplete?', 'wpsl' ); ?></label>
-                                <input type="checkbox" value="" <?php checked( $wpsl_settings['autocomplete'], true ); ?> name="wpsl_search[autocomplete]" id="wpsl-search-autocomplete">
+                                <input type="checkbox" value="" <?php checked( $wpsl_settings['autocomplete'], true ); ?> name="wpsl_search[autocomplete]" id="wpsl-search-autocomplete" class="wpsl-has-conditional-option">
                             </p>
                             <?php $autocomplete_warning = false; ?>
+
+                            <div class="wpsl-conditional-option" <?php if ( ! $wpsl_settings['autocomplete'] ) { echo 'style="display:none;"'; } ?>>
+                                <p>
+                                    <label for="wpsl-autocomplete-api-versions"><?php _e( 'Autocomplete source', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'If your API keys were created before March 1, 2025, you can keep using the Places Autocomplete Service. %s However, if your API keys were created after this date, you must use the Autocomplete Data API. %s %sRead more%s', 'wpsl' ), '<br><br>', '<br><br>', '<a href="https://wpstorelocator.co/migrate-to-the-new-places-api/" target="_blank">', '</a>' ); ?></span></span></label>
+                                    <?php echo $wpsl_admin->settings_page->create_dropdown( 'autocomplete_api_versions' ); ?>
+                                </p>
+                            </div>
                             <p>
                                 <label for="wpsl-force-postalcode"><?php _e( 'Force zipcode only search', 'wpsl' ); ?>:
                                     <?php
@@ -327,6 +333,7 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                <label for="wpsl-direction-redirect"><?php _e( 'When a user clicks on "Directions", open a new window, and show the route on google.com/maps ?', 'wpsl' ); ?></label> 
                                <input type="checkbox" value="" <?php checked( $wpsl_settings['direction_redirect'], true ); ?> name="wpsl_ux[direction_redirect]" id="wpsl-direction-redirect">
                             </p>
+
                             <p>
                                <label for="wpsl-more-info"><?php _e( 'Show a "More info" link in the store listings?', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'This places a "More Info" link below the address and will show the phone, fax, email, opening hours and description once the link is clicked.', 'wpsl' ) ); ?></span></span></label> 
                                <input type="checkbox" value="" <?php checked( $wpsl_settings['more_info'], true ); ?> name="wpsl_ux[more_info]" id="wpsl-more-info" class="wpsl-has-conditional-option">
@@ -366,7 +373,7 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                <input type="checkbox" value="" <?php checked( $wpsl_settings['mouse_focus'], true ); ?> name="wpsl_ux[mouse_focus]" id="wpsl-mouse-focus">
                             </p>
                             <p>
-                               <label for="wpsl-infowindow-style"><?php _e( 'Use the default style for the info window?', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'If the default style is disabled the %sInfoBox%s library will be used instead. %s This enables you to easily change the look and feel of the info window through the .wpsl-infobox css class.', 'wpsl' ), '<a href="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/infobox/docs/reference.html" target="_blank">', '</a>', '<br><br>' ); ?></span></span></label> 
+                               <label for="wpsl-infowindow-style"><?php _e( 'Use the default style for the info window?', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'If the default style is disabled the %sInfoBox%s library will be used instead. %s This enables you to easily change the look and feel of the info window through the .wpsl-infobox css class.', 'wpsl' ), '<a href="https://github.com/googlemaps/v3-utility-library/tree/master/archive/infobox" target="_blank">', '</a>', '<br><br>' ); ?></span></span></label>
                                <input type="checkbox" value="default" <?php checked( $wpsl_settings['infowindow_style'], 'default' ); ?> name="wpsl_ux[infowindow_style]" id="wpsl-infowindow-style">
                             </p>
                             <p>
@@ -403,7 +410,6 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                <label for="wpsl-marker-clusters"><?php _e( 'Enable marker clusters?', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php _e( 'Recommended for maps with a large amount of markers.', 'wpsl' ); ?></span></span></label> 
                                <input type="checkbox" value="" <?php checked( $wpsl_settings['marker_clusters'], true ); ?> name="wpsl_map[marker_clusters]" id="wpsl-marker-clusters" class="wpsl-has-conditional-option">
                             </p>
-
 
                             <?php if ( $borlabs_exists && $wpsl_settings['delay_loading'] && ! $wpsl_settings['direction_redirect'] && $wpsl_settings['marker_clusters'] ) { ?>
                                 <div class="wpsl-callout"><?php echo sprintf( __( 'There is a problem with the marker clusters and Borlabs Cookie plugin in combination with the option to show the directions on the map. %s It results in the marker clusters not being removed from the map after the user clicked on "directions". %s To prevent this, you can either disable the marker cluster option or enable the option: "When a user clicks on "Directions", open a new window, and show the route on google.com/maps ?".', 'wpsl' ), '<br><br>', '<br><br>' ); ?></div>
