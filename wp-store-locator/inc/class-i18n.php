@@ -123,7 +123,16 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
 
                 $translation = pll__( $text );
             } else {
-                $translation = stripslashes( $wpsl_settings[$name] );
+                $translation = wp_strip_all_tags(
+                    html_entity_decode(
+                        stripslashes( $wpsl_settings[$name] ),
+                        ENT_QUOTES
+                    )
+                );
+
+                if ( ! $translation ) {
+                    $translation = $text;
+                }
             }
 
             return $translation;

@@ -4,7 +4,7 @@ Contributors: tijmensmit
 Tags: google maps, store locator, business locations, geocoding, stores, geo, zipcode locator, dealer locater, geocode, gmaps, google map, google map plugin, location finder, map tools, shop locator, wp google map
 Requires at least: 3.7
 Tested up to: 6.7.2
-Stable tag: 2.2.250
+Stable tag: 2.2.251
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -125,6 +125,9 @@ If you find a plugin or theme that causes a conflict, please report it on the [s
 4. The plugin settings
 
 == Changelog ==
+
+= 2.2.251
+* Fixed: Security issue ( Stored XSS vulnerability ) in the translation strings. Thanks to [cleantalk](https://cleantalk.org/) for reporting this.
 
 = 2.2.250
 * New: Added support for the new [Places API](https://developers.google.com/maps/documentation/javascript/place). You can find instructions on migrating to the new API [here](https://wpstorelocator.co/migrate-to-the-new-places-api/).
