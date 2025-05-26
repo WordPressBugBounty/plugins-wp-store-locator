@@ -20,7 +20,7 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
          * Class constructor
          */          
         function __construct() {
-            add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );    
+            add_action( 'init', array( $this, 'load_plugin_textdomain' ) );    
         }
                 
         /**

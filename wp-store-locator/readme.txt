@@ -3,8 +3,8 @@ Plugin URI: https://wpstorelocator.co
 Contributors: tijmensmit
 Tags: google maps, store locator, business locations, geocoding, stores, geo, zipcode locator, dealer locater, geocode, gmaps, google map, google map plugin, location finder, map tools, shop locator, wp google map
 Requires at least: 3.7
-Tested up to: 6.7.2
-Stable tag: 2.2.251
+Tested up to: 6.8.1
+Stable tag: 2.2.252
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -125,6 +125,9 @@ If you find a plugin or theme that causes a conflict, please report it on the [s
 4. The plugin settings
 
 == Changelog ==
+
+= 2.2.252
+* Changed: Adjusted the loading order of the translations to prevent the 'Function _load_textdomain_just_in_time was called incorrectly' notice from appearing.     
 
 = 2.2.251
 * Fixed: Security issue ( Stored XSS vulnerability ) in the translation strings. Thanks to [cleantalk](https://cleantalk.org/) for reporting this.
