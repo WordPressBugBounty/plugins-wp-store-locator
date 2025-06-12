@@ -140,16 +140,19 @@ wpsl.gmaps.init = function( mapId, mapIndex ) {
     directionsService = new google.maps.DirectionsService();
 
 	// Set the map options.
-    mapOptions = {
+	mapOptions = {
+		zoomControl: Number( settings.zoomControls ) ? true : false,
+		cameraControl: Number( settings.cameraControl ) ? true : false,
+		zoomControlOptions: {
+			position: google.maps.ControlPosition[ settings.controlPosition.toUpperCase() + '_TOP' ]
+		},
+		fullscreenControl: Number( settings.fullscreen ) ? true : false,
 		zoom: zoomLevel,
 		center: settings.startLatLng,
 		mapTypeId: google.maps.MapTypeId[ settings.mapType.toUpperCase() ],
 		mapTypeControl: Number( settings.mapTypeControl ) ? true : false,
 		streetViewControl: Number( settings.streetView ) ? true : false,
-        gestureHandling: settings.gestureHandling,
-		zoomControlOptions: {
-			position: google.maps.ControlPosition[ settings.controlPosition.toUpperCase() + '_TOP' ]
-		}
+		gestureHandling: settings.gestureHandling,
 	};
 
     /**
@@ -308,7 +311,7 @@ function zoomChangedListener() {
  */
 function getMapSettings( mapIndex ) {
 	var j, len, shortCodeVal,
-		settingOptions = [ "zoomLevel", "mapType", "mapTypeControl", "mapStyle", "streetView", "scrollWheel", "controlPosition" ], 
+		settingOptions = [ "zoomLevel", "mapType", "mapTypeControl", "mapStyle", "streetView", "scrollWheel", "controlPosition", "zoomControls", "fullscreen", "cameraControl" ], 
 		mapSettings	= {
 			zoomLevel: wpslSettings.zoomLevel,
 			mapType: wpslSettings.mapType,
@@ -317,7 +320,10 @@ function getMapSettings( mapIndex ) {
 			streetView: wpslSettings.streetView,
 			scrollWheel: wpslSettings.scrollWheel,
 			controlPosition: wpslSettings.controlPosition,
-            gestureHandling: wpslSettings.gestureHandling
+            gestureHandling: wpslSettings.gestureHandling,
+            zoomControls: wpslSettings.zoomControls,
+            fullscreen: wpslSettings.fullscreen,
+            cameraControl: wpslSettings.cameraControl
 		};	
 
 	// If there are settings that are set through the shortcode, then we use them instead of the default ones.
@@ -2882,7 +2888,6 @@ const autocomplete = {
 				}
 			} catch ( error ) {
 				$( '#wpsl-search-input' ).off( 'input', autocomplete.current.makeRequest );
-				console.log( error );
 			}
 		},
 		/**

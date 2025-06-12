@@ -4,7 +4,7 @@ Contributors: tijmensmit
 Tags: google maps, store locator, business locations, geocoding, stores, geo, zipcode locator, dealer locater, geocode, gmaps, google map, google map plugin, location finder, map tools, shop locator, wp google map
 Requires at least: 3.7
 Tested up to: 6.8.1
-Stable tag: 2.2.253
+Stable tag: 2.2.260
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -125,6 +125,10 @@ If you find a plugin or theme that causes a conflict, please report it on the [s
 4. The plugin settings
 
 == Changelog ==
+
+= 2.2.260
+* New: Options to control the visibility of the zoom and fullscreen controls on the map ( Map section ).
+* Changed: When the street view controls are enabled, the camera control icon will no longer automatically appear on the map.
 
 = 2.2.253
 * Fixed: Permalinks stopped working after the last update, sorry :(

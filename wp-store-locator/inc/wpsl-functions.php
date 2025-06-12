@@ -122,6 +122,8 @@ function wpsl_get_default_settings() {
         'search_width'              => 179,
         'label_width'               => 95,
         'control_position'          => 'left',
+        'zoom_controls'             => 0,
+        'fullscreen'                => 0,
         'scrollwheel'               => 1,
         'marker_clusters'           => 0,
         'cluster_zoom'              => 0,

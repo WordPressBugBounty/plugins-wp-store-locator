@@ -246,6 +246,29 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                 <label for="wpsl-max-zoom-level"><?php _e( 'Max auto zoom level', 'wpsl' ); ?>:<span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'This value sets the zoom level for the "Zoom here" link in the info window. %s It is also used to limit the zooming when the viewport of the map is changed to make all the markers fit on the screen.', 'wpsl' ), '<br><br>' ); ?></span></span></label> 
                                 <?php echo $wpsl_admin->settings_page->create_dropdown( 'max_zoom_level' ); ?>
                             </p> 
+
+                            <p>
+                                <label for="wpsl-zoom-controls"><?php _e( 'Show the zoom controls?', 'wpsl' ); ?></label> 
+                                <input type="checkbox" value="" <?php checked( $wpsl_settings['zoom_controls'], true ); ?> name="wpsl_map[zoom_controls]" id="wpsl-zoom-controls" class="wpsl-has-conditional-option">
+                            </p>
+
+                            <div class="wpsl-conditional-option" <?php if ( ! $wpsl_settings['zoom_controls'] ) { echo 'style="display:none;"'; } ?>>
+                                <p>
+                                    <label><?php _e( 'Zoom control position', 'wpsl' ); ?>:</label>
+                                    <span class="wpsl-radioboxes">
+                                        <input type="radio" autocomplete="off" value="left" <?php checked( 'left', $wpsl_settings['control_position'], true ); ?> name="wpsl_map[control_position]" id="wpsl-control-left">
+                                        <label for="wpsl-control-left"><?php _e( 'Left', 'wpsl' ); ?></label>
+                                        <input type="radio" autocomplete="off" value="right" <?php checked( 'right', $wpsl_settings['control_position'], true ); ?> name="wpsl_map[control_position]" id="wpsl-control-right">
+                                        <label for="wpsl-control-right"><?php _e( 'Right', 'wpsl' ); ?></label>
+                                    </span>
+                                </p>
+                            </div>
+
+                            <p>
+                                <label for="wpsl-fullscreen"><?php _e( 'Show the fullscreen controls?', 'wpsl' ); ?></label> 
+                                <input type="checkbox" value="" <?php checked( $wpsl_settings['fullscreen'], true ); ?> name="wpsl_map[fullscreen]" id="wpsl-fullscreen">
+                            </p>
+
                             <p>
                                 <label for="wpsl-streetview"><?php _e( 'Show the street view controls?', 'wpsl' ); ?></label> 
                                 <input type="checkbox" value="" <?php checked( $wpsl_settings['streetview'], true ); ?> name="wpsl_map[streetview]" id="wpsl-streetview">
@@ -258,15 +281,7 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                 <label for="wpsl-scollwheel-zoom"><?php _e( 'Enable scroll wheel zooming?', 'wpsl' ); ?></label> 
                                 <input type="checkbox" value="" <?php checked( $wpsl_settings['scrollwheel'], true ); ?> name="wpsl_map[scrollwheel]" id="wpsl-scollwheel-zoom">
                             </p>
-                            <p>
-                                <label><?php _e( 'Zoom control position', 'wpsl' ); ?>:</label>
-                                <span class="wpsl-radioboxes">
-                                    <input type="radio" autocomplete="off" value="left" <?php checked( 'left', $wpsl_settings['control_position'], true ); ?> name="wpsl_map[control_position]" id="wpsl-control-left">
-                                    <label for="wpsl-control-left"><?php _e( 'Left', 'wpsl' ); ?></label>
-                                    <input type="radio" autocomplete="off" value="right" <?php checked( 'right', $wpsl_settings['control_position'], true ); ?> name="wpsl_map[control_position]" id="wpsl-control-right">
-                                    <label for="wpsl-control-right"><?php _e( 'Right', 'wpsl' ); ?></label>
-                                </span>
-                            </p>
+
                             <p>
                                 <label for="wpsl-map-type"><?php _e( 'Map type', 'wpsl' ); ?>:</label> 
                                 <?php echo $wpsl_admin->settings_page->create_dropdown( 'map_types' ); ?>

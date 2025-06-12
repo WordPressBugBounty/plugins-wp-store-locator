@@ -208,6 +208,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			$output['streetview'] 		= isset( $_POST['wpsl_map']['streetview'] ) ? 1 : 0;
             $output['type_control']     = isset( $_POST['wpsl_map']['type_control'] ) ? 1 : 0;
             $output['scrollwheel']      = isset( $_POST['wpsl_map']['scrollwheel'] ) ? 1 : 0;	
+            $output['zoom_controls']    = isset( $_POST['wpsl_map']['zoom_controls'] ) ? 1 : 0;	
+            $output['fullscreen']       = isset( $_POST['wpsl_map']['fullscreen'] ) ? 1 : 0;
 			$output['control_position'] = ( $_POST['wpsl_map']['control_position'] == 'left' ) ? 'left' : 'right';	
             
             $output['map_style'] = json_encode( strip_tags( trim( $_POST['wpsl_map']['map_style'] ) ) );
