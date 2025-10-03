@@ -3,8 +3,8 @@ Plugin URI: https://wpstorelocator.co
 Contributors: tijmensmit
 Tags: google maps, store locator, business locations, geocoding, stores, geo, zipcode locator, dealer locater, geocode, gmaps, google map, google map plugin, location finder, map tools, shop locator, wp google map
 Requires at least: 3.7
-Tested up to: 6.8.1
-Stable tag: 2.2.260
+Tested up to: 6.8.3
+Stable tag: 2.2.261
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -117,6 +117,9 @@ If you find a plugin or theme that causes a conflict, please report it on the [s
 
 > You can find the full documentation [here](https://wpstorelocator.co/documentation/).
 
+= Where do I report security bugs found in this plugin? =
+Please report security bugs found in the source code of the WP Store Locator plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/dd3fdc38-66c5-4e80-ae86-96da0e63f2ba). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Screenshots ==
 
 1. Front-end of the plugin
@@ -125,6 +128,9 @@ If you find a plugin or theme that causes a conflict, please report it on the [s
 4. The plugin settings
 
 == Changelog ==
+
+= 2.2.261 = 
+* Fixed: PHP Object Injection vulnerability.
 
 = 2.2.260
 * New: Options to control the visibility of the zoom and fullscreen controls on the map ( Map section ).

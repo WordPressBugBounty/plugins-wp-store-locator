@@ -355,7 +355,13 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                                 $meta_data = esc_url( $custom_fields[$meta_key][0] );
                                 break;
                             case 'hours':
-                                $meta_data = $this->get_opening_hours( $custom_fields[$meta_key][0], apply_filters( 'wpsl_hide_closed_hours', false ) );
+                                $hours = get_post_meta( $store->ID, 'wpsl_hours' );
+                                $meta_data = '';
+
+                                if ( $hours ) {
+                                    $meta_data = $this->get_opening_hours( $hours[0], apply_filters( 'wpsl_hide_closed_hours', false ) );
+                                }
+
                                 break;
                             case 'wp_editor':
                             case 'textarea':
@@ -520,8 +526,6 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
          * @return string       $hours       The formated opening hours
          */
         public function get_opening_hours( $hours, $hide_closed ) {
-
-            $hours = maybe_unserialize( $hours );
 
             /*
              * If the hours are set through the dropdown then we create a table for the opening hours.
