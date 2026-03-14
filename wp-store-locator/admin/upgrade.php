@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit;
+
 add_action( 'in_plugin_update_message-wp-store-locator/wp-store-locator.php', 'wpsl_plugin_update_message', 10, 2 );
 add_action( 'admin_init', 'wpsl_check_upgrade' );
 add_action( 'admin_init', 'wpsl_cpt_update_state' );
@@ -17,7 +19,8 @@ function wpsl_plugin_update_message() {
 
     if ( class_exists( 'WPSL_Widgets' ) && version_compare( WPSL_WIDGET_VERSION_NUM, '1.2.1' , '<' ) ) {
         echo '<br><br>';
-        echo sprintf( __( 'Please make sure to also upgrade the %sWP Store Locator - Widget%s plugin to the latest version.', 'wpsl' ), '<strong>', '</strong>' );
+        /* translators: %1$s: opening strong tag, %2$s: closing strong tag */
+        echo wp_kses_post( sprintf( __( 'Please make sure to also upgrade the %1$sWP Store Locator - Widget%2$s plugin to the latest version.', 'wp-store-locator' ), '<strong>', '</strong>' ) );
     }
 }
 
@@ -75,7 +78,7 @@ function wpsl_check_upgrade() {
             }
 
             if ( empty( $wpsl_settings['more_label'] ) ) {
-                $wpsl_settings['more_label'] = __( 'More info', 'wpsl' );
+                $wpsl_settings['more_label'] = __( 'More info', 'wp-store-locator' );
             }
 
             if ( empty( $wpsl_settings['mouse_focus'] ) ) {
@@ -89,15 +92,15 @@ function wpsl_check_upgrade() {
     if ( version_compare( $current_version, '1.2.12', '<' ) ) {
         if ( is_array( $wpsl_settings ) ) {
             if ( empty( $wpsl_settings['more_info_location'] ) ) {
-                $wpsl_settings['more_info_location'] = __( 'info window', 'wpsl' ); 
+                $wpsl_settings['more_info_location'] = __( 'info window', 'wp-store-locator' ); 
             }
 
             if ( empty( $wpsl_settings['back_label'] ) ) {
-                $wpsl_settings['back_label'] = __( 'Back', 'wpsl' );
+                $wpsl_settings['back_label'] = __( 'Back', 'wp-store-locator' );
             }
 
             if ( empty( $wpsl_settings['reset_label'] ) ) {
-                $wpsl_settings['reset_label'] = __( 'Reset', 'wpsl' );
+                $wpsl_settings['reset_label'] = __( 'Reset', 'wp-store-locator' );
             }                  
 
             if ( empty( $wpsl_settings['store_below_scroll'] ) ) {
@@ -115,10 +118,12 @@ function wpsl_check_upgrade() {
         $wpsl_table = $wpdb->prefix . 'wpsl_stores';
 
         // Rename the street field to address.
-        $wpdb->query( "ALTER TABLE $wpsl_table CHANGE street address VARCHAR(255)" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema change during upgrade, no caching applicable
+        $wpdb->query( "ALTER TABLE " . esc_sql( $wpsl_table ) . " CHANGE street address VARCHAR(255)" );
 
         // Add the second address field.
-        $wpdb->query( "ALTER TABLE $wpsl_table ADD address2 VARCHAR(255) NULL AFTER address" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema change during upgrade, no caching applicable
+        $wpdb->query( "ALTER TABLE " . esc_sql( $wpsl_table ) . " ADD address2 VARCHAR(255) NULL AFTER address" );
 
         if ( is_array( $wpsl_settings ) ) {
             if ( empty( $wpsl_settings['store_url'] ) ) {
@@ -159,15 +164,15 @@ function wpsl_check_upgrade() {
             }
 
             if ( empty( $wpsl_settings['street_view_label'] ) ) {
-                $wpsl_settings['street_view_label'] = __( 'Street view', 'wpsl' );
+                $wpsl_settings['street_view_label'] = __( 'Street view', 'wp-store-locator' );
             }
 
             if ( empty( $wpsl_settings['zoom_here_label'] ) ) {
-                $wpsl_settings['zoom_here_label'] = __( 'Zoom here', 'wpsl' );
+                $wpsl_settings['zoom_here_label'] = __( 'Zoom here', 'wp-store-locator' );
             }
 
             if ( empty( $wpsl_settings['no_directions_label'] ) ) {
-                $wpsl_settings['no_directions_label'] = __( 'No route could be found between the origin and destination', 'wpsl' );
+                $wpsl_settings['no_directions_label'] = __( 'No route could be found between the origin and destination', 'wp-store-locator' );
             }
 
             update_option( 'wpsl_settings', $wpsl_settings );
@@ -190,11 +195,11 @@ function wpsl_check_upgrade() {
             }
 
             if ( empty( $wpsl_settings['permalink_slug'] ) ) {
-                $wpsl_settings['permalink_slug'] = __( 'stores', 'wpsl' );
+                $wpsl_settings['permalink_slug'] = __( 'stores', 'wp-store-locator' );
             }
             
             if ( empty( $wpsl_settings['category_slug'] ) ) {
-                $wpsl_settings['category_slug'] = __( 'store-category', 'wpsl' );
+                $wpsl_settings['category_slug'] = __( 'store-category', 'wp-store-locator' );
             }
            
             if ( empty( $wpsl_settings['editor_hours'] ) ) {
@@ -214,15 +219,15 @@ function wpsl_check_upgrade() {
             }
             
             if ( empty( $wpsl_settings['email_label'] ) ) {
-                $wpsl_settings['email_label'] = __( 'Email', 'wpsl' );
+                $wpsl_settings['email_label'] = __( 'Email', 'wp-store-locator' );
             }
             
             if ( empty( $wpsl_settings['url_label'] ) ) {
-                $wpsl_settings['url_label'] = __( 'Url', 'wpsl' );
+                $wpsl_settings['url_label'] = __( 'Url', 'wp-store-locator' );
             }
             
             if ( empty( $wpsl_settings['category_label'] ) ) {
-                $wpsl_settings['category_label'] = __( 'Category filter', 'wpsl' );
+                $wpsl_settings['category_label'] = __( 'Category filter', 'wp-store-locator' );
             }
             
             if ( empty( $wpsl_settings['show_credits'] ) ) {
@@ -354,7 +359,8 @@ function wpsl_check_upgrade() {
             wpsl_add_caps();
 
             // If there is a wpsl_stores table, then we need to convert all the locations to the 'wpsl_stores' custom post type.
-            if ( $wpdb->get_var( "SHOW TABLES LIKE '$wpsl_table'" ) && version_compare( $current_version, '1.9', '<' ) ) { 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time table existence check during upgrade, no caching needed
+            if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", esc_sql( $wpsl_table ) ) ) && version_compare( $current_version, '1.9', '<' ) ) { 
                 if ( wpsl_remaining_cpt_count() ) {
                     update_option( 'wpsl_convert_cpt', 'in_progress' );
                 }
@@ -383,7 +389,7 @@ function wpsl_check_upgrade() {
     
     if ( version_compare( $current_version, '2.2', '<' ) ) {
         $wpsl_settings['autocomplete'] = 0;
-        $wpsl_settings['category_default_label'] = __( 'Any', 'wpsl' );
+        $wpsl_settings['category_default_label'] = __( 'Any', 'wp-store-locator' );
 
         // Rename the 'zoom_name' and 'zoom_latlng' to 'start_name' and 'start_latlng'.
         if ( isset( $wpsl_settings['zoom_name'] ) ) {
@@ -478,7 +484,8 @@ function wpsl_cpt_update_state() {
     if ( $conversion_state == 'in_progress' ) {
         if ( ( !defined( 'DOING_AJAX' ) || !DOING_AJAX ) ) {
             $remaining = wpsl_remaining_cpt_count();
-            $wpsl_admin->notices->save( 'error', sprintf( __( 'Because you updated WP Store Locator from version 1.x, the %s current store locations need to be %sconverted%s to custom post types.', 'wpsl' ), "<span class='wpsl-cpt-remaining'>" . $remaining . "</span>", "<a href='#' id='wpsl-cpt-dialog'>", "</a>" ) );        
+            /* translators: %1$s: span with remaining count, %2$s: opening link tag, %3$s: closing link tag */
+            $wpsl_admin->notices->save( 'error', sprintf( __( 'Because you updated WP Store Locator from version 1.x, the %1$s current store locations need to be %2$sconverted%3$s to custom post types.', 'wp-store-locator' ), "<span class='wpsl-cpt-remaining'>" . $remaining . "</span>", "<a href='#' id='wpsl-cpt-dialog'>", "</a>" ) );        
         
             add_action( 'admin_footer',  'wpsl_cpt_dialog_html' );
         }
@@ -499,13 +506,15 @@ function wpsl_cpt_update_state() {
 function wpsl_convert_cpt_js() {
 
     $cpt_js_l10n = array(
-        'timeout'      => sprintf( __( 'The script converting the locations timed out. %s You can click the "Start Converting" button again to restart the script. %s If there are thousands of store locations left to convert and you keep seeing this message, then you can try to contact your host and ask if they can increase the maximum execution time. %s The plugin tried to disable the maximum execution time, but if you are reading this then that failed.', 'wpsl' ), '<br><br>', '<br><br>', '<br><br>' ),
-        'securityFail' => __( 'Security check failed, reload the page and try again.', 'wpsl' )
+        'securityFail' => esc_html( 'Security check failed, reload the page and try again.', 'wp-store-locator' )
     );
 
+    /* translators: %1$s: first line break, %2$s: second line break, %3$s: third line break */
+    $cpt_js_l10n['timeout'] = sprintf( __( 'The script converting the locations timed out. %1$s You can click the "Start Converting" button again to restart the script. %2$s If there are thousands of store locations left to convert and you keep seeing this message, then you can try to contact your host and ask if they can increase the maximum execution time. %3$s The plugin tried to disable the maximum execution time, but if you are reading this then that failed.', 'wp-store-locator' ), '<br><br>', '<br><br>', '<br><br>' );
+
     wp_enqueue_script( 'jquery-ui-dialog' );
-    wp_enqueue_script( 'wpsl-queue', plugins_url( '/js/ajax-queue.js', __FILE__ ), array( 'jquery' ), false ); 
-    wp_enqueue_script( 'wpsl-cpt-js', plugins_url( '/js/wpsl-cpt-upgrade.js', __FILE__ ), array( 'jquery' ), false );
+    wp_enqueue_script( 'wpsl-queue', plugins_url( '/js/ajax-queue.js', __FILE__ ), array( 'jquery' ), WPSL_VERSION_NUM, true ); 
+    wp_enqueue_script( 'wpsl-cpt-js', plugins_url( '/js/wpsl-cpt-upgrade.js', __FILE__ ), array( 'jquery' ), WPSL_VERSION_NUM, true );
     wp_localize_script( 'wpsl-cpt-js', 'wpslCptConversion', $cpt_js_l10n );
 }
 
@@ -520,13 +529,13 @@ function wpsl_cpt_dialog_html() {
     ?>
     <div id="wpsl-cpt-lightbox" style="display:none;">
         <span class="tb-close-icon"></span>
-        <p class="wpsl-cpt-remaining"><?php _e( 'Store locations to convert:', 'wpsl' ); echo '<span></span>'; ?></p>
+        <p class="wpsl-cpt-remaining"><?php esc_html_e( 'Store locations to convert:', 'wp-store-locator' ); echo '<span></span>'; ?></p>
         <div class="wslp-cpt-fix-wrap">
-            <input id="wpsl-start-cpt-conversion" class="button-primary" type="submit" value="<?php _e( 'Start Converting', 'wpsl' ); ?>" >
-            <img class="wpsl-preloader" alt="preloader" src="<?php echo WPSL_URL . 'img/ajax-loader.gif'; ?>" />
+            <input id="wpsl-start-cpt-conversion" class="button-primary" type="submit" value="<?php esc_html_e( 'Start Converting', 'wp-store-locator' ); ?>" >
+            <img class="wpsl-preloader" alt="preloader" src="<?php echo esc_url( WPSL_URL . 'img/ajax-loader.gif' ); ?>" />
         </div>
-        <input type="hidden" name="wpsl-cpt-fix-nonce" value="<?php echo wp_create_nonce( 'wpsl-cpt-fix' ); ?>" />
-        <input type="hidden" name="wpsl-cpt-conversion-count" value="<?php echo wp_create_nonce( 'wpsl-cpt-count' ); ?>" />
+        <input type="hidden" name="wpsl-cpt-fix-nonce" value="<?php echo esc_attr( wp_create_nonce( 'wpsl-cpt-fix' ) ); ?>" />
+        <input type="hidden" name="wpsl-cpt-conversion-count" value="<?php echo esc_attr( wp_create_nonce( 'wpsl-cpt-count' ) ); ?>" />
     </div>
     <div id="wpsl-cpt-overlay" style="display:none;"></div>
     <style>
@@ -644,7 +653,8 @@ function wpsl_convert_cpt_count() {
     if ( $remaining_count ) {
         $response['count'] = $remaining_count;
     } else {
-        $response['url'] = sprintf( __( 'All the store locations are now converted to custom post types. %s You can view them on the %sAll Stores%s page.', 'wpsl' ), '<br><br>', '<a href="' . admin_url( 'edit.php?post_type=wpsl_stores' ) . '">', '</a>' );
+        /* translators: %1$s: line break, %2$s: opening link tag, %3$s: closing link tag */
+        $response['url'] = sprintf( __( 'All the store locations are now converted to custom post types. %1$s You can view them on the %2$sAll Stores%3$s page.', 'wp-store-locator' ), '<br><br>', '<a href="' . admin_url( 'edit.php?post_type=wpsl_stores' ) . '">', '</a>' );
         
         delete_option( 'wpsl_convert_cpt' );
     }
@@ -674,7 +684,7 @@ function wpsl_remaining_cpt_count() {
         $cpt_count = 0;
     }
     
-    $db_count   = $wpdb->get_var( "SELECT COUNT(wpsl_id) FROM $table" );
+    $db_count   = $wpdb->get_var( "SELECT COUNT(wpsl_id) FROM " . esc_sql( $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $difference = $db_count - $cpt_count;
     
     /* 
@@ -697,12 +707,13 @@ function wpsl_cpt_conversion() {
     global $wpdb;
     
     // Try to disable the time limit to prevent timeouts.
+    // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Necessary to prevent timeouts during large CPT conversion operations.
     @set_time_limit( 0 );
 
     $meta_keys  = array( 'address', 'address2', 'city', 'state', 'zip', 'country', 'country_iso', 'lat', 'lng', 'phone', 'fax', 'url', 'email', 'hours' );
     $offset     = wpsl_remaining_cpt_count();
     $wpsl_table = $wpdb->prefix . 'wpsl_stores';
-    $stores     = $wpdb->get_results( "(SELECT * FROM $wpsl_table ORDER BY wpsl_id DESC LIMIT $offset) ORDER BY wpsl_id ASC" );
+    $stores     = $wpdb->get_results( $wpdb->prepare( "(SELECT * FROM " . esc_sql( $wpsl_table ) . " ORDER BY wpsl_id DESC LIMIT %d) ORDER BY wpsl_id ASC", $offset ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     
     foreach ( $stores as $store ) {
         

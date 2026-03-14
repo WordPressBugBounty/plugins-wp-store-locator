@@ -1,0 +1,14 @@
+{
+  "name": "wp-store-locator",
+  "version": "3.0.0",
+  "description": "WP Store Locator - Build tools for minification",
+  "scripts": {
+    "minify": "node build-minify.js",
+    "minify:watch": "node build-minify.js --watch"
+  },
+  "devDependencies": {
+    "terser": "^5.31.0",
+    "clean-css": "^5.3.3",
+    "chokidar": "^3.6.0"
+  }
+}

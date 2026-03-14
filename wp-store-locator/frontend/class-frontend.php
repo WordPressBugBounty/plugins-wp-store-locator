@@ -97,17 +97,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
             global $wpsl_settings;
 
-            /*
-             * Check if auto loading the locations on page load is enabled.
-             *
-             * If so then we save the store data in a transient to prevent a long loading time
-             * in case a large amount of locations need to be displayed.
-             *
-             * The SQL query that selects nearby locations doesn't take that long,
-             * but collecting all the store meta data in get_store_meta_data() for hunderds,
-             * or thousands of stores can make it really slow.
-             */
-            if ( $wpsl_settings['autoload'] && isset( $_GET['autoload'] ) && $_GET['autoload'] && !$wpsl_settings['debug'] && !isset( $_GET['skip_cache'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Checking URL parameters for caching logic, not processing form data.
+            if ( $wpsl_settings['autoload'] && isset( $_GET['autoload'] ) && sanitize_text_field( wp_unslash( $_GET['autoload'] ) ) && !$wpsl_settings['debug'] && !isset( $_GET['skip_cache'] ) ) {
                 $transient_name = $this->create_transient_name();
 
                 if ( false === ( $store_data = get_transient( 'wpsl_autoload_' . $transient_name ) ) ) {
@@ -145,19 +136,15 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $name_section[] = absint( $wpsl_settings['autoload_limit'] );
             }
 
-            /*
-             * Check if we need to include the cat id(s) in the transient name.
-             *
-             * This can only happen if the user used the
-             * 'category' attr on the wpsl shortcode.
-             */
-            if ( isset( $_GET['filter'] ) && $_GET['filter'] ) {
-                $name_section[] = absint( str_replace( ',', '', $_GET['filter'] ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameters for transient name generation, not processing form data.
+            $get_params = array_map( 'sanitize_text_field', wp_unslash( $_GET ) );
+
+            if ( ! empty( $get_params['filter'] ) ) {
+                $name_section[] = absint( str_replace( ',', '', $get_params['filter'] ) );
             }
 
-            // Include the lat value from the start location.
-            if ( isset( $_GET['lat'] ) && $_GET['lat'] ) {
-                $name_section[] = absint( str_replace( '.', '', $_GET['lat'] ) );
+            if ( ! empty( $get_params['lat'] ) ) {
+                $name_section[] = absint( str_replace( '.', '', $get_params['lat'] ) );
             }
 
             /*
@@ -217,8 +204,13 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
             // The placeholder values for the prepared statement in the SQL query.
             if ( empty( $args ) ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameters for search query, sanitized before use in SQL.
                 $args = $_GET;
             }
+
+            // Make sure the lat/lng values are valid numeric coordinates.
+            $args['lat'] = isset( $args['lat'] ) && is_numeric( $args['lat'] ) ? floatval( $args['lat'] ) : 0;
+            $args['lng'] = isset( $args['lng'] ) && is_numeric( $args['lng'] ) ? floatval( $args['lng'] ) : 0;
 
             array_push( $placeholder_values, $args['lat'], $args['lng'], $args['lat'] );
 
@@ -288,6 +280,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                        AND posts.post_status = 'publish' $group_by $sql_sort"
             );
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct DB query required for Haversine distance math. Results cannot be cached due to infinite dynamic coordinate inputs.
             $stores = $wpdb->get_results( $wpdb->prepare( $sql, $placeholder_values ) );
 
             if ( $stores ) {
@@ -391,7 +384,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                         } else {
                             $post_content = $page_object->post_content;
                         }
-
+                        
+                        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Intentionally applying the core 'the_content' filter to format raw post data.
                         $store_meta['description'] = apply_filters( 'the_content', $post_content );
                     }
 
@@ -587,7 +581,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
                         $hour_table .= '</td>';
                     } else {
-                        $hour_table .= '<td>' . __( 'Closed', 'wpsl' ) . '</td>';
+                        $hour_table .= '<td>' . esc_html__( 'Closed', 'wp-store-locator' ) . '</td>';
                     }
 
                     $hour_table .= '</tr>';
@@ -622,7 +616,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $content .= '[wpsl_map]';
                 $content .= '[wpsl_address]';
 
-                if ( !$wpsl_settings['hide_hours'] ) {
+                if ( ! $wpsl_settings['hide_hours'] ) {
                     $content .= '[wpsl_hours]';
                 }
             }
@@ -682,11 +676,11 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             }
 
             if ( isset( $atts['start_marker'] ) && $atts['start_marker'] ) {
-                $this->sl_shortcode_atts['js']['startMarker'] = $atts['start_marker'] . '@2x.png';
+                $this->sl_shortcode_atts['js']['startMarker'] = $this->create_retina_filename( $atts['start_marker'] );
             }
 
             if ( isset( $atts['store_marker'] ) && $atts['store_marker'] ) {
-                $this->sl_shortcode_atts['js']['storeMarker'] = $atts['store_marker'] . '@2x.png';
+                $this->sl_shortcode_atts['js']['storeMarker'] = $this->create_retina_filename( $atts['store_marker'] );
             }
         }
 
@@ -764,7 +758,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     }
                 }
             } else if ( empty( $atts['id'] ) ) {
-                return __( 'If you use the [wpsl_address] shortcode outside a store page you need to set the ID attribute.', 'wpsl' );
+                return esc_html__( 'If you use the [wpsl_address] shortcode outside a store page you need to set the ID attribute.', 'wp-store-locator' );
             }
 
             $content = '<div class="wpsl-locations-details">';
@@ -845,20 +839,20 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $content .= '<div class="wpsl-contact-details">';
 
                 if ( $atts['phone'] && $phone ) {
-                    $content .= esc_html( $wpsl->i18n->get_translation( 'phone_label', __( 'Phone', 'wpsl' ) ) ) . ': <span>' . $contact_details['phone'] . '</span><br/>';
+                    $content .= esc_html( $wpsl->i18n->get_translation( 'phone_label', __( 'Phone', 'wp-store-locator' ) ) ) . ': <span>' . $contact_details['phone'] . '</span><br/>';
                 }
 
                 if ( $atts['fax'] && $fax ) {
-                    $content .= esc_html( $wpsl->i18n->get_translation( 'fax_label', __( 'Fax', 'wpsl' ) ) ) . ': <span>' . $contact_details['fax'] . '</span><br/>';
+                    $content .= esc_html( $wpsl->i18n->get_translation( 'fax_label', __( 'Fax', 'wp-store-locator' ) ) ) . ': <span>' . $contact_details['fax'] . '</span><br/>';
                 }
 
                 if ( $atts['email'] && $email ) {
-                    $content .= esc_html( $wpsl->i18n->get_translation( 'email_label', __( 'Email', 'wpsl' ) ) ) . ': <span>' . $contact_details['email'] . '</span><br/>';
+                    $content .= esc_html( $wpsl->i18n->get_translation( 'email_label', __( 'Email', 'wp-store-locator' ) ) ) . ': <span>' . $contact_details['email'] . '</span><br/>';
                 }
 
                 if ( $atts['url'] && $store_url = get_post_meta( $atts['id'], 'wpsl_url', true ) ) {
                     $new_window = ( $wpsl_settings['new_window'] ) ? 'target="_blank"' : '' ;
-                    $content   .= esc_html( $wpsl->i18n->get_translation( 'url_label', __( 'Url', 'wpsl' ) ) ) . ': <a ' . $new_window . ' href="' . esc_url( $store_url ) . '">' . esc_url( $store_url ) . '</a><br/>';
+                    $content   .= esc_html( $wpsl->i18n->get_translation( 'url_label', __( 'Url', 'wp-store-locator' ) ) ) . ': <a ' . $new_window . ' href="' . esc_url( $store_url ) . '">' . esc_url( $store_url ) . '</a><br/>';
                 }
 
                 $content .= '</div>';
@@ -878,7 +872,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $destination   = $address . ',' . $city . ',' . $country;
                 $direction_url = "https://maps.google.com/maps?saddr=&daddr=" . urlencode( $destination ) . "&travelmode=" . strtolower( $this->get_directions_travel_mode() );
 
-                $content .= '<p><a ' . $new_window . ' href="' . esc_url( $direction_url ) . '">' . __( 'Directions', 'wpsl' ) . '</a></p>';
+                $content .= '<p><a ' . $new_window . ' href="' . esc_url( $direction_url ) . '">' . esc_html__( 'Directions', 'wp-store-locator' ) . '</a></p>';
                 $content .= '</div>';
             }
 
@@ -919,7 +913,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     }
                 }
             } else if ( empty( $atts['id'] ) ) {
-                return __( 'If you use the [wpsl_hours] shortcode outside a store page you need to set the ID attribute.', 'wpsl' );
+                return esc_html__( 'If you use the [wpsl_hours] shortcode outside a store page you need to set the ID attribute.', 'wp-store-locator' );
             }
 
             $opening_hours = get_post_meta( $atts['id'], 'wpsl_hours' );
@@ -953,7 +947,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 'map_style'        => '',
                 'street_view'      => $wpsl_settings['streetview'],
                 'scrollwheel'      => $wpsl_settings['scrollwheel'],
-                'control_position' => $wpsl_settings['control_position']
+                'zoom_controls'    => $wpsl_settings['zoom_controls'],
+                'control_position' => ''
             ) ), $atts );
 
             array_push( $this->load_scripts, 'wpsl_base' );
@@ -967,7 +962,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     }
                 }
             } else if ( empty( $atts['id'] ) && empty( $atts['category'] ) ) {
-                return __( 'If you use the [wpsl_map] shortcode outside a store page, then you need to set the ID or category attribute.', 'wpsl' );
+                $error_msg = esc_html__( 'If you use the wpsl_map shortcode outside a store page, then you need to set the ID or category attribute.', 'wp-store-locator' );
+                return $error_msg;
             }
 
             if ( $atts['category'] ) {
@@ -975,6 +971,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     'numberposts' => -1,
                     'post_type'   => 'wpsl_stores',
                     'post_status' => 'publish',
+                     // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- A tax_query is required to filter stores by category slug. Query is optimized to only return IDs.
                     'tax_query'   => array(
                         array(
                             'taxonomy' => 'wpsl_store_category',
@@ -1014,12 +1011,12 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 if ( is_numeric( $lat ) && is_numeric( $lng ) ) {
                     $store_meta[$i] = apply_filters( 'wpsl_cpt_info_window_meta_fields', array(
                         'store'    => get_the_title( $store_id ),
-                        'address'  => get_post_meta( $store_id, 'wpsl_address',  true ),
-                        'address2' => get_post_meta( $store_id, 'wpsl_address2', true ),
-                        'city'     => get_post_meta( $store_id, 'wpsl_city',     true ),
-                        'state'    => get_post_meta( $store_id, 'wpsl_state',    true ),
-                        'zip'      => get_post_meta( $store_id, 'wpsl_zip',      true ),
-                        'country'  => get_post_meta( $store_id, 'wpsl_country',  true )
+                        'address'  => sanitize_text_field( get_post_meta( $store_id, 'wpsl_address',  true ) ),
+                        'address2' => sanitize_text_field( get_post_meta( $store_id, 'wpsl_address2', true ) ),
+                        'city'     => sanitize_text_field( get_post_meta( $store_id, 'wpsl_city',     true ) ),
+                        'state'    => sanitize_text_field( get_post_meta( $store_id, 'wpsl_state',    true ) ),
+                        'zip'      => sanitize_text_field( get_post_meta( $store_id, 'wpsl_zip',      true ) ),
+                        'country'  => sanitize_text_field( get_post_meta( $store_id, 'wpsl_country',  true ) )
                     ), $store_id );
 
                     // Grab the permalink / url if necessary.
@@ -1027,7 +1024,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                         if ( $wpsl_settings['permalinks'] ) {
                             $store_meta[$i]['permalink'] = get_permalink( $store_id );
                         } else {
-                            $store_meta[$i]['url'] = get_post_meta( $store_id, 'wpsl_url', true );
+                            $store_meta[$i]['url'] = esc_url( get_post_meta( $store_id, 'wpsl_url', true ) );
                         }
                     }
 
@@ -1117,8 +1114,17 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $map_atts['scrollWheel'] = $this->shortcode_atts_boolean( $atts['scrollwheel'] );
             }
 
+            if ( isset( $atts['zoom_controls'] ) ) {
+                $map_atts['zoomControls'] = $this->shortcode_atts_boolean( $atts['zoom_controls'] );
+            }
+
             if ( isset( $atts['control_position'] ) && !empty( $atts['control_position'] ) && ( $atts['control_position'] == 'left' || $atts['control_position'] == 'right' ) ) {
                 $map_atts['controlPosition'] = $atts['control_position'];
+
+                // If a control position is explicitly set, make sure the zoom controls are enabled.
+                if ( !isset( $map_atts['zoomControls'] ) || !$map_atts['zoomControls'] ) {
+                    $map_atts['zoomControls'] = 1;
+                }
             }
 
             return $map_atts;
@@ -1196,6 +1202,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
             $settings    = get_option( 'wpsl_settings' );
             $list_values = explode( ',', $settings[$type] );
+            $response    = '';
 
             foreach ( $list_values as $k => $list_value ) {
 
@@ -1428,10 +1435,10 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     $category .= '</ul>';
                 } else {
                     $category = '<div id="wpsl-category">' . "\r\n";
-                    $category .= '<label for="wpsl-category-list">' . esc_html( $wpsl->i18n->get_translation( 'category_label', __( 'Category', 'wpsl' ) ) ) . '</label>' . "\r\n";
+                    $category .= '<label for="wpsl-category-list">' . esc_html( $wpsl->i18n->get_translation( 'category_label', __( 'Category', 'wp-store-locator' ) ) ) . '</label>' . "\r\n";
 
                     $args = apply_filters( 'wpsl_dropdown_category_args', array(
-                            'show_option_none'  => $wpsl->i18n->get_translation( 'category_default_label', __( 'Any', 'wpsl' ) ),
+                            'show_option_none'  => $wpsl->i18n->get_translation( 'category_default_label', __( 'Any', 'wp-store-locator' ) ),
                             'option_none_value' => '0',
                             'orderby'           => 'NAME',
                             'order'             => 'ASC',
@@ -1467,9 +1474,12 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
             $selected_id = '';
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading category selection from URL/form for display purposes, sanitized with absint().
+            $widget_category = isset( $_REQUEST['wpsl-widget-categories'] ) ? absint( $_REQUEST['wpsl-widget-categories'] ) : 0;
+
             // Check if the ID for the selected cat is either passed through the widget, or shortcode
-            if ( isset( $_REQUEST['wpsl-widget-categories'] ) ) {
-                $selected_id = absint( $_REQUEST['wpsl-widget-categories'] );
+            if ( $widget_category ) {
+                $selected_id = $widget_category;
             } else if ( isset( $this->sl_shortcode_atts['category_selection'] ) ) {
 
                 /*
@@ -1506,19 +1516,38 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
         }
 
         /**
-         * Create a filename with @2x in it for the selected marker color.
+         * Create a filename with @2x or 2x in it for the selected marker color.
          *
          * So when a user selected green.png in the admin panel. The JS on the front-end will end up
-         * loading green@2x.png to provide support for retina compatible devices.
+         * loading green2x.png (or green@2x.png for custom markers) to provide support for retina compatible devices.
+         *
+         * Plugin markers use '2x' to comply with PHPCS naming rules, while custom markers can use '@2x'.
          *
          * @since 1.0.0
-         * @param  string $filename The name of the seleted marker
-         * @return string $filename The filename with @2x added to the end
+         * @param  string $filename The name of the selected marker
+         * @return string $filename The filename with @2x or 2x added to the end
          */
         public function create_retina_filename( $filename ) {
 
-            $filename = explode( '.', $filename );
-            $filename = $filename[0] . '@2x.' . $filename[1];
+            $parts = explode( '.', $filename );
+            $name  = $parts[0];
+            $ext   = isset( $parts[1] ) ? $parts[1] : 'png';
+            
+            // Check if the filename already contains a retina suffix (already processed)
+            if ( strpos( $name, '@2x' ) !== false || preg_match( '/2x$/', $name ) ) {
+                return $filename;
+            }
+            
+            // List of default plugin marker names (use '2x' for PHPCS compliance)
+            $plugin_markers = array( 'red', 'blue', 'green', 'orange', 'purple', 'pink', 'dark-blue', 'dark-green', 'dark-orange' );
+            
+            // Check if this is a plugin default marker
+            $is_plugin_marker = in_array( $name, $plugin_markers, true );
+            
+            // For plugin markers, use '2x' (PHPCS compliant), for custom markers preserve '@2x' convention ( for now )
+            $retina_suffix = $is_plugin_marker ? '2x' : '@2x';
+            
+            $filename = $name . $retina_suffix . '.' . $ext;
 
             return $filename;
         }
@@ -1629,10 +1658,10 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
         public function geolocation_errors() {
 
             $geolocation_errors = array(
-                'denied'       => __( 'The application does not have permission to use the Geolocation API.', 'wpsl' ),
-                'unavailable'  => __( 'Location information is unavailable.', 'wpsl' ),
-                'timeout'      => __( 'The geolocation request timed out.', 'wpsl' ),
-                'generalError' => __( 'An unknown error occurred.', 'wpsl' )
+                'denied'       => __( 'The application does not have permission to use the Geolocation API.', 'wp-store-locator' ),
+                'unavailable'  => __( 'Location information is unavailable.', 'wp-store-locator' ),
+                'timeout'      => __( 'The geolocation request timed out.', 'wp-store-locator' ),
+                'generalError' => __( 'An unknown error occurred.', 'wp-store-locator' )
             );
 
             return $geolocation_errors;
@@ -1736,7 +1765,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             wp_enqueue_script( 'wpsl-js', apply_filters( 'wpsl_gmap_js', WPSL_URL . 'js/wpsl-gmap'. $min .'.js' ), array( 'jquery' ), WPSL_VERSION_NUM, true );
 
             if ( !function_exists( 'BorlabsCookieHelper' ) ) {
-                wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), '', null, true );
+                // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External Google Maps API library, version controlled via URL parameter
+                wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), array(), null, true );
             } else {
                 if ( !$wpsl_settings['delay_loading']
                     ||
@@ -1746,7 +1776,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                         stripos( $post->post_content, '[borlabs-cookie id="wpstorelocator" type="content-blocker"' ) === false
                     )
                 ) {
-                    wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), '', null, true );
+                    // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External Google Maps API library, version controlled via URL parameter
+                    wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), array(), null, true );
                 }
             }
 
@@ -1871,8 +1902,8 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             }
 
             // Include the map style.
-            if ( !empty( $wpsl_settings['map_style'] ) ) {
-                $base_settings['mapStyle'] = strip_tags( stripslashes( json_decode( $wpsl_settings['map_style'] ) ) );
+            if ( ! empty( $wpsl_settings['map_style'] ) ) {
+                $base_settings['mapStyle'] = wp_strip_all_tags( stripslashes( json_decode( $wpsl_settings['map_style'] ) ) );
             }
 
             wp_enqueue_script( 'underscore' );
@@ -1882,19 +1913,24 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $settings = wp_parse_args( $base_settings, $locator_map_settings );
                 $template = 'wpsl_store_locator';
                 $labels   = array(
-                    'preloader'         => $wpsl->i18n->get_translation( 'preloader_label', __( 'Searching...', 'wpsl' ) ),
-                    'noResults'         => $wpsl->i18n->get_translation( 'no_results_label', __( 'No results found', 'wpsl' ) ),
-                    'moreInfo'          => $wpsl->i18n->get_translation( 'more_label', __( 'More info', 'wpsl' ) ),
-                    'generalError'      => $wpsl->i18n->get_translation( 'error_label', __( 'Something went wrong, please try again!', 'wpsl' ) ),
-                    'queryLimit'        => $wpsl->i18n->get_translation( 'limit_label', __( 'API usage limit reached', 'wpsl' ) ),
-                    'directions'        => $wpsl->i18n->get_translation( 'directions_label', __( 'Directions', 'wpsl' ) ),
-                    'noDirectionsFound' => $wpsl->i18n->get_translation( 'no_directions_label', __( 'No route could be found between the origin and destination', 'wpsl' ) ),
-                    'startPoint'        => $wpsl->i18n->get_translation( 'start_label', __( 'Start location', 'wpsl' ) ),
-                    'back'              => $wpsl->i18n->get_translation( 'back_label', __( 'Back', 'wpsl' ) ),
-                    'streetView'        => $wpsl->i18n->get_translation( 'street_view_label', __( 'Street view', 'wpsl' ) ),
-                    'zoomHere'          => $wpsl->i18n->get_translation( 'zoom_here_label', __( 'Zoom here', 'wpsl' ) ),
-                    'copyright'         => sprintf( __( 'Powered by Google, ©%d Google', 'wpsl' ), date( 'Y' ) ),
+                    'preloader'         => $wpsl->i18n->get_translation( 'preloader_label', __( 'Searching...', 'wp-store-locator' ) ),
+                    'noResults'         => $wpsl->i18n->get_translation( 'no_results_label', __( 'No results found', 'wp-store-locator' ) ),
+                    'moreInfo'          => $wpsl->i18n->get_translation( 'more_label', __( 'More info', 'wp-store-locator' ) ),
+                    'generalError'      => $wpsl->i18n->get_translation( 'error_label', __( 'Something went wrong, please try again!', 'wp-store-locator' ) ),
+                    'queryLimit'        => $wpsl->i18n->get_translation( 'limit_label', __( 'API usage limit reached', 'wp-store-locator' ) ),
+                    'directions'        => $wpsl->i18n->get_translation( 'directions_label', __( 'Directions', 'wp-store-locator' ) ),
+                    'noDirectionsFound' => $wpsl->i18n->get_translation( 'no_directions_label', __( 'No route could be found between the origin and destination', 'wp-store-locator' ) ),
+                    'startPoint'        => $wpsl->i18n->get_translation( 'start_label', __( 'Start location', 'wp-store-locator' ) ),
+                    'back'              => $wpsl->i18n->get_translation( 'back_label', __( 'Back', 'wp-store-locator' ) ),
+                    'streetView'        => $wpsl->i18n->get_translation( 'street_view_label', __( 'Street view', 'wp-store-locator' ) ),
+                    'zoomHere'          => $wpsl->i18n->get_translation( 'zoom_here_label', __( 'Zoom here', 'wp-store-locator' ) ),
                 );
+
+                // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Only getting current year for copyright notice, not affected by timezone.
+                $current_year = date( 'Y' );
+
+                /* translators: %d: current year */
+                $labels['copyright'] = sprintf( __( 'Powered by Google, %d Google', 'wp-store-locator' ), $current_year );
 
                 wp_localize_script( 'wpsl-js', 'wpslLabels', $labels );
                 wp_localize_script( 'wpsl-js', 'wpslGeolocationErrors', $this->geolocation_errors() );

@@ -5,6 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// @todo will be removed with v3 update.
+// we move to https://easydigitaldownloads.com/docs/software-licensing-updater-implementation-for-wordpress-plugins/
+
 /**
  * Allows plugins to use their own update API.
  *
@@ -187,12 +190,8 @@ class EDD_SL_Plugin_Updater {
 			return;
 		}
 
-		printf(
-			'<tr class="plugin-update-tr %3$s" id="%1$s-update" data-slug="%1$s" data-plugin="%2$s">',
-			$this->slug,
-			$file,
-			in_array( $this->name, $this->get_active_plugins(), true ) ? 'active' : 'inactive'
-		);
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Variables are escaped within printf.
+		printf( '<tr class="plugin-update-tr %3$s" id="%1$s-update" data-slug="%1$s" data-plugin="%2$s">', $this->slug, $file, in_array( $this->name, $this->get_active_plugins(), true ) ? 'active' : 'inactive' );
 
 		echo '<td colspan="3" class="plugin-update colspanchange">';
 		echo '<div class="update-message notice inline notice-warning notice-alt"><p>';
@@ -219,41 +218,26 @@ class EDD_SL_Plugin_Updater {
 			self_admin_url( 'update.php' )
 		);
 
-		printf(
-		/* translators: the plugin name. */
-			esc_html__( 'There is a new version of %1$s available.', 'easy-digital-downloads' ),
-			esc_html( $plugin['Name'] )
-		);
+		/* translators: %1$s: the plugin name. */
+		printf( esc_html__( 'There is a new version of %1$s available.', 'wp-store-locator' ), esc_html( $plugin['Name'] ) );
 
 		if ( ! current_user_can( 'update_plugins' ) ) {
 			echo ' ';
-			esc_html_e( 'Contact your network administrator to install the update.', 'easy-digital-downloads' );
+			esc_html_e( 'Contact your network administrator to install the update.', 'wp-store-locator' );
 		} elseif ( empty( $update_cache->response[ $this->name ]->package ) && ! empty( $changelog_link ) ) {
 			echo ' ';
-			printf(
 			/* translators: 1. opening anchor tag, do not translate 2. the new plugin version 3. closing anchor tag, do not translate. */
-				__( '%1$sView version %2$s details%3$s.', 'easy-digital-downloads' ),
-				'<a target="_blank" class="thickbox open-plugin-details-modal" href="' . esc_url( $changelog_link ) . '">',
-				esc_html( $update_cache->response[ $this->name ]->new_version ),
-				'</a>'
-			);
+			$view_details_text = __( '%1$sView version %2$s details%3$s.', 'wp-store-locator' );
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped within printf arguments.
+			printf( $view_details_text, '<a target="_blank" class="thickbox open-plugin-details-modal" href="' . esc_url( $changelog_link ) . '">', esc_html( $update_cache->response[ $this->name ]->new_version ), '</a>' );
 		} elseif ( ! empty( $changelog_link ) ) {
 			echo ' ';
-			printf(
-				__( '%1$sView version %2$s details%3$s or %4$supdate now%5$s.', 'easy-digital-downloads' ),
-				'<a target="_blank" class="thickbox open-plugin-details-modal" href="' . esc_url( $changelog_link ) . '">',
-				esc_html( $update_cache->response[ $this->name ]->new_version ),
-				'</a>',
-				'<a target="_blank" class="update-link" href="' . esc_url( wp_nonce_url( $update_link, 'upgrade-plugin_' . $file ) ) . '">',
-				'</a>'
-			);
+			/* translators: 1. opening anchor tag, do not translate 2. the new plugin version 3. closing anchor tag, do not translate 4. opening anchor tag, do not translate 5. closing anchor tag, do not translate. */
+			$view_details_or_update_text = __( '%1$sView version %2$s details%3$s or %4$supdate now%5$s.', 'wp-store-locator' );
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped within printf arguments.
+			printf( $view_details_or_update_text, '<a target="_blank" class="thickbox open-plugin-details-modal" href="' . esc_url( $changelog_link ) . '">', esc_html( $update_cache->response[ $this->name ]->new_version ), '</a>', '<a target="_blank" class="update-link" href="' . esc_url( wp_nonce_url( $update_link, 'upgrade-plugin_' . $file ) ) . '">','</a>' );
 		} else {
-			printf(
-				' %1$s%2$s%3$s',
-				'<a target="_blank" class="update-link" href="' . esc_url( wp_nonce_url( $update_link, 'upgrade-plugin_' . $file ) ) . '">',
-				esc_html__( 'Update now.', 'easy-digital-downloads' ),
-				'</a>'
-			);
+			printf( ' %1$s%2$s%3$s', '<a target="_blank" class="update-link" href="' . esc_url( wp_nonce_url( $update_link, 'upgrade-plugin_' . $file ) ) . '">', esc_html__( 'Update now.', 'wp-store-locator' ), '</a>' );
 		}
 
 		do_action( "in_plugin_update_message-{$file}", $plugin, $plugin );
@@ -469,7 +453,7 @@ class EDD_SL_Plugin_Updater {
 	 * If available, show the changelog for sites in a multisite install.
 	 */
 	public function show_changelog() {
-
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- No nonce needed for read-only changelog display, capability check provides security.
 		if ( empty( $_REQUEST['edd_sl_action'] ) || 'view_plugin_changelog' !== $_REQUEST['edd_sl_action'] ) {
 			return;
 		}
@@ -481,9 +465,10 @@ class EDD_SL_Plugin_Updater {
 		if ( empty( $_REQUEST['slug'] ) || $this->slug !== $_REQUEST['slug'] ) {
 			return;
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! current_user_can( 'update_plugins' ) ) {
-			wp_die( esc_html__( 'You do not have permission to install plugin updates', 'easy-digital-downloads' ), esc_html__( 'Error', 'easy-digital-downloads' ), array( 'response' => 403 ) );
+			wp_die( esc_html__( 'You do not have permission to install plugin updates', 'wp-store-locator' ), esc_html__( 'Error', 'wp-store-locator' ), array( 'response' => 403 ) );
 		}
 
 		$version_info = $this->get_repo_api_data();

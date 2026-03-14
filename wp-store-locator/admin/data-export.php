@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit;
+
 add_action( 'admin_init', 'wpsl_single_location_export' );
 
 /**
@@ -15,10 +17,10 @@ function wpsl_single_location_export() {
 
     global $wpsl_admin; // From the WPSL plugin
 
-    if ( isset( $_GET['wpsl_data_export'] ) && isset( $_GET['wpsl_export_nonce'] ) ) {
+    if ( isset( $_GET['wpsl_data_export'] ) && isset( $_GET['wpsl_export_nonce'] ) && isset( $_GET['post'] ) ) {
         $post_id = absint( $_GET['post'] );
 
-        if ( !wp_verify_nonce( $_GET['wpsl_export_nonce'], 'wpsl_export_' . $post_id ) )
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['wpsl_export_nonce'] ) ), 'wpsl_export_' . $post_id ) )
             return;
 
         if ( is_int( wp_is_post_revision( $post_id ) ) )
@@ -69,7 +71,7 @@ function wpsl_single_location_export() {
         $post_meta = apply_filters( 'wpsl_single_location_export_data', $post_meta, $post_id );
 
         if ( $post_meta ) {
-            $file_name = 'wpsl-export-' . $post_id . '-' . date('Ymd' ) . '.csv';
+            $file_name = 'wpsl-export-' . $post_id . '-' . gmdate('Ymd' ) . '.csv';
 
             // Set the download headers for the CSV file.
             header( 'Content-Type: text/csv; charset=utf-8' );
@@ -80,6 +82,7 @@ function wpsl_single_location_export() {
             fputcsv( $output, $post_meta['headers'] );
             fputcsv( $output, $post_meta['data'] );
 
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- php://output is a special stream for direct output, not filesystem operations
             fclose( $output );
         }
 

@@ -124,7 +124,8 @@ class WPSL_License_Manager {
 			return;
 		}
 
-        $license = sanitize_text_field( $_POST['wpsl_licenses'][ $this->item_shortname ] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification is done in process_license_form() before this method is called
+        $license = isset( $_POST['wpsl_licenses'][ $this->item_shortname ] ) ? sanitize_text_field( wp_unslash( $_POST['wpsl_licenses'][ $this->item_shortname ] ) ) : '';
 
 		// data to send in our API request.
 		$api_params = array(
@@ -180,7 +181,8 @@ class WPSL_License_Manager {
                 
                 $this->set_license_notice( $this->item_name . ' license deactivated.', 'updated' );
             } else {
-                $message = sprintf (__( 'The %s license failed to deactivate, please try again later or contact support!', 'wpsl' ), $this->item_name );
+                /* translators: %s: add-on name */
+                $message = sprintf (__( 'The %s license failed to deactivate, please try again later or contact support!', 'wp-store-locator' ), $this->item_name );
                 $this->set_license_notice( $message, 'error' );
             }
         }     
@@ -206,7 +208,7 @@ class WPSL_License_Manager {
 
 		// Make sure the response came back okay.
 		if ( is_wp_error( $response ) ) {
-            $message = $response->get_error_message() . '. ' . __( 'Please try again later!', 'wpsl' );
+            $message = $response->get_error_message() . '. ' . __( 'Please try again later!', 'wp-store-locator' );
             $this->set_license_notice( $message, 'error' );
         } else {
             $license_data = json_decode( wp_remote_retrieve_body( $response ) );        
@@ -254,16 +256,20 @@ class WPSL_License_Manager {
 
         switch ( $activation_errors ) {
             case 'item_name_mismatch':
-                $error_msg = sprintf( __( 'The %s license key does not belong to this add-on.', 'wpsl' ), $this->item_name );
+                /* translators: %s: add-on name */
+                $error_msg = sprintf( __( 'The %s license key does not belong to this add-on.', 'wp-store-locator' ), $this->item_name );
                 break;
             case 'no_activations_left':
-                $error_msg = sprintf( __( 'The %s license key does not have any activations left.', 'wpsl' ), $this->item_name );
+                /* translators: %s: add-on name */
+                $error_msg = sprintf( __( 'The %s license key does not have any activations left.', 'wp-store-locator' ), $this->item_name );
                 break;
             case 'expired':
-                $error_msg = sprintf( __( 'The %s license key is expired. Please renew it.', 'wpsl' ), $this->item_name );
+                /* translators: %s: add-on name */
+                $error_msg = sprintf( __( 'The %s license key is expired. Please renew it.', 'wp-store-locator' ), $this->item_name );
                 break;
             default:
-                $error_msg = sprintf( __( 'There was a problem activating the license key for the %s, please try again or contact support. Error code: %s', 'wpsl' ), $this->item_name, $activation_errors );
+                /* translators: %1$s: add-on name, %2$s: error code */
+                $error_msg = sprintf( __( 'There was a problem activating the license key for the %1$s, please try again or contact support. Error code: %2$s', 'wp-store-locator' ), $this->item_name, $activation_errors );
                 break;
         }
 

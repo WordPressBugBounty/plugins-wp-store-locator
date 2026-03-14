@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Add WPSL Roles.
@@ -17,7 +18,7 @@ function wpsl_add_roles() {
     }
 
 	if ( is_object( $wp_roles ) ) {
-		add_role( 'wpsl_store_locator_manager', __( 'Store Locator Manager', 'wpsl' ), array(
+		add_role( 'wpsl_store_locator_manager', __( 'Store Locator Manager', 'wp-store-locator' ), array(
 			'read'                   => true,
 			'edit_posts'             => true,
 			'delete_posts'           => true,

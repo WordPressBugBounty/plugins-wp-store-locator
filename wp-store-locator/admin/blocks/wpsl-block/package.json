@@ -1,0 +1,13 @@
+{
+    "name": "wpsl-block",
+    "version": "1.0.0",
+    "description": "WP Store Locator Gutenberg block",
+    "private": true,
+    "scripts": {
+        "build": "wp-scripts build src/index.js --output-path=build",
+        "start": "wp-scripts start src/index.js --output-path=build"
+    },
+    "devDependencies": {
+        "@wordpress/scripts": "^30.0.0"
+    }
+}

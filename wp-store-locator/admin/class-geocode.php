@@ -77,16 +77,18 @@ if ( !class_exists( 'WPSL_Geocode' ) ) {
 
                         return $location_data;
                     case 'ZERO_RESULTS':
-                        $msg = __( 'The Google Geocoding API returned no results for the supplied address. Please change the address and try again.', 'wpsl' );
+                        $msg = __( 'The Google Geocoding API returned no results for the supplied address. Please change the address and try again.', 'wp-store-locator' );
                         break;
                     case 'OVER_QUERY_LIMIT':
-                        $msg = sprintf( __( 'You have reached the daily allowed geocoding limit, you can read more %shere%s.', 'wpsl' ), '<a target="_blank" href="https://developers.google.com/maps/documentation/geocoding/#Limits">', '</a>' );
+                        /* translators: %1$s: opening link tag, %2$s: closing link tag */
+                        $msg = sprintf( __( 'You have reached the daily allowed geocoding limit, you can read more %1$shere%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://developers.google.com/maps/documentation/geocoding/#Limits">', '</a>' );
                         break;
                     case 'REQUEST_DENIED':
-                        $msg = sprintf( __( 'The Google Geocoding API returned REQUEST_DENIED. %s', 'wpsl' ), $this->check_geocode_error_msg( $geocode_response ) );
+                        /* translators: %s: error details */
+                        $msg = sprintf( __( 'The Google Geocoding API returned REQUEST_DENIED. %s', 'wp-store-locator' ), $this->check_geocode_error_msg( $geocode_response ) );
                         break;
                     default:
-                        $msg = __( 'The Google Geocoding API failed to return valid data, please try again later.', 'wpsl' );
+                        $msg = __( 'The Google Geocoding API failed to return valid data, please try again later.', 'wp-store-locator' );
                         break;
                 }
             } else {
@@ -114,9 +116,11 @@ if ( !class_exists( 'WPSL_Geocode' ) ) {
 
                 // If the problem is IP based, then show a different error msg.
                 if ( strpos( $geocode_response['error_message'], 'IP' ) !== false  ) {
-                    $error_msg = sprintf( __( '%sError message: %s. %s Make sure the IP address mentioned in the error matches with the IP set as the %sreferrer%s for the server API key in the %sGoogle API Console%s.', 'wpsl' ), $breaks, $this->clickable_error_links( $geocode_response['error_message'] ), $breaks, '<a href="https://wpstorelocator.co/document/create-google-api-keys/#server-key-referrer">', '</a>', '<a href="https://console.developers.google.com">', '</a>' );
+                    /* translators: %1$s: line break, %2$s: error message, %3$s: line break, %4$s: opening referrer link tag, %5$s: closing link tag, %6$s: opening console link tag, %7$s: closing link tag */
+                    $error_msg = sprintf( __( '%1$sError message: %2$s. %3$s Make sure the IP address mentioned in the error matches with the IP set as the %4$sreferrer%5$s for the server API key in the %6$sGoogle API Console%7$s.', 'wp-store-locator' ), $breaks, $this->clickable_error_links( $geocode_response['error_message'] ), $breaks, '<a href="https://wpstorelocator.co/document/create-google-api-keys/#server-key-referrer">', '</a>', '<a href="https://console.developers.google.com">', '</a>' );
                 } else {
-                    $error_msg = sprintf( __( '%sError message: %s %s Check if your issue is covered in the %stroubleshooting%s section, if not, then please open a %ssupport ticket%s.', 'wpsl' ),  $breaks, $this->clickable_error_links( $geocode_response['error_message'] ), $breaks, '<a href="https://wpstorelocator.co/document/create-google-api-keys/#troubleshooting">', '</a>', '<a href="https://wpstorelocator.co/support/">', '</a>' );
+                    /* translators: %1$s: line break, %2$s: error message, %3$s: line break, %4$s: opening troubleshooting link tag, %5$s: closing link tag, %6$s: opening support link tag, %7$s: closing link tag */
+                    $error_msg = sprintf( __( '%1$sError message: %2$s %3$s Check if your issue is covered in the %4$stroubleshooting%5$s section, if not, then please open a %6$ssupport ticket%7$s.', 'wp-store-locator' ),  $breaks, $this->clickable_error_links( $geocode_response['error_message'] ), $breaks, '<a href="https://wpstorelocator.co/document/create-google-api-keys/#troubleshooting">', '</a>', '<a href="https://wpstorelocator.co/support/">', '</a>' );
                 }
             } else {
                 $error_msg = '';
@@ -138,21 +142,28 @@ if ( !class_exists( 'WPSL_Geocode' ) ) {
             $response = wpsl_call_geocode_api( $address );
 
             if ( is_wp_error( $response ) ) {
-                $geo_response = sprintf( __( 'Something went wrong connecting to the Google Geocode API: %s %s Please try again later.', 'wpsl' ), $response->get_error_message(), '<br><br>' );
+                /* translators: %1$s: error message, %2$s: line break */
+                $geo_response = sprintf( __( 'Something went wrong connecting to the Google Geocode API: %1$s %2$s Please try again later.', 'wp-store-locator' ), $response->get_error_message(), '<br><br>' );
             } else if ( $response['response']['code'] == 500 ) {
-                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %s %s %s Please try again later.', 'wpsl' ), $response['response']['code'], $response['response']['message'], '<br><br>' );
+                /* translators: %1$s: error code, %2$s: error message, %3$s: line break */
+                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %1$s %2$s %3$s Please try again later.', 'wp-store-locator' ), $response['response']['code'], $response['response']['message'], '<br><br>' );
             } else if ( $response['response']['code'] == 400 ) {
+                $data_issue = '';
 
                 // Check on which page the 400 error was triggered, and based on that adjust the msg.
-                if ( isset( $_GET['page'] ) && $_GET['page'] == 'wpsl_csv' ) {
-                    $data_issue = sprintf( __( 'You can fix this by making sure the CSV file uses %sUTF-8 encoding%s.', 'wpsl' ), '<a href="https://wpstorelocator.co/document/csv-manager/#utf8">', '</a>' );
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checking which admin page we're on, not processing form data
+                if ( isset( $_GET['page'] ) && sanitize_text_field( wp_unslash( $_GET['page'] ) ) == 'wpsl_csv' ) {
+                    /* translators: %1$s: opening link tag, %2$s: closing link tag */
+                    $data_issue = sprintf( __( 'You can fix this by making sure the CSV file uses %1$sUTF-8 encoding%2$s.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/csv-manager/#utf8">', '</a>' );
                 } else if ( !$address ) {
-                    $data_issue = __( 'You need to provide the details for either the address, city, state or country before the API can return coordinates.', 'wpsl' ); // this is only possible if the required fields are disabled with custom code.
+                    $data_issue = __( 'You need to provide the details for either the address, city, state or country before the API can return coordinates.', 'wp-store-locator' ); // this is only possible if the required fields are disabled with custom code.
                 }
 
-                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %s %s %s %s', 'wpsl' ), $response['response']['code'], $response['response']['message'], '<br><br>', $data_issue );
+                /* translators: %1$s: error code, %2$s: error message, %3$s: line break, %4$s: additional data issue message */
+                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %1$s %2$s %3$s %4$s', 'wp-store-locator' ), $response['response']['code'], $response['response']['message'], '<br><br>', $data_issue );
             } else if ( $response['response']['code'] != 200 ) {
-                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %s %s %s Please contact %ssupport%s if the problem persists.', 'wpsl' ), $response['response']['code'], $response['response']['message'], '<br><br>', '<a href="https://wpstorelocator.co/support/">', '</a>' );
+                /* translators: %1$s: error code, %2$s: error message, %3$s: line break, %4$s: opening support link tag, %5$s: closing link tag */
+                $geo_response = sprintf( __( 'The Google Geocode API reported the following problem: error %1$s %2$s %3$s Please contact %4$ssupport%5$s if the problem persists.', 'wp-store-locator' ), $response['response']['code'], $response['response']['message'], '<br><br>', '<a href="https://wpstorelocator.co/support/">', '</a>' );
             } else {
                 $geo_response = json_decode( $response['body'], true );
             }

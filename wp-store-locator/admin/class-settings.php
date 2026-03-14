@@ -17,7 +17,6 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $this->manually_clear_transient();
 
             add_action( 'wp_ajax_validate_server_key',        array( $this, 'ajax_validate_server_key' ) );
-            add_action( 'wp_ajax_nopriv_validate_server_key', array( $this, 'ajax_validate_server_key' ) );
             add_action( 'admin_init',                         array( $this, 'register_settings' ) );
             add_action( 'admin_init',                         array( $this, 'maybe_flush_rewrite_and_transient' ) );
         }
@@ -34,10 +33,10 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             
             global $wpsl_admin;
             
-            if ( isset( $_GET['action'] ) && $_GET['action'] == 'clear_wpsl_transients' && isset( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'clear_transients' ) ) {
+            if ( isset( $_GET['action'] ) && $_GET['action'] == 'clear_wpsl_transients' && isset( $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'clear_transients' ) ) {
                 $wpsl_admin->delete_autoload_transient();
                 
-                $msg = __( 'WP Store Locator Transients Cleared', 'wpsl' );
+                $msg = __( 'WP Store Locator Transients Cleared', 'wp-store-locator' );
                 $wpsl_admin->notices->save( 'update', $msg );
                 
                 /* 
@@ -47,7 +46,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                  * and the &action=clear_wpsl_transients param is still there it 
                  * will show two notices 'WP Store Locator Transients Cleared' and 'Settings Saved'.
                  */
-                wp_redirect( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings' ) );
+                wp_safe_redirect( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings' ) );
                 exit;
             }
         }
@@ -69,6 +68,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
          * @return array $output The setting values
          */
 		public function sanitize_settings() {
+            // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verification is handled by WordPress register_setting()
+            // phpcs:disable WordPress.Security.ValidatedSanitizedInput -- All input is validated and sanitized appropriately throughout this method
 
             global $wpsl_settings, $wpsl_admin;
 
@@ -107,16 +108,16 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
              * If the provided server key is different then the existing value,
              * then we test if it's valid by making a call to the Geocode API.
              */
-            if ( $_POST['wpsl_api']['server_key'] && $wpsl_settings['api_server_key'] != $_POST['wpsl_api']['server_key'] || !get_option( 'wpsl_valid_server_key' ) ) {
-                $server_key = sanitize_text_field( $_POST['wpsl_api']['server_key'] );
+            $api_server_key = isset( $_POST['wpsl_api']['server_key'] ) ? sanitize_text_field( $_POST['wpsl_api']['server_key'] ) : '';
 
-                $this->validate_server_key( $server_key );
+            if ( $api_server_key && $wpsl_settings['api_server_key'] != $api_server_key || !get_option( 'wpsl_valid_server_key' ) ) {
+                $this->validate_server_key( $api_server_key );
             }
 
-			$output['api_server_key']        = sanitize_text_field( $_POST['wpsl_api']['server_key'] );
-            $output['api_browser_key']       = sanitize_text_field( $_POST['wpsl_api']['browser_key'] );
-			$output['api_language']          = wp_filter_nohtml_kses( $_POST['wpsl_api']['language'] );
-			$output['api_region']            = wp_filter_nohtml_kses( $_POST['wpsl_api']['region'] );
+			$output['api_server_key']        = $api_server_key;
+            $output['api_browser_key']       = isset( $_POST['wpsl_api']['browser_key'] ) ? sanitize_text_field( $_POST['wpsl_api']['browser_key'] ) : '';
+			$output['api_language']          = isset( $_POST['wpsl_api']['language'] ) ? wp_filter_nohtml_kses( $_POST['wpsl_api']['language'] ) : '';
+			$output['api_region']            = isset( $_POST['wpsl_api']['region'] ) ? wp_filter_nohtml_kses( $_POST['wpsl_api']['region'] ) : '';
             $output['api_geocode_component'] = isset( $_POST['wpsl_api']['geocode_component'] ) ? 1 : 0;
 
             $output['autocomplete'] = isset( $_POST['wpsl_search']['autocomplete'] ) ? 1 : 0;
@@ -125,9 +126,9 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $output['results_dropdown']     = isset( $_POST['wpsl_search']['results_dropdown'] ) ? 1 : 0;
             $output['radius_dropdown']      = isset( $_POST['wpsl_search']['radius_dropdown'] ) ? 1 : 0;
             $output['category_filter']      = isset( $_POST['wpsl_search']['category_filter'] ) ? 1 : 0;
-            $output['category_filter_type'] = ( $_POST['wpsl_search']['category_filter_type'] == 'dropdown' ) ? 'dropdown' : 'checkboxes';
+            $output['category_filter_type'] = ( isset( $_POST['wpsl_search']['category_filter_type'] ) && $_POST['wpsl_search']['category_filter_type'] == 'dropdown' ) ? 'dropdown' : 'checkboxes';
             
-            $output['distance_unit'] = ( $_POST['wpsl_search']['distance_unit'] == 'km' ) ? 'km' : 'mi';
+            $output['distance_unit'] = ( isset( $_POST['wpsl_search']['distance_unit'] ) && $_POST['wpsl_search']['distance_unit'] == 'km' ) ? 'km' : 'mi';
 			
 			// Check for a valid max results value, otherwise we use the default.
 			if ( !empty( $_POST['wpsl_search']['max_results'] ) ) {
@@ -148,12 +149,12 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $output['force_postalcode'] = isset( $_POST['wpsl_search']['force_postalcode'] ) ? 1 : 0;
 
 			// Check if we have a valid zoom level, it has to be between 1 or 12. If not set it to the default of 3.
-			$output['zoom_level'] = wpsl_valid_zoom_level( $_POST['wpsl_map']['zoom_level'] );	
+			$output['zoom_level'] = isset( $_POST['wpsl_map']['zoom_level'] ) ? wpsl_valid_zoom_level( $_POST['wpsl_map']['zoom_level'] ) : wpsl_get_default_setting( 'zoom_level' );	
             
             // Check for a valid max auto zoom level.
             $max_zoom_levels = wpsl_get_max_zoom_levels();
             
-            if ( in_array( absint( $_POST['wpsl_map']['max_auto_zoom'] ), $max_zoom_levels ) ) {
+            if ( isset( $_POST['wpsl_map']['max_auto_zoom'] ) && in_array( absint( $_POST['wpsl_map']['max_auto_zoom'] ), $max_zoom_levels ) ) {
                 $output['auto_zoom_level'] = $_POST['wpsl_map']['max_auto_zoom'];
             } else {
                 $output['auto_zoom_level'] = wpsl_get_default_setting( 'auto_zoom_level' );
@@ -194,7 +195,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $output['run_fitbounds'] = isset( $_POST['wpsl_map']['run_fitbounds'] ) ? 1 : 0;
 
 			// Check if we have a valid map type.
-			$output['map_type']    = wpsl_valid_map_type( $_POST['wpsl_map']['type'] );
+			$output['map_type']    = isset( $_POST['wpsl_map']['type'] ) ? wpsl_valid_map_type( $_POST['wpsl_map']['type'] ) : wpsl_get_default_setting( 'map_type' );
             $output['auto_locate'] = isset( $_POST['wpsl_map']['auto_locate'] ) ? 1 : 0; 
             $output['autoload']    = isset( $_POST['wpsl_map']['autoload'] ) ? 1 : 0; 
 
@@ -210,9 +211,9 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $output['scrollwheel']      = isset( $_POST['wpsl_map']['scrollwheel'] ) ? 1 : 0;	
             $output['zoom_controls']    = isset( $_POST['wpsl_map']['zoom_controls'] ) ? 1 : 0;	
             $output['fullscreen']       = isset( $_POST['wpsl_map']['fullscreen'] ) ? 1 : 0;
-			$output['control_position'] = ( $_POST['wpsl_map']['control_position'] == 'left' ) ? 'left' : 'right';	
+			$output['control_position'] = ( isset( $_POST['wpsl_map']['control_position'] ) && $_POST['wpsl_map']['control_position'] == 'left' ) ? 'left' : 'right';	
             
-            $output['map_style'] = json_encode( strip_tags( trim( $_POST['wpsl_map']['map_style'] ) ) );
+            $output['map_style'] = isset( $_POST['wpsl_map']['map_style'] ) ? json_encode( wp_strip_all_tags( trim( $_POST['wpsl_map']['map_style'] ) ) ) : '';
                     
             // Make sure we have a valid template ID.
             if ( isset( $_POST['wpsl_ux']['template_id'] ) && ( $_POST['wpsl_ux']['template_id'] ) ) {
@@ -224,14 +225,14 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $output['marker_clusters'] = isset( $_POST['wpsl_map']['marker_clusters'] ) ? 1 : 0;	
                         
             // Check for a valid cluster zoom value.
-            if ( in_array( $_POST['wpsl_map']['cluster_zoom'], $this->get_default_cluster_option( 'cluster_zoom' ) ) ) {
+            if ( isset( $_POST['wpsl_map']['cluster_zoom'] ) && in_array( $_POST['wpsl_map']['cluster_zoom'], $this->get_default_cluster_option( 'cluster_zoom' ) ) ) {
                 $output['cluster_zoom'] = $_POST['wpsl_map']['cluster_zoom'];
             } else {
                 $output['cluster_zoom'] = wpsl_get_default_setting( 'cluster_zoom' );
             }
             
             // Check for a valid cluster size value.
-            if ( in_array( $_POST['wpsl_map']['cluster_size'], $this->get_default_cluster_option( 'cluster_size' ) ) ) {
+            if ( isset( $_POST['wpsl_map']['cluster_size'] ) && in_array( $_POST['wpsl_map']['cluster_size'], $this->get_default_cluster_option( 'cluster_size' ) ) ) {
                 $output['cluster_size'] = $_POST['wpsl_map']['cluster_size'];
             } else {
                 $output['cluster_size'] = wpsl_get_default_setting( 'cluster_size' );
@@ -242,7 +243,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
              * Otherwise we use the default value. 
              */
             foreach ( $ux_absints as $ux_key ) {
-                if ( absint( $_POST['wpsl_ux'][$ux_key] ) ) {
+                if ( isset( $_POST['wpsl_ux'][$ux_key] ) && absint( $_POST['wpsl_ux'][$ux_key] ) ) {
                     $output[$ux_key] = $_POST['wpsl_ux'][$ux_key];
                 } else {
                     $output[$ux_key] = wpsl_get_default_setting( $ux_key );
@@ -255,25 +256,25 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             }
             
             // Check if we have a valid marker effect.
-            if ( in_array( $_POST['wpsl_ux']['marker_effect'], $marker_effects ) ) {
+            if ( isset( $_POST['wpsl_ux']['marker_effect'] ) && in_array( $_POST['wpsl_ux']['marker_effect'], $marker_effects ) ) {
                 $output['marker_effect'] = $_POST['wpsl_ux']['marker_effect'];
             } else {
 				$output['marker_effect'] = wpsl_get_default_setting( 'marker_effect' );
 			}
             
             // Check if we have a valid address format.  
-            if ( array_key_exists( $_POST['wpsl_ux']['address_format'], wpsl_get_address_formats() ) ) {
+            if ( isset( $_POST['wpsl_ux']['address_format'] ) && array_key_exists( $_POST['wpsl_ux']['address_format'], wpsl_get_address_formats() ) ) {
                 $output['address_format'] = $_POST['wpsl_ux']['address_format'];
             } else {
 				$output['address_format'] = wpsl_get_default_setting( 'address_format' );
 			}
             
-            $output['more_info_location'] = ( $_POST['wpsl_ux']['more_info_location'] == 'store listings' ) ? 'store listings' : 'info window';	
+            $output['more_info_location'] = ( isset( $_POST['wpsl_ux']['more_info_location'] ) && $_POST['wpsl_ux']['more_info_location'] == 'store listings' ) ? 'store listings' : 'info window';	
             $output['infowindow_style']   = isset( $_POST['wpsl_ux']['infowindow_style'] ) ? 'default' : 'infobox';
-            $output['start_marker']       = wp_filter_nohtml_kses( $_POST['wpsl_map']['start_marker'] );
-            $output['store_marker']       = wp_filter_nohtml_kses( $_POST['wpsl_map']['store_marker'] );
-			$output['editor_country']     = sanitize_text_field( $_POST['wpsl_editor']['default_country'] );
-            $output['editor_map_type']    = wpsl_valid_map_type( $_POST['wpsl_editor']['map_type'] );
+            $output['start_marker']       = isset( $_POST['wpsl_map']['start_marker'] ) ? wp_filter_nohtml_kses( $_POST['wpsl_map']['start_marker'] ) : '';
+            $output['store_marker']       = isset( $_POST['wpsl_map']['store_marker'] ) ? wp_filter_nohtml_kses( $_POST['wpsl_map']['store_marker'] ) : '';
+			$output['editor_country']     = isset( $_POST['wpsl_editor']['default_country'] ) ? sanitize_text_field( $_POST['wpsl_editor']['default_country'] ) : '';
+            $output['editor_map_type']    = isset( $_POST['wpsl_editor']['map_type'] ) ? wpsl_valid_map_type( $_POST['wpsl_editor']['map_type'] ) : wpsl_get_default_setting( 'editor_map_type' );
             $output['hide_hours']         = isset( $_POST['wpsl_editor']['hide_hours'] ) ? 1 : 0; 
             
             if ( isset( $_POST['wpsl_editor']['hour_input'] ) ) {
@@ -282,7 +283,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 				$output['editor_hour_input'] = 'dropdown';
 			}
             
-            $output['editor_hour_format'] = ( $_POST['wpsl_editor']['hour_format'] == 12 ) ? 12 : 24;
+            $output['editor_hour_format'] = ( isset( $_POST['wpsl_editor']['hour_format'] ) && $_POST['wpsl_editor']['hour_format'] == 12 ) ? 12 : 24;
             
             // The default opening hours.
             if ( isset( $_POST['wpsl_editor']['textarea'] ) ) {
@@ -312,7 +313,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             
 			// Sanitize the labels.
 			foreach ( $required_labels as $label ) {
-                $output[$label.'_label'] = sanitize_text_field( $_POST['wpsl_label'][$label] );
+                $output[$label.'_label'] = isset( $_POST['wpsl_label'][$label] ) ? sanitize_text_field( $_POST['wpsl_label'][$label] ) : '';
 			}
 
             $output['show_credits']     = isset( $_POST['wpsl_credits'] ) ? 1 : 0;
@@ -329,12 +330,12 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             }
 
             // See which autocomplete API is used.
-            if ( in_array( $_POST['wpsl_search']['autocomplete_api_version'], array( 'legacy', 'latest' ) ) ) {
+            if ( isset( $_POST['wpsl_search']['autocomplete_api_version'] ) && in_array( $_POST['wpsl_search']['autocomplete_api_version'], array( 'legacy', 'latest' ) ) ) {
                 $output['api_versions']['autocomplete'] = sanitize_text_field( $_POST['wpsl_search']['autocomplete_api_version'] );
             } else {
                 $output['api_versions']['autocomplete'] = 'latest';
             }
-            
+                        
 			return $output;
 		}
 
@@ -348,7 +349,14 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
         public function ajax_validate_server_key() {
 
             if ( ( current_user_can( 'manage_wpsl_settings' ) ) && is_admin() && defined( 'DOING_AJAX' ) && DOING_AJAX  ) {
-                $server_key = sanitize_text_field( $_GET['server_key'] );
+                
+                // Verify nonce
+                if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'wpsl_validate_server_key' ) ) {
+                    wp_send_json_error( array( 'msg' => __( 'Security check failed.', 'wp-store-locator' ) ) );
+                    return;
+                }
+                
+                $server_key = isset( $_GET['server_key'] ) ? sanitize_text_field( wp_unslash( $_GET['server_key'] ) ) : '';
 
                 if ( $server_key ) {
                     $this->validate_server_key( $server_key );
@@ -380,7 +388,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 if ( $response['status'] !== 'OK' ) {
                     $geocode_errors = $wpsl_admin->geocode->check_geocode_error_msg( $response, true );
 
-                    $error_msg = sprintf( __( 'There\'s a problem with the provided %sserver key%s. %s' ), '<a href="https://wpstorelocator.co/document/create-google-api-keys/#server-key">', '</a>', $geocode_errors );
+                    /* translators: %1$s: opening link tag, %2$s: closing link tag, %3$s: error message */
+                    $error_msg = sprintf( __( 'There\'s a problem with the provided %1$sserver key%2$s. %3$s', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/create-google-api-keys/#server-key">', '</a>', $geocode_errors );
 
                     update_option( 'wpsl_valid_server_key', 0 );
 
@@ -403,7 +412,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                     if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
                         $key_status = array(
                             'valid' => 1,
-                            'msg'   => __( 'No problems found with the server key.', 'wpsl' )
+                            'msg'   => __( 'No problems found with the server key.', 'wp-store-locator' )
                         );
 
                         wp_send_json( $key_status );
@@ -482,7 +491,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 
             global $wpsl_admin;
             
-            if ( isset( $_GET['page'] ) && ( $_GET['page'] == 'wpsl_settings' ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checking which admin page we're on, not processing form data
+            if ( isset( $_GET['page'] ) && ( sanitize_text_field( wp_unslash( $_GET['page'] ) ) == 'wpsl_settings' ) ) {
                 $flush_rewrite    = get_option( 'wpsl_flush_rewrite' );
                 $delete_transient = get_option( 'wpsl_delete_transient' );
                 
@@ -512,13 +522,14 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             
 			switch ( $error_type ) {
 				case 'max_results':
-					$error_msg = __( 'The max results field cannot be empty, the default value has been restored.', 'wpsl' );	
+					$error_msg = __( 'The max results field cannot be empty, the default value has been restored.', 'wp-store-locator' );	
 					break;
 				case 'search_radius':
-					$error_msg = __( 'The search radius field cannot be empty, the default value has been restored.', 'wpsl' );	
+					$error_msg = __( 'The search radius field cannot be empty, the default value has been restored.', 'wp-store-locator' );	
 					break;	
                 case 'start_point':
-					$error_msg = sprintf( __( 'Please provide the name of a city or country that can be used as a starting point under "Map Settings". %s This will only be used if auto-locating the user fails, or the option itself is disabled.', 'wpsl' ), '<br><br>' );
+					/* translators: %s: line break */
+					$error_msg = sprintf( __( 'Please provide the name of a city or country that can be used as a starting point under "Map Settings". %s This will only be used if auto-locating the user fails, or the option itself is disabled.', 'wp-store-locator' ), '<br><br>' );
 					break;
 			}
 			
@@ -539,319 +550,319 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			switch ( $list ) {
 				case 'language':	
 					$api_option_list = array ( 	
-						__('Select your language', 'wpsl')    => '',
-						__('English', 'wpsl')                 => 'en',
-						__('Arabic', 'wpsl')                  => 'ar',
-						__('Basque', 'wpsl')                  => 'eu',
-						__('Bulgarian', 'wpsl')               => 'bg',
-						__('Bengali', 'wpsl')                 => 'bn',
-						__('Catalan', 'wpsl')                 => 'ca',
-						__('Czech', 'wpsl')                   => 'cs',
-						__('Danish', 'wpsl')                  => 'da',
-						__('German', 'wpsl')                  => 'de',
-						__('Greek', 'wpsl')                   => 'el',
-						__('English (Australian)', 'wpsl')    => 'en-AU',
-						__('English (Great Britain)', 'wpsl') => 'en-GB',
-						__('Spanish', 'wpsl')                 => 'es',
-						__('Farsi', 'wpsl')                   => 'fa',
-						__('Finnish', 'wpsl')                 => 'fi',
-						__('Filipino', 'wpsl')                => 'fil',
-						__('French', 'wpsl')                  => 'fr',
-						__('Galician', 'wpsl')                => 'gl',
-						__('Gujarati', 'wpsl')                => 'gu',
-						__('Hindi', 'wpsl')                   => 'hi',
-						__('Croatian', 'wpsl')                => 'hr',
-						__('Hungarian', 'wpsl')               => 'hu',
-						__('Indonesian', 'wpsl')              => 'id',
-						__('Italian', 'wpsl')                 => 'it',
-						__('Hebrew', 'wpsl')                  => 'iw',
-						__('Japanese', 'wpsl')                => 'ja',
-						__('Kannada', 'wpsl')                 => 'kn',
-						__('Korean', 'wpsl')                  => 'ko',
-						__('Lithuanian', 'wpsl')              => 'lt',
-						__('Latvian', 'wpsl')                 => 'lv',
-						__('Malayalam', 'wpsl')               => 'ml',
-						__('Marathi', 'wpsl')                 => 'mr',
-						__('Dutch', 'wpsl')                   => 'nl',
-						__('Norwegian', 'wpsl')               => 'no',
-						__('Norwegian Nynorsk', 'wpsl')       => 'nn',
-						__('Polish', 'wpsl')                  => 'pl',
-						__('Portuguese', 'wpsl')              => 'pt',
-						__('Portuguese (Brazil)', 'wpsl')     => 'pt-BR',
-						__('Portuguese (Portugal)', 'wpsl')   => 'pt-PT',
-						__('Romanian', 'wpsl')                => 'ro',
-						__('Russian', 'wpsl')                 => 'ru',
-						__('Slovak', 'wpsl')                  => 'sk',
-						__('Slovenian', 'wpsl')               => 'sl',
-						__('Serbian', 'wpsl')                 => 'sr',
-						__('Swedish', 'wpsl')                 => 'sv',
-						__('Tagalog', 'wpsl')                 => 'tl',
-						__('Tamil', 'wpsl')                   => 'ta',
-						__('Telugu', 'wpsl')                  => 'te',
-						__('Thai', 'wpsl')                    => 'th',
-						__('Turkish', 'wpsl')                 => 'tr',
-						__('Ukrainian', 'wpsl')               => 'uk',
-						__('Vietnamese', 'wpsl')              => 'vi',
-						__('Chinese (Simplified)', 'wpsl')    => 'zh-CN',
-						__('Chinese (Traditional)' ,'wpsl')   => 'zh-TW'
+						__('Select your language', 'wp-store-locator')    => '',
+						__('English', 'wp-store-locator')                 => 'en',
+						__('Arabic', 'wp-store-locator')                  => 'ar',
+						__('Basque', 'wp-store-locator')                  => 'eu',
+						__('Bulgarian', 'wp-store-locator')               => 'bg',
+						__('Bengali', 'wp-store-locator')                 => 'bn',
+						__('Catalan', 'wp-store-locator')                 => 'ca',
+						__('Czech', 'wp-store-locator')                   => 'cs',
+						__('Danish', 'wp-store-locator')                  => 'da',
+						__('German', 'wp-store-locator')                  => 'de',
+						__('Greek', 'wp-store-locator')                   => 'el',
+						__('English (Australian)', 'wp-store-locator')    => 'en-AU',
+						__('English (Great Britain)', 'wp-store-locator') => 'en-GB',
+						__('Spanish', 'wp-store-locator')                 => 'es',
+						__('Farsi', 'wp-store-locator')                   => 'fa',
+						__('Finnish', 'wp-store-locator')                 => 'fi',
+						__('Filipino', 'wp-store-locator')                => 'fil',
+						__('French', 'wp-store-locator')                  => 'fr',
+						__('Galician', 'wp-store-locator')                => 'gl',
+						__('Gujarati', 'wp-store-locator')                => 'gu',
+						__('Hindi', 'wp-store-locator')                   => 'hi',
+						__('Croatian', 'wp-store-locator')                => 'hr',
+						__('Hungarian', 'wp-store-locator')               => 'hu',
+						__('Indonesian', 'wp-store-locator')              => 'id',
+						__('Italian', 'wp-store-locator')                 => 'it',
+						__('Hebrew', 'wp-store-locator')                  => 'iw',
+						__('Japanese', 'wp-store-locator')                => 'ja',
+						__('Kannada', 'wp-store-locator')                 => 'kn',
+						__('Korean', 'wp-store-locator')                  => 'ko',
+						__('Lithuanian', 'wp-store-locator')              => 'lt',
+						__('Latvian', 'wp-store-locator')                 => 'lv',
+						__('Malayalam', 'wp-store-locator')               => 'ml',
+						__('Marathi', 'wp-store-locator')                 => 'mr',
+						__('Dutch', 'wp-store-locator')                   => 'nl',
+						__('Norwegian', 'wp-store-locator')               => 'no',
+						__('Norwegian Nynorsk', 'wp-store-locator')       => 'nn',
+						__('Polish', 'wp-store-locator')                  => 'pl',
+						__('Portuguese', 'wp-store-locator')              => 'pt',
+						__('Portuguese (Brazil)', 'wp-store-locator')     => 'pt-BR',
+						__('Portuguese (Portugal)', 'wp-store-locator')   => 'pt-PT',
+						__('Romanian', 'wp-store-locator')                => 'ro',
+						__('Russian', 'wp-store-locator')                 => 'ru',
+						__('Slovak', 'wp-store-locator')                  => 'sk',
+						__('Slovenian', 'wp-store-locator')               => 'sl',
+						__('Serbian', 'wp-store-locator')                 => 'sr',
+						__('Swedish', 'wp-store-locator')                 => 'sv',
+						__('Tagalog', 'wp-store-locator')                 => 'tl',
+						__('Tamil', 'wp-store-locator')                   => 'ta',
+						__('Telugu', 'wp-store-locator')                  => 'te',
+						__('Thai', 'wp-store-locator')                    => 'th',
+						__('Turkish', 'wp-store-locator')                 => 'tr',
+						__('Ukrainian', 'wp-store-locator')               => 'uk',
+						__('Vietnamese', 'wp-store-locator')              => 'vi',
+						__('Chinese (Simplified)', 'wp-store-locator')    => 'zh-CN',
+						__('Chinese (Traditional)' ,'wp-store-locator')   => 'zh-TW'
 				);	
 					break;			
 				case 'region':
                     $api_option_list = array (
-                        __('Select your region', 'wpsl')               => '',
-                        __('Afghanistan', 'wpsl')                      => 'af',
-                        __('Albania', 'wpsl')                          => 'al',
-                        __('Algeria', 'wpsl')                          => 'dz',
-                        __('American Samoa', 'wpsl')                   => 'as',
-                        __('Andorra', 'wpsl')                          => 'ad',
-                        __('Angola', 'wpsl')                           => 'ao',
-                        __('Anguilla', 'wpsl')                         => 'ai',
-                        __('Antarctica', 'wpsl')                       => 'aq',
-                        __('Antigua and Barbuda', 'wpsl')              => 'ag',
-                        __('Argentina', 'wpsl')                        => 'ar',
-                        __('Armenia', 'wpsl')                          => 'am',
-                        __('Aruba', 'wpsl')                            => 'aw',
-                        __('Ascension Island', 'wpsl')                 => 'ac',
-                        __('Australia', 'wpsl')                        => 'au',
-                        __('Austria', 'wpsl')                          => 'at',
-                        __('Azerbaijan', 'wpsl')                       => 'az',
-                        __('Bahamas', 'wpsl')                          => 'bs',
-                        __('Bahrain', 'wpsl')                          => 'bh',
-                        __('Bangladesh', 'wpsl')                       => 'bd',
-                        __('Barbados', 'wpsl')                         => 'bb',
-                        __('Belarus', 'wpsl')                          => 'by',
-                        __('Belgium', 'wpsl')                          => 'be',
-                        __('Belize', 'wpsl')                           => 'bz',
-                        __('Benin', 'wpsl')                            => 'bj',
-                        __('Bermuda', 'wpsl')                          => 'bm',
-                        __('Bhutan', 'wpsl')                           => 'bt',
-                        __('Bolivia', 'wpsl')                          => 'bo',
-                        __('Bosnia and Herzegovina', 'wpsl')           => 'ba',
-                        __('Botswana', 'wpsl')                         => 'bw',
-                        __('Bouvet Island', 'wpsl')                    => 'bv',
-                        __('Brazil', 'wpsl')                           => 'br',
-                        __('British Indian Ocean Territory', 'wpsl')   => 'io',
-                        __('British Virgin Islands', 'wpsl')           => 'vg',
-                        __('Brunei', 'wpsl')                           => 'bn',
-                        __('Bulgaria', 'wpsl')                         => 'bg',
-                        __('Burkina Faso', 'wpsl')                     => 'bf',
-                        __('Burundi', 'wpsl')                          => 'bi',
-                        __('Cambodia', 'wpsl')                         => 'kh',
-                        __('Cameroon', 'wpsl')                         => 'cm',
-                        __('Canada', 'wpsl')                           => 'ca',
-                        __('Canary Islands', 'wpsl')                   => 'ic',
-                        __('Cape Verde', 'wpsl')                       => 'cv',
-                        __('Caribbean Netherlands', 'wpsl')            => 'bq',
-                        __('Cayman Islands', 'wpsl')                   => 'ky',
-                        __('Central African Republic', 'wpsl')         => 'cf',
-                        __('Ceuta and Melilla', 'wpsl')                => 'ea',
-                        __('Chad', 'wpsl')                             => 'td',
-                        __('Chile', 'wpsl')                            => 'cl',
-                        __('China', 'wpsl')                            => 'cn',
-                        __('Christmas Island', 'wpsl')                 => 'cx',
-                        __('Clipperton Island', 'wpsl')                => 'cp',
-                        __('Cocos (Keeling) Islands', 'wpsl')          => 'cc',
-                        __('Colombia', 'wpsl')                         => 'co',
-                        __('Comoros', 'wpsl')                          => 'km',
-                        __('Congo (DRC)', 'wpsl')                       => 'cd',
-                        __('Congo (Republic)', 'wpsl')                 => 'cg',
-                        __('Cook Islands', 'wpsl')                     => 'ck',
-                        __('Costa Rica', 'wpsl')                       => 'cr',
-                        __('Croatia', 'wpsl')                          => 'hr',
-                        __('Cuba', 'wpsl')                             => 'cu',
-                        __('Curaçao', 'wpsl')                          => 'cw',
-                        __('Cyprus', 'wpsl')                           => 'cy',
-                        __('Czech Republic', 'wpsl')                   => 'cz',
-                        __('Côte d\'Ivoire', 'wpsl')                   => 'ci',
-                        __('Denmark', 'wpsl')                          => 'dk',
-                        __('Djibouti', 'wpsl')                         => 'dj',
-                        __('Democratic Republic of the Congo', 'wpsl') => 'cd',
-                        __('Dominica', 'wpsl')                         => 'dm',
-                        __('Dominican Republic', 'wpsl')               => 'do',
-                        __('Ecuador', 'wpsl')                          => 'ec',
-                        __('Egypt', 'wpsl')                            => 'eg',
-                        __('El Salvador', 'wpsl')                      => 'sv',
-                        __('Equatorial Guinea', 'wpsl')                => 'gq',
-                        __('Eritrea', 'wpsl')                          => 'er',
-                        __('Estonia', 'wpsl')                          => 'ee',
-                        __('Ethiopia', 'wpsl')                         => 'et',
-                        __('Falkland Islands(Islas Malvinas)', 'wpsl') => 'fk',
-                        __('Faroe Islands', 'wpsl')                    => 'fo',
-                        __('Fiji', 'wpsl')                             => 'fj',
-                        __('Finland', 'wpsl')                          => 'fi',
-                        __('France', 'wpsl')                           => 'fr',
-                        __('French Guiana', 'wpsl')                    => 'gf',
-                        __('French Polynesia', 'wpsl')                 => 'pf',
-                        __('French Southern Territories', 'wpsl')      => 'tf',
-                        __('Gabon', 'wpsl')                            => 'ga',
-                        __('Gambia', 'wpsl')                           => 'gm',
-                        __('Georgia', 'wpsl')                          => 'ge',
-                        __('Germany', 'wpsl')                          => 'de',
-                        __('Ghana', 'wpsl')                            => 'gh',
-                        __('Gibraltar', 'wpsl')                        => 'gi',
-                        __('Greece', 'wpsl')                           => 'gr',
-                        __('Greenland', 'wpsl')                        => 'gl',
-                        __('Grenada', 'wpsl')                          => 'gd',
-                        __('Guam', 'wpsl')                             => 'gu',
-                        __('Guadeloupe', 'wpsl')                       => 'gp',
-                        __('Guam', 'wpsl')                             => 'gu',
-                        __('Guatemala', 'wpsl')                        => 'gt',
-                        __('Guernsey', 'wpsl')                         => 'gg',
-                        __('Guinea', 'wpsl')                           => 'gn',
-                        __('Guinea-Bissau', 'wpsl')                    => 'gw',
-                        __('Guyana', 'wpsl')                           => 'gy',
-                        __('Haiti', 'wpsl')                            => 'ht',
-                        __('Heard and McDonald Islands', 'wpsl')       => 'hm',
-                        __('Honduras', 'wpsl')                         => 'hn',
-                        __('Hong Kong', 'wpsl')                        => 'hk',
-                        __('Hungary', 'wpsl')                          => 'hu',
-                        __('Iceland', 'wpsl')                          => 'is',
-                        __('India', 'wpsl')                            => 'in',
-                        __('Indonesia', 'wpsl')                        => 'id',
-                        __('Iran', 'wpsl')                             => 'ir',
-                        __('Iraq', 'wpsl')                             => 'iq',
-                        __('Ireland', 'wpsl')                          => 'ie',
-                        __('Isle of Man', 'wpsl')                      => 'im',
-                        __('Israel', 'wpsl')                           => 'il',
-                        __('Italy', 'wpsl')                            => 'it',
-                        __('Jamaica', 'wpsl')                          => 'jm',
-                        __('Japan', 'wpsl')                            => 'jp',
-                        __('Jersey', 'wpsl')                           => 'je',
-                        __('Jordan', 'wpsl')                           => 'jo',
-                        __('Kazakhstan', 'wpsl')                       => 'kz',
-                        __('Kenya', 'wpsl')                            => 'ke',
-                        __('Kiribati', 'wpsl')                         => 'ki',
-                        __('Kosovo', 'wpsl')                           => 'xk',
-                        __('Kuwait', 'wpsl')                           => 'kw',
-                        __('Kyrgyzstan', 'wpsl')                       => 'kg',
-                        __('Laos', 'wpsl')                             => 'la',
-                        __('Latvia', 'wpsl')                           => 'lv',
-                        __('Lebanon', 'wpsl')                          => 'lb',
-                        __('Lesotho', 'wpsl')                          => 'ls',
-                        __('Liberia', 'wpsl')                          => 'lr',
-                        __('Libya', 'wpsl')                            => 'ly',
-                        __('Liechtenstein', 'wpsl')                    => 'li',
-                        __('Lithuania', 'wpsl')                        => 'lt',
-                        __('Luxembourg', 'wpsl')                       => 'lu',
-                        __('Macau', 'wpsl')                            => 'mo',
-                        __('Macedonia (FYROM)', 'wpsl')                => 'mk',
-                        __('Madagascar', 'wpsl')                       => 'mg',
-                        __('Malawi', 'wpsl')                           => 'mw',
-                        __('Malaysia ', 'wpsl')                        => 'my',
-                        __('Maldives ', 'wpsl')                        => 'mv',
-                        __('Mali', 'wpsl')                             => 'ml',
-                        __('Malta', 'wpsl')                            => 'mt',
-                        __('Marshall Islands', 'wpsl')                 => 'mh',
-                        __('Martinique', 'wpsl')                       => 'mq',
-                        __('Mauritania', 'wpsl')                       => 'mr',
-                        __('Mauritius', 'wpsl')                        => 'mu',
-                        __('Mayotte', 'wpsl')                          => 'yt',
-                        __('Mexico', 'wpsl')                           => 'mx',
-                        __('Micronesia', 'wpsl')                       => 'fm',
-                        __('Moldova', 'wpsl')                          => 'md',
-                        __('Monaco' ,'wpsl')                           => 'mc',
-                        __('Mongolia', 'wpsl')                         => 'mn',
-                        __('Montenegro', 'wpsl')                       => 'me',
-                        __('Montserrat', 'wpsl')                       => 'ms',
-                        __('Morocco', 'wpsl')                          => 'ma',
-                        __('Mozambique', 'wpsl')                       => 'mz',
-                        __('Myanmar (Burma)', 'wpsl')                  => 'mm',
-                        __('Namibia', 'wpsl')                          => 'na',
-                        __('Nauru', 'wpsl')                            => 'nr',
-                        __('Nepal', 'wpsl')                            => 'np',
-                        __('Netherlands', 'wpsl')                      => 'nl',
-                        __('Netherlands Antilles', 'wpsl')             => 'an',
-                        __('New Caledonia', 'wpsl')                    => 'nc',
-                        __('New Zealand', 'wpsl')                      => 'nz',
-                        __('Nicaragua', 'wpsl')                        => 'ni',
-                        __('Niger', 'wpsl')                            => 'ne',
-                        __('Nigeria', 'wpsl')                          => 'ng',
-                        __('Niue', 'wpsl')                             => 'nu',
-                        __('Norfolk Island', 'wpsl')                   => 'nf',
-                        __('North Korea', 'wpsl')                      => 'kp',
-                        __('Northern Mariana Islands', 'wpsl')         => 'mp',
-                        __('Norway', 'wpsl')                           => 'no',
-                        __('Oman', 'wpsl')                             => 'om',
-                        __('Pakistan', 'wpsl')                         => 'pk',
-                        __('Palau', 'wpsl')                            => 'pw',
-                        __('Palestine', 'wpsl')                        => 'ps',
-                        __('Panama' ,'wpsl')                           => 'pa',
-                        __('Papua New Guinea', 'wpsl')                 => 'pg',
-                        __('Paraguay' ,'wpsl')                         => 'py',
-                        __('Peru', 'wpsl')                             => 'pe',
-                        __('Philippines', 'wpsl')                      => 'ph',
-                        __('Pitcairn Islands', 'wpsl')                 => 'pn',
-                        __('Poland', 'wpsl')                           => 'pl',
-                        __('Portugal', 'wpsl')                         => 'pt',
-                        __('Puerto Rico', 'wpsl')                      => 'pr',
-                        __('Qatar', 'wpsl')                            => 'qa',
-                        __('Reunion', 'wpsl')                          => 're',
-                        __('Romania', 'wpsl')                          => 'ro',
-                        __('Russia', 'wpsl')                           => 'ru',
-                        __('Rwanda', 'wpsl')                           => 'rw',
-                        __('Saint Helena', 'wpsl')                     => 'sh',
-                        __('Saint Kitts and Nevis', 'wpsl')            => 'kn',
-                        __('Saint Vincent and the Grenadines', 'wpsl') => 'vc',
-                        __('Saint Lucia', 'wpsl')                      => 'lc',
-                        __('Samoa', 'wpsl')                            => 'ws',
-                        __('San Marino', 'wpsl')                       => 'sm',
-                        __('São Tomé and Príncipe', 'wpsl')            => 'st',
-                        __('Saudi Arabia', 'wpsl')                     => 'sa',
-                        __('Senegal', 'wpsl')                          => 'sn',
-                        __('Serbia', 'wpsl')                           => 'rs',
-                        __('Seychelles', 'wpsl')                       => 'sc',
-                        __('Sierra Leone', 'wpsl')                     => 'sl',
-                        __('Singapore', 'wpsl')                        => 'sg',
-                        __('Sint Maarten', 'wpsl')                     => 'sx',
-                        __('Slovakia', 'wpsl')                         => 'sk',
-                        __('Slovenia', 'wpsl')                         => 'si',
-                        __('Solomon Islands', 'wpsl')                  => 'sb',
-                        __('Somalia', 'wpsl')                          => 'so',
-                        __('South Africa', 'wpsl')                     => 'za',
-                        __('South Georgia and South Sandwich Islands', 'wpsl') => 'gs',
-                        __('South Korea', 'wpsl')                      => 'kr',
-                        __('South Sudan', 'wpsl')                      => 'ss',
-                        __('Spain', 'wpsl')                            => 'es',
-                        __('Sri Lanka', 'wpsl')                        => 'lk',
-                        __('Sudan', 'wpsl')                            => 'sd',
-                        __('Swaziland', 'wpsl')                        => 'sz',
-                        __('Sweden', 'wpsl')                           => 'se',
-                        __('Switzerland', 'wpsl')                      => 'ch',
-                        __('Syria', 'wpsl')                            => 'sy',
-                        __('São Tomé & Príncipe', 'wpsl')              => 'st',
-                        __('Taiwan', 'wpsl')                           => 'tw',
-                        __('Tajikistan', 'wpsl')                       => 'tj',
-                        __('Tanzania', 'wpsl')                         => 'tz',
-                        __('Thailand', 'wpsl')                         => 'th',
-                        __('Timor-Leste', 'wpsl')                      => 'tl',
-                        __('Tokelau' ,'wpsl')                          => 'tk',
-                        __('Togo', 'wpsl')                             => 'tg',
-                        __('Tokelau' ,'wpsl')                          => 'tk',
-                        __('Tonga', 'wpsl')                            => 'to',
-                        __('Trinidad and Tobago', 'wpsl')              => 'tt',
-                        __('Tristan da Cunha', 'wpsl')                 => 'ta',
-                        __('Tunisia', 'wpsl')                          => 'tn',
-                        __('Turkey', 'wpsl')                           => 'tr',
-                        __('Turkmenistan', 'wpsl')                     => 'tm',
-                        __('Turks and Caicos Islands', 'wpsl')         => 'tc',
-                        __('Tuvalu', 'wpsl')                           => 'tv',
-                        __('Uganda', 'wpsl')                           => 'ug',
-                        __('Ukraine', 'wpsl')                          => 'ua',
-                        __('United Arab Emirates', 'wpsl')             => 'ae',
-                        __('United Kingdom', 'wpsl')                   => 'gb',
-                        __('United States', 'wpsl')                    => 'us',
-                        __('Uruguay', 'wpsl')                          => 'uy',
-                        __('Uzbekistan', 'wpsl')                       => 'uz',
-                        __('Vanuatu', 'wpsl')                          => 'vu',
-                        __('Vatican City', 'wpsl')                     => 'va',
-                        __('Venezuela', 'wpsl')                        => 've',
-                        __('Vietnam', 'wpsl')                          => 'vn',
-                        __('Wallis Futuna', 'wpsl')                    => 'wf',
-                        __('Western Sahara', 'wpsl')                   => 'eh',
-                        __('Yemen', 'wpsl')                            => 'ye',
-                        __('Zambia' ,'wpsl')                           => 'zm',
-                        __('Zimbabwe', 'wpsl')                         => 'zw',
-                        __('Åland Islands', 'wpsl')                    => 'ax'
+                        __('Select your region', 'wp-store-locator')               => '',
+                        __('Afghanistan', 'wp-store-locator')                      => 'af',
+                        __('Albania', 'wp-store-locator')                          => 'al',
+                        __('Algeria', 'wp-store-locator')                          => 'dz',
+                        __('American Samoa', 'wp-store-locator')                   => 'as',
+                        __('Andorra', 'wp-store-locator')                          => 'ad',
+                        __('Angola', 'wp-store-locator')                           => 'ao',
+                        __('Anguilla', 'wp-store-locator')                         => 'ai',
+                        __('Antarctica', 'wp-store-locator')                       => 'aq',
+                        __('Antigua and Barbuda', 'wp-store-locator')              => 'ag',
+                        __('Argentina', 'wp-store-locator')                        => 'ar',
+                        __('Armenia', 'wp-store-locator')                          => 'am',
+                        __('Aruba', 'wp-store-locator')                            => 'aw',
+                        __('Ascension Island', 'wp-store-locator')                 => 'ac',
+                        __('Australia', 'wp-store-locator')                        => 'au',
+                        __('Austria', 'wp-store-locator')                          => 'at',
+                        __('Azerbaijan', 'wp-store-locator')                       => 'az',
+                        __('Bahamas', 'wp-store-locator')                          => 'bs',
+                        __('Bahrain', 'wp-store-locator')                          => 'bh',
+                        __('Bangladesh', 'wp-store-locator')                       => 'bd',
+                        __('Barbados', 'wp-store-locator')                         => 'bb',
+                        __('Belarus', 'wp-store-locator')                          => 'by',
+                        __('Belgium', 'wp-store-locator')                          => 'be',
+                        __('Belize', 'wp-store-locator')                           => 'bz',
+                        __('Benin', 'wp-store-locator')                            => 'bj',
+                        __('Bermuda', 'wp-store-locator')                          => 'bm',
+                        __('Bhutan', 'wp-store-locator')                           => 'bt',
+                        __('Bolivia', 'wp-store-locator')                          => 'bo',
+                        __('Bosnia and Herzegovina', 'wp-store-locator')           => 'ba',
+                        __('Botswana', 'wp-store-locator')                         => 'bw',
+                        __('Bouvet Island', 'wp-store-locator')                    => 'bv',
+                        __('Brazil', 'wp-store-locator')                           => 'br',
+                        __('British Indian Ocean Territory', 'wp-store-locator')   => 'io',
+                        __('British Virgin Islands', 'wp-store-locator')           => 'vg',
+                        __('Brunei', 'wp-store-locator')                           => 'bn',
+                        __('Bulgaria', 'wp-store-locator')                         => 'bg',
+                        __('Burkina Faso', 'wp-store-locator')                     => 'bf',
+                        __('Burundi', 'wp-store-locator')                          => 'bi',
+                        __('Cambodia', 'wp-store-locator')                         => 'kh',
+                        __('Cameroon', 'wp-store-locator')                         => 'cm',
+                        __('Canada', 'wp-store-locator')                           => 'ca',
+                        __('Canary Islands', 'wp-store-locator')                   => 'ic',
+                        __('Cape Verde', 'wp-store-locator')                       => 'cv',
+                        __('Caribbean Netherlands', 'wp-store-locator')            => 'bq',
+                        __('Cayman Islands', 'wp-store-locator')                   => 'ky',
+                        __('Central African Republic', 'wp-store-locator')         => 'cf',
+                        __('Ceuta and Melilla', 'wp-store-locator')                => 'ea',
+                        __('Chad', 'wp-store-locator')                             => 'td',
+                        __('Chile', 'wp-store-locator')                            => 'cl',
+                        __('China', 'wp-store-locator')                            => 'cn',
+                        __('Christmas Island', 'wp-store-locator')                 => 'cx',
+                        __('Clipperton Island', 'wp-store-locator')                => 'cp',
+                        __('Cocos (Keeling) Islands', 'wp-store-locator')          => 'cc',
+                        __('Colombia', 'wp-store-locator')                         => 'co',
+                        __('Comoros', 'wp-store-locator')                          => 'km',
+                        __('Congo (DRC)', 'wp-store-locator')                       => 'cd',
+                        __('Congo (Republic)', 'wp-store-locator')                 => 'cg',
+                        __('Cook Islands', 'wp-store-locator')                     => 'ck',
+                        __('Costa Rica', 'wp-store-locator')                       => 'cr',
+                        __('Croatia', 'wp-store-locator')                          => 'hr',
+                        __('Cuba', 'wp-store-locator')                             => 'cu',
+                        __('Curaçao', 'wp-store-locator')                          => 'cw',
+                        __('Cyprus', 'wp-store-locator')                           => 'cy',
+                        __('Czech Republic', 'wp-store-locator')                   => 'cz',
+                        __('Côte d\'Ivoire', 'wp-store-locator')                   => 'ci',
+                        __('Denmark', 'wp-store-locator')                          => 'dk',
+                        __('Djibouti', 'wp-store-locator')                         => 'dj',
+                        __('Democratic Republic of the Congo', 'wp-store-locator') => 'cd',
+                        __('Dominica', 'wp-store-locator')                         => 'dm',
+                        __('Dominican Republic', 'wp-store-locator')               => 'do',
+                        __('Ecuador', 'wp-store-locator')                          => 'ec',
+                        __('Egypt', 'wp-store-locator')                            => 'eg',
+                        __('El Salvador', 'wp-store-locator')                      => 'sv',
+                        __('Equatorial Guinea', 'wp-store-locator')                => 'gq',
+                        __('Eritrea', 'wp-store-locator')                          => 'er',
+                        __('Estonia', 'wp-store-locator')                          => 'ee',
+                        __('Ethiopia', 'wp-store-locator')                         => 'et',
+                        __('Falkland Islands(Islas Malvinas)', 'wp-store-locator') => 'fk',
+                        __('Faroe Islands', 'wp-store-locator')                    => 'fo',
+                        __('Fiji', 'wp-store-locator')                             => 'fj',
+                        __('Finland', 'wp-store-locator')                          => 'fi',
+                        __('France', 'wp-store-locator')                           => 'fr',
+                        __('French Guiana', 'wp-store-locator')                    => 'gf',
+                        __('French Polynesia', 'wp-store-locator')                 => 'pf',
+                        __('French Southern Territories', 'wp-store-locator')      => 'tf',
+                        __('Gabon', 'wp-store-locator')                            => 'ga',
+                        __('Gambia', 'wp-store-locator')                           => 'gm',
+                        __('Georgia', 'wp-store-locator')                          => 'ge',
+                        __('Germany', 'wp-store-locator')                          => 'de',
+                        __('Ghana', 'wp-store-locator')                            => 'gh',
+                        __('Gibraltar', 'wp-store-locator')                        => 'gi',
+                        __('Greece', 'wp-store-locator')                           => 'gr',
+                        __('Greenland', 'wp-store-locator')                        => 'gl',
+                        __('Grenada', 'wp-store-locator')                          => 'gd',
+                        __('Guam', 'wp-store-locator')                             => 'gu',
+                        __('Guadeloupe', 'wp-store-locator')                       => 'gp',
+                        __('Guam', 'wp-store-locator')                             => 'gu',
+                        __('Guatemala', 'wp-store-locator')                        => 'gt',
+                        __('Guernsey', 'wp-store-locator')                         => 'gg',
+                        __('Guinea', 'wp-store-locator')                           => 'gn',
+                        __('Guinea-Bissau', 'wp-store-locator')                    => 'gw',
+                        __('Guyana', 'wp-store-locator')                           => 'gy',
+                        __('Haiti', 'wp-store-locator')                            => 'ht',
+                        __('Heard and McDonald Islands', 'wp-store-locator')       => 'hm',
+                        __('Honduras', 'wp-store-locator')                         => 'hn',
+                        __('Hong Kong', 'wp-store-locator')                        => 'hk',
+                        __('Hungary', 'wp-store-locator')                          => 'hu',
+                        __('Iceland', 'wp-store-locator')                          => 'is',
+                        __('India', 'wp-store-locator')                            => 'in',
+                        __('Indonesia', 'wp-store-locator')                        => 'id',
+                        __('Iran', 'wp-store-locator')                             => 'ir',
+                        __('Iraq', 'wp-store-locator')                             => 'iq',
+                        __('Ireland', 'wp-store-locator')                          => 'ie',
+                        __('Isle of Man', 'wp-store-locator')                      => 'im',
+                        __('Israel', 'wp-store-locator')                           => 'il',
+                        __('Italy', 'wp-store-locator')                            => 'it',
+                        __('Jamaica', 'wp-store-locator')                          => 'jm',
+                        __('Japan', 'wp-store-locator')                            => 'jp',
+                        __('Jersey', 'wp-store-locator')                           => 'je',
+                        __('Jordan', 'wp-store-locator')                           => 'jo',
+                        __('Kazakhstan', 'wp-store-locator')                       => 'kz',
+                        __('Kenya', 'wp-store-locator')                            => 'ke',
+                        __('Kiribati', 'wp-store-locator')                         => 'ki',
+                        __('Kosovo', 'wp-store-locator')                           => 'xk',
+                        __('Kuwait', 'wp-store-locator')                           => 'kw',
+                        __('Kyrgyzstan', 'wp-store-locator')                       => 'kg',
+                        __('Laos', 'wp-store-locator')                             => 'la',
+                        __('Latvia', 'wp-store-locator')                           => 'lv',
+                        __('Lebanon', 'wp-store-locator')                          => 'lb',
+                        __('Lesotho', 'wp-store-locator')                          => 'ls',
+                        __('Liberia', 'wp-store-locator')                          => 'lr',
+                        __('Libya', 'wp-store-locator')                            => 'ly',
+                        __('Liechtenstein', 'wp-store-locator')                    => 'li',
+                        __('Lithuania', 'wp-store-locator')                        => 'lt',
+                        __('Luxembourg', 'wp-store-locator')                       => 'lu',
+                        __('Macau', 'wp-store-locator')                            => 'mo',
+                        __('Macedonia (FYROM)', 'wp-store-locator')                => 'mk',
+                        __('Madagascar', 'wp-store-locator')                       => 'mg',
+                        __('Malawi', 'wp-store-locator')                           => 'mw',
+                        __('Malaysia ', 'wp-store-locator')                        => 'my',
+                        __('Maldives ', 'wp-store-locator')                        => 'mv',
+                        __('Mali', 'wp-store-locator')                             => 'ml',
+                        __('Malta', 'wp-store-locator')                            => 'mt',
+                        __('Marshall Islands', 'wp-store-locator')                 => 'mh',
+                        __('Martinique', 'wp-store-locator')                       => 'mq',
+                        __('Mauritania', 'wp-store-locator')                       => 'mr',
+                        __('Mauritius', 'wp-store-locator')                        => 'mu',
+                        __('Mayotte', 'wp-store-locator')                          => 'yt',
+                        __('Mexico', 'wp-store-locator')                           => 'mx',
+                        __('Micronesia', 'wp-store-locator')                       => 'fm',
+                        __('Moldova', 'wp-store-locator')                          => 'md',
+                        __('Monaco' ,'wp-store-locator')                           => 'mc',
+                        __('Mongolia', 'wp-store-locator')                         => 'mn',
+                        __('Montenegro', 'wp-store-locator')                       => 'me',
+                        __('Montserrat', 'wp-store-locator')                       => 'ms',
+                        __('Morocco', 'wp-store-locator')                          => 'ma',
+                        __('Mozambique', 'wp-store-locator')                       => 'mz',
+                        __('Myanmar (Burma)', 'wp-store-locator')                  => 'mm',
+                        __('Namibia', 'wp-store-locator')                          => 'na',
+                        __('Nauru', 'wp-store-locator')                            => 'nr',
+                        __('Nepal', 'wp-store-locator')                            => 'np',
+                        __('Netherlands', 'wp-store-locator')                      => 'nl',
+                        __('Netherlands Antilles', 'wp-store-locator')             => 'an',
+                        __('New Caledonia', 'wp-store-locator')                    => 'nc',
+                        __('New Zealand', 'wp-store-locator')                      => 'nz',
+                        __('Nicaragua', 'wp-store-locator')                        => 'ni',
+                        __('Niger', 'wp-store-locator')                            => 'ne',
+                        __('Nigeria', 'wp-store-locator')                          => 'ng',
+                        __('Niue', 'wp-store-locator')                             => 'nu',
+                        __('Norfolk Island', 'wp-store-locator')                   => 'nf',
+                        __('North Korea', 'wp-store-locator')                      => 'kp',
+                        __('Northern Mariana Islands', 'wp-store-locator')         => 'mp',
+                        __('Norway', 'wp-store-locator')                           => 'no',
+                        __('Oman', 'wp-store-locator')                             => 'om',
+                        __('Pakistan', 'wp-store-locator')                         => 'pk',
+                        __('Palau', 'wp-store-locator')                            => 'pw',
+                        __('Palestine', 'wp-store-locator')                        => 'ps',
+                        __('Panama' ,'wp-store-locator')                           => 'pa',
+                        __('Papua New Guinea', 'wp-store-locator')                 => 'pg',
+                        __('Paraguay' ,'wp-store-locator')                         => 'py',
+                        __('Peru', 'wp-store-locator')                             => 'pe',
+                        __('Philippines', 'wp-store-locator')                      => 'ph',
+                        __('Pitcairn Islands', 'wp-store-locator')                 => 'pn',
+                        __('Poland', 'wp-store-locator')                           => 'pl',
+                        __('Portugal', 'wp-store-locator')                         => 'pt',
+                        __('Puerto Rico', 'wp-store-locator')                      => 'pr',
+                        __('Qatar', 'wp-store-locator')                            => 'qa',
+                        __('Reunion', 'wp-store-locator')                          => 're',
+                        __('Romania', 'wp-store-locator')                          => 'ro',
+                        __('Russia', 'wp-store-locator')                           => 'ru',
+                        __('Rwanda', 'wp-store-locator')                           => 'rw',
+                        __('Saint Helena', 'wp-store-locator')                     => 'sh',
+                        __('Saint Kitts and Nevis', 'wp-store-locator')            => 'kn',
+                        __('Saint Vincent and the Grenadines', 'wp-store-locator') => 'vc',
+                        __('Saint Lucia', 'wp-store-locator')                      => 'lc',
+                        __('Samoa', 'wp-store-locator')                            => 'ws',
+                        __('San Marino', 'wp-store-locator')                       => 'sm',
+                        __('São Tomé and Príncipe', 'wp-store-locator')            => 'st',
+                        __('Saudi Arabia', 'wp-store-locator')                     => 'sa',
+                        __('Senegal', 'wp-store-locator')                          => 'sn',
+                        __('Serbia', 'wp-store-locator')                           => 'rs',
+                        __('Seychelles', 'wp-store-locator')                       => 'sc',
+                        __('Sierra Leone', 'wp-store-locator')                     => 'sl',
+                        __('Singapore', 'wp-store-locator')                        => 'sg',
+                        __('Sint Maarten', 'wp-store-locator')                     => 'sx',
+                        __('Slovakia', 'wp-store-locator')                         => 'sk',
+                        __('Slovenia', 'wp-store-locator')                         => 'si',
+                        __('Solomon Islands', 'wp-store-locator')                  => 'sb',
+                        __('Somalia', 'wp-store-locator')                          => 'so',
+                        __('South Africa', 'wp-store-locator')                     => 'za',
+                        __('South Georgia and South Sandwich Islands', 'wp-store-locator') => 'gs',
+                        __('South Korea', 'wp-store-locator')                      => 'kr',
+                        __('South Sudan', 'wp-store-locator')                      => 'ss',
+                        __('Spain', 'wp-store-locator')                            => 'es',
+                        __('Sri Lanka', 'wp-store-locator')                        => 'lk',
+                        __('Sudan', 'wp-store-locator')                            => 'sd',
+                        __('Swaziland', 'wp-store-locator')                        => 'sz',
+                        __('Sweden', 'wp-store-locator')                           => 'se',
+                        __('Switzerland', 'wp-store-locator')                      => 'ch',
+                        __('Syria', 'wp-store-locator')                            => 'sy',
+                        __('São Tomé & Príncipe', 'wp-store-locator')              => 'st',
+                        __('Taiwan', 'wp-store-locator')                           => 'tw',
+                        __('Tajikistan', 'wp-store-locator')                       => 'tj',
+                        __('Tanzania', 'wp-store-locator')                         => 'tz',
+                        __('Thailand', 'wp-store-locator')                         => 'th',
+                        __('Timor-Leste', 'wp-store-locator')                      => 'tl',
+                        __('Tokelau' ,'wp-store-locator')                          => 'tk',
+                        __('Togo', 'wp-store-locator')                             => 'tg',
+                        __('Tokelau' ,'wp-store-locator')                          => 'tk',
+                        __('Tonga', 'wp-store-locator')                            => 'to',
+                        __('Trinidad and Tobago', 'wp-store-locator')              => 'tt',
+                        __('Tristan da Cunha', 'wp-store-locator')                 => 'ta',
+                        __('Tunisia', 'wp-store-locator')                          => 'tn',
+                        __('Turkey', 'wp-store-locator')                           => 'tr',
+                        __('Turkmenistan', 'wp-store-locator')                     => 'tm',
+                        __('Turks and Caicos Islands', 'wp-store-locator')         => 'tc',
+                        __('Tuvalu', 'wp-store-locator')                           => 'tv',
+                        __('Uganda', 'wp-store-locator')                           => 'ug',
+                        __('Ukraine', 'wp-store-locator')                          => 'ua',
+                        __('United Arab Emirates', 'wp-store-locator')             => 'ae',
+                        __('United Kingdom', 'wp-store-locator')                   => 'gb',
+                        __('United States', 'wp-store-locator')                    => 'us',
+                        __('Uruguay', 'wp-store-locator')                          => 'uy',
+                        __('Uzbekistan', 'wp-store-locator')                       => 'uz',
+                        __('Vanuatu', 'wp-store-locator')                          => 'vu',
+                        __('Vatican City', 'wp-store-locator')                     => 'va',
+                        __('Venezuela', 'wp-store-locator')                        => 've',
+                        __('Vietnam', 'wp-store-locator')                          => 'vn',
+                        __('Wallis Futuna', 'wp-store-locator')                    => 'wf',
+                        __('Western Sahara', 'wp-store-locator')                   => 'eh',
+                        __('Yemen', 'wp-store-locator')                            => 'ye',
+                        __('Zambia' ,'wp-store-locator')                           => 'zm',
+                        __('Zimbabwe', 'wp-store-locator')                         => 'zw',
+                        __('Åland Islands', 'wp-store-locator')                    => 'ax'
                     );
 			}
 			
@@ -894,13 +905,13 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 				
 				switch ( $i ) {
 					case 1:
-						$zoom_desc = ' - ' . __( 'World view', 'wpsl' );
+						$zoom_desc = ' - ' . __( 'World view', 'wp-store-locator' );
 						break;
 					case 3:
-						$zoom_desc = ' - ' . __( 'Default', 'wpsl' );
+						$zoom_desc = ' - ' . __( 'Default', 'wp-store-locator' );
 						break;
 					case 12:
-						$zoom_desc = ' - ' . __( 'Roadmap', 'wpsl' );
+						$zoom_desc = ' - ' . __( 'Roadmap', 'wp-store-locator' );
 						break;	
 					default:
 						$zoom_desc = '';		
@@ -941,9 +952,9 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 $css_class = '';
             }
             
-            $marker_list .= '<li ' . $css_class . '>';
-            $marker_list .= '<img src="' . $marker_path . $marker_img . '" />';
-            $marker_list .= '<input ' . $checked . ' type="radio" name="wpsl_map[' . $location . '_marker]"  value="' . $marker_img . '" />';
+            $marker_list .= '<li ' . wp_kses_post( $css_class ) . '>';
+            $marker_list .= '<img src="' . esc_url( $marker_path . $marker_img ) . '" />';
+            $marker_list .= '<input ' . esc_attr( $checked ) . ' type="radio" name="wpsl_map[' . esc_attr( $location ) . '_marker]"  value="' . esc_attr( $marker_img ) . '" />';
             $marker_list .= '</li>';
 
             return $marker_list;
@@ -1011,7 +1022,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 				$selected = ( $wpsl_settings[$type] == $value ) ? 'selected="selected"' : '';
                 
                 if ( $i == 0 ) {
-                    $dropdown .= "<option value='0' $selected>" . __( 'Default', 'wpsl' ) . "</option>";
+                    $dropdown .= "<option value='0' $selected>" . __( 'Default', 'wp-store-locator' ) . "</option>";
                 } else {
                     $dropdown .= "<option value=". absint( $value ) . " $selected>" . absint( $value ) . "</option>";
                 }
@@ -1041,9 +1052,9 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 
             foreach ( $marker_locations as $location ) {
                 if ( $location == 'start' ) {
-                    $marker_list .= __( 'Start location marker', 'wpsl' ) . ':';
+                    $marker_list .= __( 'Start location marker', 'wp-store-locator' ) . ':';
                 } else  {
-                    $marker_list .= __( 'Store location marker', 'wpsl' ) . ':'; 
+                    $marker_list .= __( 'Store location marker', 'wp-store-locator' ) . ':'; 
                 }
 
                 if ( !empty( $marker_images ) ) {
@@ -1074,7 +1085,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             if ( is_dir( $dir ) ) {
                 if ( $dh = opendir( $dir ) ) {
                     while ( false !== ( $file = readdir( $dh ) ) ) {
-                        if ( $file == '.' || $file == '..' || ( strpos( $file, '@2x' ) !== false ) ) continue;
+                        if ( $file == '.' || $file == '..' || ( strpos( $file, '2x' ) !== false ) ) continue;
                         $marker_images[] = $file;
                     }
 
@@ -1123,8 +1134,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			$dropdown_lists = apply_filters( 'wpsl_setting_dropdowns', array(
                 'hour_input' => array(
                     'values' => array(
-                        'textarea' => __( 'Textarea', 'wpsl' ), 
-                        'dropdown' => __( 'Dropdowns (recommended)', 'wpsl' )
+                        'textarea' => __( 'Textarea', 'wp-store-locator' ), 
+                        'dropdown' => __( 'Dropdowns (recommended)', 'wp-store-locator' )
                      ),
                     'id'       => 'wpsl-editor-hour-input',
                     'name'     => 'wpsl_editor[hour_input]',
@@ -1132,9 +1143,9 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 ),
                 'marker_effects' => array(
                     'values' => array(
-                        'bounce'      => __( 'Bounces up and down', 'wpsl' ),
-                        'info_window' => __( 'Will open the info window', 'wpsl' ),
-                        'ignore'      => __( 'Does not respond', 'wpsl' )
+                        'bounce'      => __( 'Bounces up and down', 'wp-store-locator' ),
+                        'info_window' => __( 'Will open the info window', 'wp-store-locator' ),
+                        'ignore'      => __( 'Does not respond', 'wp-store-locator' )
                     ),
                     'id'       => 'wpsl-marker-effect',
                     'name'     => 'wpsl_ux[marker_effect]',
@@ -1142,8 +1153,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 ),
                 'more_info' => array(
                     'values' => array(
-                        'store listings' => __( 'In the store listings', 'wpsl' ),
-                        'info window'    => __( 'In the info window on the map', 'wpsl' )
+                        'store listings' => __( 'In the store listings', 'wp-store-locator' ),
+                        'info window'    => __( 'In the info window on the map', 'wp-store-locator' )
                     ),
                     'id'       => 'wpsl-more-info-list',
                     'name'     => 'wpsl_ux[more_info_location]',
@@ -1175,8 +1186,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 ),
                 'filter_types' => array(
                     'values' => array(
-                        'dropdown'   => __( 'Dropdown', 'wpsl' ), 
-                        'checkboxes' => __( 'Checkboxes', 'wpsl' )
+                        'dropdown'   => __( 'Dropdown', 'wp-store-locator' ), 
+                        'checkboxes' => __( 'Checkboxes', 'wp-store-locator' )
                      ),
                     'id'       => 'wpsl-cat-filter-types',
                     'name'     => 'wpsl_search[category_filter_type]',
@@ -1184,8 +1195,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 ),
                 'autocomplete_api_versions' => array(
                     'values' => array(
-                        'legacy' => __( 'Places Autocomplete Service (legacy)', 'wpsl' ),
-                        'latest'    => __( 'Autocomplete Data API (new)', 'wpsl' )
+                        'legacy' => __( 'Places Autocomplete Service (legacy)', 'wp-store-locator' ),
+                        'latest'    => __( 'Autocomplete Data API (new)', 'wp-store-locator' )
                     ),
                     'id'       => 'wpsl-autocomplete-api-versions',
                     'name'     => 'wpsl_search[autocomplete_api_version]',
@@ -1217,11 +1228,11 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             global $wpsl_settings;
             
 			$items = array( 
-                '12' => __( '12 Hours', 'wpsl' ),
-                '24' => __( '24 Hours', 'wpsl' )
+                '12' => __( '12 Hours', 'wp-store-locator' ),
+                '24' => __( '24 Hours', 'wp-store-locator' )
             );
             
-            if ( !absint( $hour_format ) ) {
+            if ( ! absint( $hour_format ) ) {
                 $hour_format = $wpsl_settings['editor_hour_format'];
             } 
             
@@ -1229,7 +1240,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			
 			foreach ( $items as $key => $value ) {
 				$selected = ( $hour_format == $key ) ? 'selected="selected"' : '';
-				$dropdown .= "<option value='$key' $selected>" . esc_html( $value ) . "</option>";
+				$dropdown .= "<option value='" . esc_attr( $key ) . "' $selected>" . esc_html( $value ) . "</option>";
 			}
 			
 			$dropdown .= '</select>';
@@ -1253,7 +1264,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 $map_style = json_decode( $wpsl_settings['map_style'] );
 
                 if ( $map_style !== null ) {
-                    $map_style = strip_tags( stripslashes( $map_style ) );
+                    $map_style = wp_strip_all_tags( stripslashes( $map_style ) );
                 }
             }
 

@@ -68,13 +68,15 @@ if ( !class_exists( 'WPSL_Templates' ) ) {
             }
 
             // If no match exists, or the template file doesnt exist, then use the default template.
-            if ( !$template_data || ( !file_exists( $template_path ) ) ) {
+            if ( ! $template_data || ( ! file_exists( $template_path ) ) ) {
                 $template_data = $this->get_default_template( $type );
 
                 // If no template can be loaded, then show a msg to the admin user.
-                if ( !$template_data && current_user_can( 'administrator' ) ) {
-                    echo '<p>' . sprintf( __( 'No template found for %s', 'wpsl' ), $type ) . '</p>';
-                    echo '<p>' . sprintf( __( 'Make sure you call the %sget_template_details%s function with the correct parameters.', 'wpsl' ), '<code>', '</code>' ) . '</p>';
+                if ( ! $template_data && current_user_can( 'administrator' ) ) {
+                    /* translators: %s: template type */
+                    echo '<p>' . esc_html( sprintf( __( 'No template found for %s', 'wp-store-locator' ), $type ) ) . '</p>';
+                    /* translators: %1$s: opening code tag, %2$s: closing code tag */
+                    echo '<p>' . wp_kses_post( sprintf( __( 'Make sure you call the %1$sget_template_details%2$s function with the correct parameters.', 'wp-store-locator' ), '<code>', '</code>' ) ) . '</p>';
                 }
             }
 

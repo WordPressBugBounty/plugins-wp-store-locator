@@ -74,17 +74,17 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
 
             // The labels for the wpsl_stores post type.
             $labels = apply_filters( 'wpsl_post_type_labels', array(
-                    'name'               => __( 'Store Locator', 'wpsl' ),
-                    'all_items'          => __( 'All Stores', 'wpsl' ),
-                    'singular_name'      => __( 'Store', 'wpsl' ),
-                    'add_new'            => __( 'New Store', 'wpsl' ),
-                    'add_new_item'       => __( 'Add New Store', 'wpsl' ),
-                    'edit_item'          => __( 'Edit Store', 'wpsl' ),
-                    'new_item'           => __( 'New Store', 'wpsl' ),
-                    'view_item'          => __( 'View Stores', 'wpsl' ),
-                    'search_items'       => __( 'Search Stores', 'wpsl' ),
-                    'not_found'          => __( 'No Stores found', 'wpsl' ),
-                    'not_found_in_trash' => __( 'No Stores found in trash', 'wpsl' ),
+                    'name'               => __( 'Store Locator', 'wp-store-locator' ),
+                    'all_items'          => __( 'All Stores', 'wp-store-locator' ),
+                    'singular_name'      => __( 'Store', 'wp-store-locator' ),
+                    'add_new'            => __( 'New Store', 'wp-store-locator' ),
+                    'add_new_item'       => __( 'Add New Store', 'wp-store-locator' ),
+                    'edit_item'          => __( 'Edit Store', 'wp-store-locator' ),
+                    'new_item'           => __( 'New Store', 'wp-store-locator' ),
+                    'view_item'          => __( 'View Stores', 'wp-store-locator' ),
+                    'search_items'       => __( 'Search Stores', 'wp-store-locator' ),
+                    'not_found'          => __( 'No Stores found', 'wp-store-locator' ),
+                    'not_found_in_trash' => __( 'No Stores found in trash', 'wp-store-locator' ),
                 ) 
             );
             
@@ -127,17 +127,17 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
             }
 
             $labels = array(
-				'name'              => __( 'Store Categories', 'wpsl' ),
-				'singular_name'     => __( 'Store Category', 'wpsl' ),
-				'search_items'      => __( 'Search Store Categories', 'wpsl' ),
-				'all_items'         => __( 'All Store Categories', 'wpsl' ),
-				'parent_item'       => __( 'Parent Store Category', 'wpsl' ),
-				'parent_item_colon' => __( 'Parent Store Category:', 'wpsl' ),
-				'edit_item'         => __( 'Edit Store Category', 'wpsl' ),
-				'update_item'       => __( 'Update Store Category', 'wpsl' ),
-				'add_new_item'      => __( 'Add New Store Category', 'wpsl' ),
-				'new_item_name'     => __( 'New Store Category Name', 'wpsl' ),
-				'menu_name'         => __( 'Store Categories', 'wpsl' ),
+				'name'              => __( 'Store Categories', 'wp-store-locator' ),
+				'singular_name'     => __( 'Store Category', 'wp-store-locator' ),
+				'search_items'      => __( 'Search Store Categories', 'wp-store-locator' ),
+				'all_items'         => __( 'All Store Categories', 'wp-store-locator' ),
+				'parent_item'       => __( 'Parent Store Category', 'wp-store-locator' ),
+				'parent_item_colon' => __( 'Parent Store Category:', 'wp-store-locator' ),
+				'edit_item'         => __( 'Edit Store Category', 'wp-store-locator' ),
+				'update_item'       => __( 'Update Store Category', 'wp-store-locator' ),
+				'add_new_item'      => __( 'Add New Store Category', 'wp-store-locator' ),
+				'new_item_name'     => __( 'New Store Category Name', 'wp-store-locator' ),
+				'menu_name'         => __( 'Store Categories', 'wp-store-locator' ),
 			);
                         
             $args = apply_filters( 'wpsl_store_category_args', array(
@@ -168,7 +168,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
             $screen = get_current_screen();
 
             if ( $screen->post_type == 'wpsl_stores' ) {
-               $title = __( 'Enter store title here', 'wpsl' );
+               $title = __( 'Enter store title here', 'wp-store-locator' );
             }
 
             return $title;
@@ -183,10 +183,10 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
          */
         public function edit_columns( $columns ) {
             
-            $columns['address'] = __( 'Address', 'wpsl' );
-            $columns['city']    = __( 'City', 'wpsl' );
-            $columns['state']   = __( 'State', 'wpsl' );
-            $columns['zip']     = __( 'Zip', 'wpsl' );
+            $columns['address'] = __( 'Address', 'wp-store-locator' );
+            $columns['city']    = __( 'City', 'wp-store-locator' );
+            $columns['state']   = __( 'State', 'wp-store-locator' );
+            $columns['zip']     = __( 'Zip', 'wp-store-locator' );
 
             return $columns;
         }
@@ -241,7 +241,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
          *
          * @since 2.0.0
          * @param  array $vars Column sorting parameters
-         * @return array $vars The column sorting parameters inc the correct orderby and wpsl meta_key
+         * @return array $vars Updated column sorting parameters
          */
         public function sort_columns( $vars ) {
             
@@ -249,6 +249,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
                 if ( isset( $vars['orderby'] ) ) {
                     if ( $vars['orderby'] === 'wpsl_address' ) {
                         $vars = array_merge( $vars, array(
+                            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Required for sorting admin columns by address meta field
                             'meta_key' => 'wpsl_address',
                             'orderby'  => 'meta_value'
                         ) );
@@ -256,6 +257,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
                     
                     if ( $vars['orderby'] === 'wpsl_city' ) {
                         $vars = array_merge( $vars, array(
+                            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Required for sorting admin columns by city meta field
                             'meta_key' => 'wpsl_city',
                             'orderby'  => 'meta_value'
                         ) );
@@ -263,6 +265,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
                     
                     if ( $vars['orderby'] === 'wpsl_state' ) {
                         $vars = array_merge( $vars, array(
+                            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Required for sorting admin columns by state meta field
                             'meta_key' => 'wpsl_state',
                             'orderby'  => 'meta_value'
                         ) );
@@ -270,6 +273,7 @@ if ( !class_exists( 'WPSL_Post_Types' ) ) {
                     
                     if ( $vars['orderby'] === 'wpsl_zip' ) {
                         $vars = array_merge( $vars, array(
+                            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Required for sorting admin columns by zip meta field
                             'meta_key' => 'wpsl_zip',
                             'orderby'  => 'meta_value'
                         ) );

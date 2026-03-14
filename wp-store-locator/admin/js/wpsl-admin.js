@@ -103,7 +103,8 @@ jQuery( document ).ready( function( $ ) {
                 var status,
                     ajaxData = {
                         action: "validate_server_key",
-                        server_key: $( "#wpsl-api-server-key" ).val()
+                        server_key: $( "#wpsl-api-server-key" ).val(),
+                        nonce: wpslSettings.validateKeyNonce
                     };
 
                 if ( ajaxData.server_key ) {

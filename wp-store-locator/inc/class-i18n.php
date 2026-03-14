@@ -32,6 +32,8 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
         public function load_plugin_textdomain() {
             
             $domain = 'wpsl';
+            
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress hook.
             $locale = apply_filters( 'plugin_locale', get_locale(), $domain );
             
             // Load the language file from the /wp-content/languages/wp-store-locator folder, custom + update proof translations.
@@ -85,6 +87,7 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
 
             // icl_object_id is deprecated as of 3.2
             if ( defined( 'ICL_SITEPRESS_VERSION' ) && version_compare( ICL_SITEPRESS_VERSION, 3.2, '>=' ) ) {
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML plugin hook.
                 $translated_id = apply_filters( 'wpml_object_id', $store_id, 'wpsl_stores', $return_original_id, ICL_LANGUAGE_CODE );
             } else {
                 $translated_id = icl_object_id( $store_id, 'wpsl_stores', $return_original_id, ICL_LANGUAGE_CODE );

@@ -453,25 +453,27 @@ div.wpsl-active {
     margin-bottom: 0;
 }
 
-.wpsl-current-period,
+.wpsl-current-period {
+    display: flex;
+    align-items: center;
+}
+
 .wpsl-add-period {
-    float: left;
+    display: inline-flex;
+    align-items: center;
 }
 
 #wpsl-store-hours .wpsl-multiple-periods {
-    float: left;
-    clear: both;
     margin-top: 8px;
 }
 
 .wpsl-add-period span,
 .wpsl-current-period span {
-    float:left;
-    margin:6px 7px 0;
+    margin: 0 7px;
 }
 
 .wpsl-add-period span {
-    margin:6px 0 0 7px;
+    margin: 0 0 0 7px;
 }
 
 #wpsl-store-hours .wpsl-remove-period {
@@ -492,7 +494,7 @@ div.wpsl-active {
 }
 
 #wpsl-store-hours select {
-    float:left;
+    flex-shrink: 0;
 }
 
 #wpsl-store-hours th {
@@ -523,7 +525,7 @@ div.wpsl-active {
 }
 
 .wpsl-twelve-format .wpsl-opening-hours {
-    width: 245px;
+    width: 295px;
 }
 
 #wpsl-settings-form #wpsl-store-hours .wpsl-opening-day {
@@ -538,6 +540,7 @@ div.wpsl-active {
 
 #wpsl-store-hours .wpsl-add-period {
     height: 30px;
+    vertical-align: middle;
 }
 
 .wpsl-pre-38 .wpsl-add-period {
@@ -605,10 +608,11 @@ div.wpsl-active {
 
 #wpsl-store-hours .wpsl-icon-plus-circled,
 #wpsl-store-hours .wpsl-icon-cancel-circled {
-    margin-top: 1px;
     font-size: 18px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     color: #999;
+    line-height: 1;
 }
 
 #wpsl-store-hours .wpsl-icon-plus-circled:hover,
@@ -696,6 +700,7 @@ div.wpsl-active {
 }
 
 #wpsl-geocode-response {
+    margin-top: 14px;
     padding-left: 0;
     padding-right: 0;
 }
@@ -716,6 +721,33 @@ div.wpsl-active {
 
 #wpsl-geocode-tabs {
     width: auto;
+}
+
+#wpsl-geocode-tabs li {
+    float: left;
+    margin-right: 4px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    background: #f6f7f7;
+    border: 1px solid #CCCCCC;
+    border-bottom: none;
+    margin-bottom: 0;
+    padding: 7px 14px;
+}
+
+#wpsl-geocode-tabs li a {
+    text-decoration: none;
+    color: #3c434a;
+}
+
+#wpsl-geocode-tabs li.ui-tabs-active {
+    background: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+}
+
+.wpsl-geocode-warning > p {
+    margin-top: 0;
 }
 
 .wpsl-callout {

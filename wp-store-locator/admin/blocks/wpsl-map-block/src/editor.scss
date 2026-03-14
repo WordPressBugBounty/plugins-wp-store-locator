@@ -1,0 +1,40 @@
+.wpsl-block-preview {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 24px;
+    background: #f9f9f9;
+    text-align: center;
+}
+
+.wpsl-block-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1e1e1e;
+
+    .wpsl-block-icon {
+        color: #000;
+    }
+}
+
+.wpsl-block-preview-shortcode {
+    display: block;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #333;
+    word-break: break-all;
+    margin-bottom: 12px;
+}
+
+.wpsl-block-preview-hint {
+    font-size: 12px;
+    color: #757575;
+    margin: 0;
+}

@@ -69,9 +69,9 @@ if ( !class_exists( 'WPSL_Borlabs_Cookie' ) ) {
                 '<div class="borlabs-cookie-bct bc-bct-iframe bc-bct-google-maps">
                     <p class="bc-thumbnail"><img src="%%thumbnail%%" alt="%%name%%"></p>
                     <div class="bc-text">
-                        <p>' . _x( 'To protect your personal data, your connection to Google Maps has been blocked.<br>Click on <strong>Load map</strong> to unblock Google Maps.<br>By loading the map you accept the privacy policy of Google.<br>More information about Google\'s privacy policy can be found here <a href="https://policies.google.com/privacy?hl=en&amp;gl=en" target="_blank" rel="nofollow">Google - Privacy &amp; Terms</a> . ', 'Borlabs Cookie', 'wpsl' ) . '</p>
-                        <p><label><input type="checkbox" name="unblockAll" value="1" checked> ' . _x( 'Do not block Google Maps in the future anymore.', 'Borlabs Cookie', 'wpsl' ) . '</label>
-                        <a role="button" data-borlabs-cookie-unblock>' . _x( 'Load map', 'Borlabs Cookie', 'wpsl' ) . '</a></p>
+                        <p>' . _x( 'To protect your personal data, your connection to Google Maps has been blocked.<br>Click on <strong>Load map</strong> to unblock Google Maps.<br>By loading the map you accept the privacy policy of Google.<br>More information about Google\'s privacy policy can be found here <a href="https://policies.google.com/privacy?hl=en&amp;gl=en" target="_blank" rel="nofollow">Google - Privacy &amp; Terms</a> . ', 'Borlabs Cookie', 'wp-store-locator' ) . '</p>
+                        <p><label><input type="checkbox" name="unblockAll" value="1" checked> ' . _x( 'Do not block Google Maps in the future anymore.', 'Borlabs Cookie', 'wp-store-locator' ) . '</label>
+                        <a role="button" data-borlabs-cookie-unblock>' . _x( 'Load map', 'Borlabs Cookie', 'wp-store-locator' ) . '</a></p>
                     </div>
                 </div>',
                 '',

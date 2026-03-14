@@ -97,7 +97,7 @@ if ( !class_exists( 'WPSL_Notices' ) ) {
                 $notice_msg = '<p>' . wp_kses( $notice['message'], $allowed_html ) . '</p>';
             }
 
-            echo '<div class="' . esc_attr( $class ) . '">' . $notice_msg . '</div>';
+            echo '<div class="' . esc_attr( $class ) . '">' . wp_kses_post( $notice_msg ) . '</div>';
         }
                 
         /**

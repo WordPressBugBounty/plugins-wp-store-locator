@@ -1,6 +1,7 @@
 <?php
 if ( !defined( 'ABSPATH' ) ) exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- These are local variables in a template file, not global variables
 $campaign_params = '?utm_source=wpsl-add-ons&utm_medium=banner&utm_campaign=add-ons';
 
 // Load the add-on data from an existing transient, or grab new data from the remote URL.
@@ -18,7 +19,7 @@ if ( false === ( $add_ons = get_transient( 'wpsl_addons' ) ) ) {
 ?>
 
 <div class="wrap wpsl-add-ons">
-    <h2><?php _e( 'WP Store Locator Add-Ons', 'wpsl' ); ?></h2>
+    <h2><?php esc_html_e( 'WP Store Locator Add-Ons', 'wp-store-locator' ); ?></h2>
 
     <?php
     if ( $add_ons ) {
@@ -26,7 +27,7 @@ if ( false === ( $add_ons = get_transient( 'wpsl_addons' ) ) ) {
     ?>
         <div class="wpsl-add-on">
             <?php if ( !empty( $add_on->url ) ) { ?>
-            <a title="<?php echo esc_attr( $add_on->name ); ?>" href="<?php echo esc_url( $add_on->url ) . $campaign_params; ?>">
+            <a title="<?php echo esc_attr( $add_on->name ); ?>" href="<?php echo esc_url( $add_on->url . $campaign_params ); ?>">
                 <img src="<?php echo esc_url( $add_on->img ); ?>"/>
             </a>
             <?php } else { ?>
@@ -38,12 +39,12 @@ if ( false === ( $add_ons = get_transient( 'wpsl_addons' ) ) ) {
                 
                 <div class="wpsl-add-on-status">
                     <?php if ( !empty( $add_on->class ) && class_exists( $add_on->class ) ) { ?>
-                    <p><strong><?php _e( 'Already Installed.', 'wpsl' ); ?></strong></p>
+                    <p><strong><?php esc_html_e( 'Already Installed.', 'wp-store-locator' ); ?></strong></p>
                     <?php } else if ( isset( $add_on->soon ) && $add_on->soon ) { ?>
-                    <p><strong><?php _e( 'Coming soon!', 'wpsl' ); ?></strong></p>
+                    <p><strong><?php esc_html_e( 'Coming soon!', 'wp-store-locator' ); ?></strong></p>
                     <?php } else { ?>
-                    <a class="button-primary" href="<?php echo esc_url( $add_on->url ) . $campaign_params; ?>">
-                        <?php esc_html_e( 'Get This Add-On', 'wpsl' ); ?>
+                    <a class="button-primary" href="<?php echo esc_url( $add_on->url . $campaign_params ); ?>">
+                        <?php esc_html_e( 'Get This Add-On', 'wp-store-locator' ); ?>
                     </a>
                     <?php } ?>
                 </div>
@@ -52,8 +53,8 @@ if ( false === ( $add_ons = get_transient( 'wpsl_addons' ) ) ) {
     <?php 
         }
     } else {
-        echo '<p>'. __( 'Failed to load the add-on list from the server.', 'wpsl' ) . '</p>';
-        echo '<p>'. __( 'Please try again later!', 'wpsl' ) . '</p>';
+        echo '<p>'. esc_html__( 'Failed to load the add-on list from the server.', 'wp-store-locator' ) . '</p>';
+        echo '<p>'. esc_html__( 'Please try again later!', 'wp-store-locator' ) . '</p>';
     }
     ?>  
 </div>

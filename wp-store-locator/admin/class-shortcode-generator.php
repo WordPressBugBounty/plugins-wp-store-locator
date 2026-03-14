@@ -39,7 +39,7 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
             if ( in_array( $pagenow, array( 'post.php', 'page.php', 'post-new.php', 'post-edit.php' ) ) && $typenow != 'wpsl_stores' ) {
                 $changelog_link = self_admin_url( '?wpsl_media_action=store_locator&KeepThis=true&TB_iframe=true&width=783&height=800' );
 
-                echo '<a href="' . esc_url( $changelog_link ) . '" class="thickbox button wpsl-thickbox" name="' . __( 'WP Store Locator' ,'wpsl' ) . '">' .  __( 'Insert Store Locator', 'wpsl' ) . '</a>';
+                echo '<a href="' . esc_url( $changelog_link ) . '" class="thickbox button wpsl-thickbox" name="' . esc_attr__( 'WP Store Locator' ,'wp-store-locator' ) . '">' .  esc_html__( 'Insert Store Locator', 'wp-store-locator' ) . '</a>';
             }
         }
 
@@ -53,28 +53,30 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
 
             global $wpsl_settings, $wpsl_admin;
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checking URL parameter to determine which thickbox content to display, not processing form data.
             if ( empty( $_REQUEST['wpsl_media_action'] ) ) {
                 return;
             }
 
             if ( !current_user_can( 'edit_pages' ) ) {
-                wp_die( __( 'You do not have permission to perform this action', 'wpsl' ), __( 'Error', 'wpsl' ), array( 'response' => 403 ) );
+                wp_die( esc_html__( 'You do not have permission to perform this action', 'wp-store-locator' ), esc_html__( 'Error', 'wp-store-locator' ), array( 'response' => 403 ) );
             }
 
             $min = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
 
             // Make sure the required JS / CSS files are loaded in the Thickbox iframe
-            wp_print_scripts( 'jquery-ui-core' );
-            wp_print_scripts( 'jquery-ui-tabs' );
-            wp_print_scripts( 'media-upload' );
+            wp_enqueue_script( 'jquery-ui-core' );
+            wp_enqueue_script( 'jquery-ui-tabs' );
+            wp_enqueue_script( 'media-upload' );
+            wp_enqueue_script( 'wpsl-shortcode-generator', plugins_url( '/js/wpsl-shortcode-generator' . $min . '.js', __FILE__ ), array( 'jquery-ui-tabs' ), WPSL_VERSION_NUM, true );
+            
+            wp_enqueue_style( 'buttons' );
+            wp_enqueue_style( 'forms' );
+            wp_enqueue_style( 'wpsl-shortcode-style', plugins_url( '/css/style' . $min . '.css', __FILE__ ), array(), WPSL_VERSION_NUM, 'all' );
+            
+            wp_print_scripts();
+            wp_print_styles();
             ?>
-            <script type="text/javascript" src="<?php echo plugins_url( '/js/wpsl-shortcode-generator' . $min . '.js?ver='. WPSL_VERSION_NUM .'', __FILE__ ); ?>"></script>
-            <?php
-            wp_print_styles('buttons' );
-            wp_print_styles('forms' );
-            ?>
-
-            <link rel="stylesheet" type="text/css" href="<?php echo plugins_url( '/css/style' . $min . '.css?ver='. WPSL_VERSION_NUM .'', __FILE__ ); ?>" media="all" />
             <style>
                 body {
                     color: #444;
@@ -230,43 +232,41 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
             <div id="wpsl-shortcode-config" class="wp-core-ui">
                 <div id="wpsl-media-tabs">
                     <ul>
-                        <li><a href="#wpsl-general-tab"><?php _e( 'General Options', 'wpsl' ); ?></a></li>
-                        <li><a href="#wpsl-markers-tab"><?php _e('Markers', 'wpsl' ); ?></a></li>
+                        <li><a href="#wpsl-general-tab"><?php esc_html_e( 'General Options', 'wp-store-locator' ); ?></a></li>
+                        <li><a href="#wpsl-markers-tab"><?php esc_html_e('Markers', 'wp-store-locator' ); ?></a></li>
                     </ul>
                     <div id="wpsl-general-tab">
                         <table class="form-table wpsl-shortcode-config">
                             <tbody>
                             <tr>
-                                <td><label for="wpsl-store-template"><?php _e('Select the used template', 'wpsl' ); ?></label></td>
-                                <td><?php echo $wpsl_admin->settings_page->show_template_options(); ?></td>
+                                <td><label for="wpsl-store-template"><?php esc_html_e('Select the used template', 'wp-store-locator' ); ?></label></td>
+                                <td>
+                                <?php 
+                                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in show_template_options method.
+                                    echo $wpsl_admin->settings_page->show_template_options(); 
+                                ?>
+                                </td>
                             </tr>
                             <tr>
-                                <td><label for="wpsl-start-location"><?php _e( 'Start point', 'wpsl' ); ?></label><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'If nothing it set, then the start point from the %ssettings%s page is used.', '' ), '<a href=' . admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings#wpsl-map-settings' ) . '>', '</a>'  ); ?></span></span></p></td>
+                                <td><label for="wpsl-start-location"><?php esc_html_e( 'Start point', 'wp-store-locator' ); ?></label><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php /* translators: %1$s: opening link tag, %2$s: closing link tag */ echo wp_kses_post( sprintf( __( 'If nothing it set, then the start point from the %1$ssettings%2$s page is used.', 'wp-store-locator' ), '<a href=' . esc_url( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings#wpsl-map-settings' ) ) . '>', '</a>'  ) ); ?></span></span></p></td>
                                 <td><input type="text" placeholder="Optional" value="" id="wpsl-start-location"></td>
                             </tr>
                             <tr>
                                 <td>
-                                    <label for="wpsl-auto-locate"><?php _e( 'Attempt to auto-locate the user', 'wpsl' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'Most modern browsers %srequire%s a HTTPS connection before the Geolocation feature works.', 'wpsl_csv' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/">', '</a>' ); ?></span></span></label>
+                                    <label for="wpsl-auto-locate"><?php esc_html_e( 'Attempt to auto-locate the user', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php /* translators: %1$s: opening link tag, %2$s: closing link tag */ echo wp_kses_post( sprintf( __( 'Most modern browsers %1$srequire%2$s a HTTPS connection before the Geolocation feature works.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/">', '</a>' ) ); ?></span></span></label>
                                 </td>
                                 <td><input type="checkbox" value="" <?php checked( $wpsl_settings['auto_locate'], true ); ?> name="wpsl_map[auto_locate]" id="wpsl-auto-locate"></td>
                             </tr>
                             <?php
-                            $terms = get_terms( 'wpsl_store_category', 'hide_empty=1' );
+                            $terms = get_terms( array(
+                                'taxonomy'   => 'wpsl_store_category',
+                                'hide_empty' => true,
+                            ) );
 
                             if ( $terms ) {
                                 ?>
-                                <tr>
-                                    <td><label for="wpsl-cat-filter-types"><?php _e( 'Category filter type', 'wpsl' ); ?></label></p></td>
-                                    <td>
-                                        <select id="wpsl-cat-filter-types" autocomplete="off">
-                                            <option value="" selected="selected"><?php _e( 'None', 'wpsl' ); ?></option>
-                                            <option value="dropdown"><?php _e( 'Dropdown', 'wpsl' ); ?></option>
-                                            <option value="checkboxes"><?php _e( 'Checkboxes', 'wpsl' ); ?></option>
-                                        </select>
-                                    </td>
-                                </tr>
                                 <tr class="wpsl-cat-restriction">
-                                    <td style="vertical-align:top;"><label for="wpsl-cat-restriction"><?php _e('Automatically restrict the returned results to one or more categories?', 'wpsl' ); ?></label></td>
+                                    <td style="vertical-align:top;"><label for="wpsl-cat-restriction"><?php esc_html_e('Restrict to categories', 'wp-store-locator' ); ?></label></td>
                                     <td>
                                         <?php
                                         $cat_restricton = '<select id="wpsl-cat-restriction" multiple="multiple" autocomplete="off">';
@@ -277,17 +277,27 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
 
                                         $cat_restricton .= '</select>';
 
+                                        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in variable construction.
                                         echo $cat_restricton;
                                         ?>
                                     </td>
                                 </tr>
+                                <tr class="wpsl-cat-filter-type-row">
+                                    <td><label for="wpsl-cat-filter-types"><?php esc_html_e( 'Category filter type', 'wp-store-locator' ); ?></label></td>
+                                    <td>
+                                        <select id="wpsl-cat-filter-types" autocomplete="off">
+                                            <option value="" selected="selected"><?php esc_html_e( 'None', 'wp-store-locator' ); ?></option>
+                                            <option value="dropdown"><?php esc_html_e( 'Dropdown', 'wp-store-locator' ); ?></option>
+                                            <option value="checkboxes"><?php esc_html_e( 'Checkboxes', 'wp-store-locator' ); ?></option>
+                                        </select>
+                                    </td>
+                                </tr>
                                 <tr class="wpsl-cat-selection wpsl-hide">
-                                    <td style="vertical-align:top;"><label for="wpsl-cat-selection"><?php _e('Set a selected category?', 'wpsl' ); ?></label></td>
+                                    <td style="vertical-align:top;"><label for="wpsl-cat-selection"><?php esc_html_e('Set a selected category?', 'wp-store-locator' ); ?></label></td>
                                     <td>
                                         <?php
                                         $cat_selection = '<select id="wpsl-cat-selection" autocomplete="off">';
-
-                                        $cat_selection .= '<option value="" selected="selected">' . __( 'Select category', 'wpsl' ) . '</option>';
+                                        $cat_selection .= '<option value="" selected="selected">' . esc_html__( 'Select category', 'wp-store-locator' ) . '</option>';
 
                                         foreach ( $terms as $term ) {
                                             $cat_selection .= '<option value="' . esc_attr( $term->slug ) . '">' . esc_html( $term->name ) . '</option>';
@@ -295,6 +305,7 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
 
                                         $cat_selection .= '</select>';
 
+                                        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in variable construction.
                                         echo $cat_selection;
                                         ?>
                                     </td>
@@ -303,7 +314,7 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
                             }
                             ?>
                             <tr class="wpsl-checkbox-options wpsl-hide">
-                                <td><label for="wpsl-checkbox-columns"><?php _e('Checkbox columns', 'wpsl' ); ?></label></td>
+                                <td><label for="wpsl-checkbox-columns"><?php esc_html_e('Checkbox columns', 'wp-store-locator' ); ?></label></td>
                                 <td>
                                     <?php
                                     echo '<select id="wpsl-checkbox-columns">';
@@ -313,7 +324,7 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
                                     while ( $i <= 4 ) {
                                         $selected = ( $i == 3 ) ? "selected='selected'" : ''; // 3 is the default
 
-                                        echo '<option value="' . $i . '" ' . $selected . '>' . $i . '</option>';
+                                        echo '<option value="' . esc_attr( $i ) . '" ' . esc_attr( $selected ) . '>' . esc_html( $i ) . '</option>';
                                         $i++;
                                     }
 
@@ -322,7 +333,7 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
                                 </td>
                             </tr>
                             <tr class="wpsl-checkbox-selection wpsl-hide">
-                                <td><label for="wpsl-checkbox-columns"><?php _e('Set selected checkboxes', 'wpsl' ); ?></label></td>
+                                <td><label for="wpsl-checkbox-columns"><?php esc_html_e('Set selected checkboxes', 'wp-store-locator' ); ?></label></td>
                                 <td>
                                     <?php
                                     $checkbox_selection = '<select id="wpsl-checkbox-selection" multiple="multiple" autocomplete="off">';
@@ -333,26 +344,35 @@ if ( !class_exists( 'WPSL_Shortcode_Generator' ) ) {
 
                                     $checkbox_selection .= '</select>';
 
+                                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in variable construction.
                                     echo $checkbox_selection;
                                     ?>
                                 </td>
                             </tr>
                             <tr>
-                                <td><label for="wpsl-map-type"><?php _e( 'Map type', 'wpsl' ); ?>:</label></td>
-                                <td><?php echo $wpsl_admin->settings_page->create_dropdown( 'map_types' ); ?></td>
+                                <td><label for="wpsl-map-type"><?php esc_html_e( 'Map type', 'wp-store-locator' ); ?>:</label></td>
+                                <td>
+                                    <?php 
+                                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in create_dropdown method.
+                                    echo $wpsl_admin->settings_page->create_dropdown( 'map_types' ); 
+                                    ?>
+                                </td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
                     <div id="wpsl-markers-tab">
                         <div class="wpsl-shortcode-markers">
-                            <?php echo $wpsl_admin->settings_page->show_marker_options(); ?>
+                            <?php 
+                            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in create_marker_html method.
+                            echo $wpsl_admin->settings_page->show_marker_options(); 
+                            ?>
                         </div>
                     </div>
                 </div>
 
                 <p class="submit">
-                    <input type="button" id="wpsl-insert-shortcode" class="button-primary" value="<?php echo _e( 'Insert Store Locator', 'wpsl' ); ?>" onclick="WPSL_InsertShortcode();" />
+                    <input type="button" id="wpsl-insert-shortcode" class="button-primary" value="<?php esc_attr_e( 'Insert Store Locator', 'wp-store-locator' ); ?>" onclick="WPSL_InsertShortcode();" />
                 </p>
             </div>
 

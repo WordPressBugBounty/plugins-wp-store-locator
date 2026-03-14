@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Collect all the parameters ( language, key, region )
@@ -150,35 +151,35 @@ function wpsl_get_default_settings() {
         'hide_hours'                => 0,
         'permalinks'                => 0,
         'permalink_remove_front'    => 0,
-        'permalink_slug'            => __( 'stores', 'wpsl' ),
-        'category_slug'             => __( 'store-category', 'wpsl' ),
+        'permalink_slug'            => __( 'stores', 'wp-store-locator' ),
+        'category_slug'             => __( 'store-category', 'wp-store-locator' ),
         'infowindow_style'          => 'default',
         'show_credits'              => 0,
         'debug'                     => 0,
         'deregister_gmaps'          => 0,
         'delay_loading'             => 0,
-        'start_label'               => __( 'Start location', 'wpsl' ),
-        'search_label'              => __( 'Your location', 'wpsl' ),
-        'search_btn_label'          => __( 'Search', 'wpsl' ),
-        'preloader_label'           => __( 'Searching...', 'wpsl' ),
-        'radius_label'              => __( 'Search radius', 'wpsl' ),
-        'no_results_label'          => __( 'No results found', 'wpsl' ),
-        'results_label'             => __( 'Results', 'wpsl' ),
-        'more_label'                => __( 'More info', 'wpsl' ),
-        'directions_label'          => __( 'Directions', 'wpsl' ),
-        'no_directions_label'       => __( 'No route could be found between the origin and destination', 'wpsl' ),
-        'back_label'                => __( 'Back', 'wpsl' ),
-        'street_view_label'         => __( 'Street view', 'wpsl' ),
-        'zoom_here_label'           => __( 'Zoom here', 'wpsl' ),
-        'error_label'               => __( 'Something went wrong, please try again!', 'wpsl' ),
-        'limit_label'               => __( 'API usage limit reached', 'wpsl' ),
-        'phone_label'               => __( 'Phone', 'wpsl' ),
-        'fax_label'                 => __( 'Fax', 'wpsl' ),
-        'email_label'               => __( 'Email', 'wpsl' ),
-        'url_label'                 => __( 'Url', 'wpsl' ),
-        'hours_label'               => __( 'Hours', 'wpsl' ),
-        'category_label'            => __( 'Category filter', 'wpsl' ),
-        'category_default_label'    => __( 'Any', 'wpsl' )
+        'start_label'               => __( 'Start location', 'wp-store-locator' ),
+        'search_label'              => __( 'Your location', 'wp-store-locator' ),
+        'search_btn_label'          => __( 'Search', 'wp-store-locator' ),
+        'preloader_label'           => __( 'Searching...', 'wp-store-locator' ),
+        'radius_label'              => __( 'Search radius', 'wp-store-locator' ),
+        'no_results_label'          => __( 'No results found', 'wp-store-locator' ),
+        'results_label'             => __( 'Results', 'wp-store-locator' ),
+        'more_label'                => __( 'More info', 'wp-store-locator' ),
+        'directions_label'          => __( 'Directions', 'wp-store-locator' ),
+        'no_directions_label'       => __( 'No route could be found between the origin and destination', 'wp-store-locator' ),
+        'back_label'                => __( 'Back', 'wp-store-locator' ),
+        'street_view_label'         => __( 'Street view', 'wp-store-locator' ),
+        'zoom_here_label'           => __( 'Zoom here', 'wp-store-locator' ),
+        'error_label'               => __( 'Something went wrong, please try again!', 'wp-store-locator' ),
+        'limit_label'               => __( 'API usage limit reached', 'wp-store-locator' ),
+        'phone_label'               => __( 'Phone', 'wp-store-locator' ),
+        'fax_label'                 => __( 'Fax', 'wp-store-locator' ),
+        'email_label'               => __( 'Email', 'wp-store-locator' ),
+        'url_label'                 => __( 'Url', 'wp-store-locator' ),
+        'hours_label'               => __( 'Hours', 'wp-store-locator' ),
+        'category_label'            => __( 'Category filter', 'wp-store-locator' ),
+        'category_default_label'    => __( 'Any', 'wp-store-locator' )
     );
 
     return $default_settings;
@@ -242,12 +243,12 @@ function wpsl_get_templates() {
     $templates = array(
         array(
             'id'   => 'default',
-            'name' => __( 'Default', 'wpsl' ),
+            'name' => __( 'Default', 'wp-store-locator' ),
             'path' => WPSL_PLUGIN_DIR . 'frontend/templates/default.php'
         ),
         array(
             'id'   => 'below_map',
-            'name' => __( 'Show the store list below the map', 'wpsl' ),
+            'name' => __( 'Show the store list below the map', 'wp-store-locator' ),
             'path' => WPSL_PLUGIN_DIR . 'frontend/templates/store-listings-below.php'
         )
     );
@@ -264,13 +265,13 @@ function wpsl_get_templates() {
 function wpsl_get_weekdays() {
 
    $weekdays = array(
-       'monday'    => __( 'Monday', 'wpsl' ),
-       'tuesday'   => __( 'Tuesday', 'wpsl' ),
-       'wednesday' => __( 'Wednesday', 'wpsl' ),
-       'thursday'  => __( 'Thursday', 'wpsl' ),
-       'friday'    => __( 'Friday', 'wpsl' ),
-       'saturday'  => __( 'Saturday', 'wpsl' ),
-       'sunday'    => __( 'Sunday' , 'wpsl' )
+       'monday'    => __( 'Monday', 'wp-store-locator' ),
+       'tuesday'   => __( 'Tuesday', 'wp-store-locator' ),
+       'wednesday' => __( 'Wednesday', 'wp-store-locator' ),
+       'thursday'  => __( 'Thursday', 'wp-store-locator' ),
+       'friday'    => __( 'Friday', 'wp-store-locator' ),
+       'saturday'  => __( 'Saturday', 'wp-store-locator' ),
+       'sunday'    => __( 'Sunday' , 'wp-store-locator' )
    );
 
    return $weekdays;
@@ -300,7 +301,8 @@ function wpsl_default_opening_hours() {
 
    /* Only add the textarea defaults for users that upgraded from 1.x */
    if ( version_compare( $current_version, '2.0', '<' ) ) {
-       $opening_hours['textarea'] = sprintf( __( 'Mon %sTue %sWed %sThu %sFri %sSat Closed %sSun Closed', 'wpsl' ), '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", "\n" ); //cleaner way without repeating it 5 times??
+       /* translators: %1$s: Monday hours, %2$s: Tuesday hours, %3$s: Wednesday hours, %4$s: Thursday hours, %5$s: Friday hours, %6$s: Saturday hours (newline) */
+       $opening_hours['textarea'] = sprintf( __( 'Mon %1$sTue %2$sWed %3$sThu %4$sFri %5$sSat Closed %6$sSun Closed', 'wp-store-locator' ), '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", '9:00 AM - 5:00 PM' . "\n", "\n" );
    }
 
    return $opening_hours;
@@ -315,10 +317,10 @@ function wpsl_default_opening_hours() {
 function wpsl_get_map_types() {
 
     $map_types = array(
-        'roadmap'   => __( 'Roadmap', 'wpsl' ),
-        'satellite' => __( 'Satellite', 'wpsl' ),
-        'hybrid'    => __( 'Hybrid', 'wpsl' ),
-        'terrain'   => __( 'Terrain', 'wpsl' )
+        'roadmap'   => __( 'Roadmap', 'wp-store-locator' ),
+        'satellite' => __( 'Satellite', 'wp-store-locator' ),
+        'hybrid'    => __( 'Hybrid', 'wp-store-locator' ),
+        'terrain'   => __( 'Terrain', 'wp-store-locator' )
     );
 
     return $map_types;
@@ -333,12 +335,12 @@ function wpsl_get_map_types() {
 function wpsl_get_address_formats() {
 
     $address_formats = array(
-        'city_state_zip'       => __( '(city) (state) (zip code)', 'wpsl' ),
-        'city_comma_state_zip' => __( '(city), (state) (zip code)', 'wpsl' ),
-        'city_zip'             => __( '(city) (zip code)', 'wpsl' ),
-        'city_comma_zip'       => __( '(city), (zip code)', 'wpsl' ),
-        'zip_city_state'       => __( '(zip code) (city) (state)', 'wpsl' ),
-        'zip_city'             => __( '(zip code) (city)', 'wpsl' )
+        'city_state_zip'       => __( '(city) (state) (zip code)', 'wp-store-locator' ),
+        'city_comma_state_zip' => __( '(city), (state) (zip code)', 'wp-store-locator' ),
+        'city_zip'             => __( '(city) (zip code)', 'wp-store-locator' ),
+        'city_comma_zip'       => __( '(city), (zip code)', 'wp-store-locator' ),
+        'zip_city_state'       => __( '(zip code) (city) (state)', 'wp-store-locator' ),
+        'zip_city'             => __( '(zip code) (city)', 'wp-store-locator' )
     );
 
     return apply_filters( 'wpsl_address_formats', $address_formats );
@@ -590,7 +592,7 @@ function wpsl_deregister_other_gmaps() {
     global $wp_scripts;
 
     foreach ( $wp_scripts->registered as $index => $script ) {
-        if ( ( strpos( $script->src, 'maps.google.com' ) !== false ) || ( strpos( $script->src, 'maps.googleapis.com' ) !== false ) && ( $script->handle !== 'wpsl-gmap' ) ) {
+        if ( ( strpos( $script->src, 'maps.google.com' ) !== false || strpos( $script->src, 'maps.googleapis.com' ) !== false ) && $script->handle !== 'wpsl-gmap' ) {
             wp_deregister_script( $script->handle );
         }
     }
@@ -674,6 +676,7 @@ function wpsl_get_location_fields( $args = array() ) {
 
     $fields   = array();
     $defaults = array(
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- This is not a WP_Query parameter, just a function parameter to exclude specific meta field names
         'exclude'    => array( 'country_iso' ),
         'prefix'     => '',
         'set_values' => true

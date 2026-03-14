@@ -17,6 +17,8 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
      */
     class WPSL_Metaboxes {
 
+        private $store_data = array();
+
         public function __construct() {
             add_action( 'add_meta_boxes',        array( $this, 'add_meta_boxes' ) );
             add_action( 'save_post',             array( $this, 'save_post' ) );
@@ -33,13 +35,13 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
 
             global $pagenow;
 
-            add_meta_box( 'wpsl-store-details', __( 'Store Details', 'wpsl' ), array( $this, 'create_meta_fields' ), 'wpsl_stores', 'normal', 'high' );
-            add_meta_box( 'wpsl-map-preview', __( 'Store Map', 'wpsl' ), array( $this, 'map_preview' ), 'wpsl_stores', 'side' );
+            add_meta_box( 'wpsl-store-details', __( 'Store Details', 'wp-store-locator' ), array( $this, 'create_meta_fields' ), 'wpsl_stores', 'normal', 'high' );
+            add_meta_box( 'wpsl-map-preview', __( 'Store Map', 'wp-store-locator' ), array( $this, 'map_preview' ), 'wpsl_stores', 'side' );
 
             $enable_option = apply_filters( 'wpsl_enable_export_option', true );
 
             if ( $enable_option && $pagenow == 'post.php' ) {
-                add_meta_box( 'wpsl-data-export', __( 'Export', 'wpsl' ), array( $this, 'export_data' ), 'wpsl_stores', 'side', 'low' );
+                add_meta_box( 'wpsl-data-export', __( 'Export', 'wp-store-locator' ), array( $this, 'export_data' ), 'wpsl_stores', 'side', 'low' );
             }
         }
 
@@ -54,56 +56,56 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             global $wpsl_settings;
 
             $meta_fields = array(
-                __( 'Location', 'wpsl' ) => array(
+                __( 'Location', 'wp-store-locator' ) => array(
                     'address' => array(
-                        'label'    => __( 'Address', 'wpsl' ),
+                        'label'    => __( 'Address', 'wp-store-locator' ),
                         'required' => true
                     ),
                     'address2' => array(
-                        'label' => __( 'Address 2', 'wpsl' )
+                        'label' => __( 'Address 2', 'wp-store-locator' )
                     ),
                     'city' => array(
-                        'label'    => __( 'City', 'wpsl' ),
+                        'label'    => __( 'City', 'wp-store-locator' ),
                         'required' => true
                     ),
                     'state' => array(
-                        'label' => __( 'State', 'wpsl' )
+                        'label' => __( 'State', 'wp-store-locator' )
                     ),
                     'zip' => array(
-                        'label' => __( 'Zip Code', 'wpsl' )
+                        'label' => __( 'Zip Code', 'wp-store-locator' )
                     ),
                     'country' => array(
-                        'label'    => __( 'Country', 'wpsl' ),
+                        'label'    => __( 'Country', 'wp-store-locator' ),
                         'required' => true
                     ),
                     'country_iso' => array(
                         'type' => 'hidden'
                     ),
                     'lat' => array(
-                        'label' => __( 'Latitude', 'wpsl' )
+                        'label' => __( 'Latitude', 'wp-store-locator' )
                     ),
                     'lng' => array(
-                        'label' => __( 'Longitude', 'wpsl' )
+                        'label' => __( 'Longitude', 'wp-store-locator' )
                     )
                 ),
-                __( 'Opening Hours', 'wpsl' ) => array(
+                __( 'Opening Hours', 'wp-store-locator' ) => array(
                     'hours' => array(
-                        'label' => __( 'Hours', 'wpsl' ),
+                        'label' => __( 'Hours', 'wp-store-locator' ),
                         'type'  => $wpsl_settings['editor_hour_input'] //Either set to textarea or dropdown. This is defined through the 'Opening hours input format: ' option on the settings page
                     )
                 ),
-                __( 'Additional Information', 'wpsl' ) => array(
+                __( 'Additional Information', 'wp-store-locator' ) => array(
                     'phone' => array(
-                        'label' => __( 'Tel', 'wpsl' )
+                        'label' => __( 'Tel', 'wp-store-locator' )
                     ),
                     'fax' => array(
-                        'label' => __( 'Fax', 'wpsl' )
+                        'label' => __( 'Fax', 'wp-store-locator' )
                     ),
                     'email' => array(
-                        'label' => __( 'Email', 'wpsl' )
+                        'label' => __( 'Email', 'wp-store-locator' )
                     ),
                     'url' => array(
-                        'label' => __( 'Url', 'wpsl' )
+                        'label' => __( 'Url', 'wp-store-locator' )
                     )
                 )
             );
@@ -135,7 +137,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                 foreach ( $this->meta_box_fields() as $tab => $meta_fields ) {
                     $active_class = ( $i == 0 ) ? ' wpsl-active' : '';
 
-                    if ( $wpsl_settings['hide_hours'] && $tab == __( 'Opening Hours', 'wpsl' ) ) {
+                    if ( $wpsl_settings['hide_hours'] && $tab == __( 'Opening Hours', 'wp-store-locator' ) ) {
                         continue;
                     } else {
                         $tab_items .= $this->meta_field_nav( $tab, $active_class );
@@ -144,16 +146,16 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                     $i++;
                 }
 
-                echo '<ul id="wpsl-meta-nav">' . $tab_items . '</ul>';
+                echo '<ul id="wpsl-meta-nav">' . wp_kses_post( $tab_items ) . '</ul>';
 
                 // Create the input fields for the meta boxes.
                 foreach ( $this->meta_box_fields() as $tab => $meta_fields ) {
                     $active_class = ( $j == 0 ) ? ' wpsl-active' : '';
 
-                    if ( $wpsl_settings['hide_hours'] && $tab == __( 'Opening Hours', 'wpsl' ) ) {
+                    if ( $wpsl_settings['hide_hours'] && $tab == __( 'Opening Hours', 'wp-store-locator' ) ) {
                         continue;
                     } else {
-                        echo '<div class="wpsl-tab wpsl-' . esc_attr( strtolower( str_replace( ' ', '-', $tab ) ) ) . $active_class . '">';
+                        echo '<div class="wpsl-tab wpsl-' . esc_attr( strtolower( str_replace( ' ', '-', $tab ) ) ) . esc_attr( $active_class ) . '">';
 
                         foreach ( $meta_fields as $field_key => $field_data ) {
 
@@ -209,7 +211,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
         public function set_required_class( $args, $single = false ) {
 
             if ( isset( $args['required'] ) && ( $args['required'] ) ) {
-                if ( !$single ) {
+                if ( ! $single ) {
                     $response = 'class="wpsl-required"';
                 } else {
                     $response = 'wpsl-required';
@@ -249,7 +251,8 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             $field_data = '';
 
             // Prefilled values are only used for new pages, not when a user edits an existing page.
-            if ( $pagenow == 'post.php' && isset( $_GET['action'] ) && $_GET['action'] == 'edit' ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only checking if we're editing a post, not processing form data
+            if ( $pagenow == 'post.php' && isset( $_GET['action'] ) && sanitize_text_field( wp_unslash( $_GET['action'] ) ) == 'edit' ) {
                 return;
             }
 
@@ -283,7 +286,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             ?>
 
             <p>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- is_required_field() returns hardcoded safe HTML. ?>
                 <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ': ' . $this->is_required_field( $args['data'] ); ?></label>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- set_required_class() returns hardcoded safe attribute. ?>
                 <input id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?> type="text" name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" value="<?php echo esc_attr( $saved_value ); ?>" />
             </p>
 
@@ -333,7 +338,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             ?>
 
             <p>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- is_required_field() returns hardcoded safe HTML. ?>
                 <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ': ' . $this->is_required_field( $args['data'] ); ?></label>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- set_required_class() returns hardcoded safe attribute. ?>
                 <textarea id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?> name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" cols="5" rows="5"><?php echo esc_html( $saved_value ); ?></textarea>
             </p>
 
@@ -353,6 +360,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             ?>
 
             <p>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- is_required_field() returns hardcoded safe HTML. ?>
                 <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ': ' . $this->is_required_field( $args['data'] ); ?></label>
                 <?php wp_editor( $saved_value, 'wpsleditor_' . wpsl_random_chars(), $settings = array('textarea_name' => 'wpsl['. esc_attr( $args['key'] ).']') ); ?>
             </p>
@@ -373,7 +381,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             ?>
 
             <p>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- is_required_field() returns hardcoded safe HTML. ?>
                 <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ': ' . $this->is_required_field( $args['data'] ); ?></label>
+                <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- set_required_class() returns hardcoded safe attribute. ?>
                 <input id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?> type="checkbox" name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" <?php checked( $saved_value, true ); ?> value="1" />
             </p>
 
@@ -398,7 +408,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                 ?>
 
                 <p>
+                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- is_required_field() returns hardcoded safe HTML. ?>
                     <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ': ' . $this->is_required_field( $args['data'] ); ?></label>
+                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- set_required_class() returns hardcoded safe attribute. ?>
                     <select id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?>  name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" autocomplete="off" />
                     <?php foreach ( $option_list as $key => $option ) { ?>
                         <option value="<?php echo esc_attr( $key ); ?>" <?php if ( isset( $saved_value ) ) { selected( $saved_value, $key ); } ?>><?php echo esc_html( $option ); ?></option>
@@ -453,15 +465,16 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             if ( $location == 'store_page' ) {
                 ?>
                 <p class="wpsl-hours-dropdown">
-                    <label for="wpsl-editor-hour-input"><?php _e( 'Hour format', 'wpsl' ); ?>:</label>
+                    <label for="wpsl-editor-hour-input"><?php esc_html_e( 'Hour format', 'wp-store-locator' ); ?>:</label>
+                    <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- show_opening_hours_format() returns hardcoded HTML with values escaped via esc_attr() and esc_html(). ?>
                     <?php echo $wpsl_admin->settings_page->show_opening_hours_format( $hour_format ); ?>
                 </p>
             <?php } ?>
 
-                <table id="wpsl-store-hours" class="<?php echo $hour_class; ?>">
+                <table id="wpsl-store-hours" class="<?php echo esc_attr( $hour_class ); ?>">
                     <tr>
-                        <th><?php _e( 'Days', 'wpsl' ); ?></th>
-                        <th><?php _e( 'Opening Periods', 'wpsl' ); ?></th>
+                        <th><?php esc_html_e( 'Days', 'wp-store-locator' ); ?></th>
+                        <th><?php esc_html_e( 'Opening Periods', 'wp-store-locator' ); ?></th>
                         <th></th>
                     </tr>
                     <?php
@@ -497,9 +510,15 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                                             );
                                             ?>
                                             <div class="wpsl-current-period <?php if ( $i > 0 ) { echo 'wpsl-multiple-periods'; } ?>">
-                                                <?php echo $this->opening_hours_dropdown( $args, 'open' ); ?>
+                                                <?php
+                                                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method returns pre-escaped HTML select element.
+                                                echo $this->opening_hours_dropdown( $args, 'open' );
+                                                ?>
                                                 <span> - </span>
-                                                <?php echo $this->opening_hours_dropdown( $args, 'close' ); ?>
+                                                <?php
+                                                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method returns pre-escaped HTML select element.
+                                                echo $this->opening_hours_dropdown( $args, 'close' );
+                                                ?>
                                                 <div class="wpsl-icon-cancel-circled"></div>
                                             </div>
                                             <?php
@@ -536,7 +555,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
          * @return void
          */
         public function show_store_closed( $name, $day ) {
-            echo '<p class="wpsl-store-closed">' . __( 'Closed', 'wpsl' ) . '<input type="hidden" name="' . esc_attr( $name ) . '[' . esc_attr( $day ) . ']" value="closed"></p>';
+            echo '<p class="wpsl-store-closed">' . esc_html__( 'Closed', 'wp-store-locator' ) . '<input type="hidden" name="' . esc_attr( $name ) . '[' . esc_attr( $day ) . ']" value="closed"></p>';
         }
 
         /**
@@ -594,12 +613,14 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             for ( $i = $open; $i <= $close; $i += $hour_interval ) {
 
                 // If the selected time matches the current time then we set it to active.
+                // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Formatting time intervals for UI display, not affected by timezone.
                 if ( $selected_time == date( $format, $i ) ) {
                     $selected = 'selected="selected"';
                 } else {
                     $selected = '';
                 }
 
+                // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Formatting time intervals for UI display, not affected by timezone.
                 $select .= "<option value='" . date( $format, $i ) . "' $selected>" . date( $format, $i ) . "</option>";
             }
 
@@ -639,7 +660,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
 
             global $wpsl_admin;
 
-            if ( empty( $_POST['wpsl_meta_nonce'] ) || !wp_verify_nonce( $_POST['wpsl_meta_nonce'], 'save_store_meta' ) )
+            if ( empty( $_POST['wpsl_meta_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wpsl_meta_nonce'] ) ), 'save_store_meta' ) )
                 return;
 
             if ( !isset( $_POST['post_type'] ) || 'wpsl_stores' !== $_POST['post_type'] )
@@ -654,7 +675,8 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             if ( !current_user_can( 'edit_post', $post_id ) )
                 return;
 
-            $this->store_data = $_POST['wpsl'];
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Data is sanitized when saved via update_post_meta with appropriate functions (absint, wp_kses_post, sanitize_text_field, array_map)
+            $this->store_data = isset( $_POST['wpsl'] ) ? wp_unslash( $_POST['wpsl'] ) : array();
 
             // Check if the hours are set through dropdowns.
             if ( isset( $this->store_data['hours'] ) && is_array( $this->store_data['hours'] ) && ( !empty( $this->store_data['hours'] ) ) ) {
@@ -716,7 +738,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                 $wpsl_admin->geocode->check_geocode_data( $post_id, $this->store_data );
                 $wpsl_admin->maybe_delete_autoload_transient( $post_id );
             } else {
-                $wpsl_admin->notices->save( 'error', __( 'Failed to publish the store. Please fill in the required store details.', 'wpsl' ) );
+                $wpsl_admin->notices->save( 'error', __( 'Failed to publish the store. Please fill in the required store details.', 'wp-store-locator' ) );
                 $this->set_post_pending( $post_id );
             }
         }
@@ -732,8 +754,10 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             $week_days = wpsl_get_weekdays();
 
             // Use the opening hours from the editor page or the add/edit store page.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verification is done in the calling function save_post() or in settings validation. Data is sanitized when saved to database.
             if ( isset( $_POST['wpsl_editor']['dropdown'] ) ) {
-                $store_hours = $_POST['wpsl_editor']['dropdown'];
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verification is done in the calling function save_post() or in settings validation. Data is sanitized when saved to database.
+                $store_hours = wp_unslash( $_POST['wpsl_editor']['dropdown'] );
             } else if ( isset( $this->store_data['hours'] ) ) {
                 $store_hours = $this->store_data['hours'];
             }
@@ -772,8 +796,10 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
              * But if validate_hour is called from the settings page then we
              * should use the $_POST value to make sure we have the correct value.
              */
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification is done in the calling function (save_post or sanitize_settings)
             if ( isset( $_POST['wpsl_editor']['hour_format'] ) ) {
-                $hour_format = ( $_POST['wpsl_editor']['hour_format'] == 12 ) ? 12 : 24;
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification is done in the calling function (save_post or sanitize_settings)
+                $hour_format = ( absint( $_POST['wpsl_editor']['hour_format'] ) == 12 ) ? 12 : 24;
             } else {
                 $hour_format = $wpsl_settings['editor_hour_format'];
             }
@@ -784,6 +810,7 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
                 $format = 'H:i';
             }
 
+            // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Validating time format for UI, not affected by timezone.
             if ( date( $format, strtotime( $hour ) ) == $hour ) {
                 return $hour;
             }
@@ -798,9 +825,10 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
          */
         public function set_post_pending( $post_id ) {
 
-            global $wpdb;
-
-            $wpdb->update( $wpdb->posts, array( 'post_status' => 'pending' ), array( 'ID' => $post_id ) );
+            wp_update_post( array(
+                'ID'          => $post_id,
+                'post_status' => 'pending'
+            ) );
 
             add_filter( 'redirect_post_location', array( $this, 'remove_message_arg' ) );
         }
@@ -852,9 +880,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             ?>
             <div id="wpsl-gmap-wrap"></div>
             <p class="wpsl-submit-wrap">
-                <a id="wpsl-lookup-location" class="button-primary" href="#wpsl-meta-nav"><?php _e( 'Preview Location', 'wpsl' ); ?></a>
-                <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo sprintf( __( 'The map preview is based on the provided address, city and country details. %s It will ignore any custom latitude or longitude values.', 'wpsl' ), '<br><br>' ); ?></span></span>
-                <em class="wpsl-desc"><?php _e( 'You can drag the marker to adjust the exact location of the marker.', 'wpsl' ); ?></em>
+                <a id="wpsl-lookup-location" class="button-primary" href="#wpsl-meta-nav"><?php esc_html_e( 'Preview Location', 'wp-store-locator' ); ?></a>
+                <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php /* translators: %s: line break */ echo wp_kses_post( sprintf( __( 'The map preview is based on the provided address, city and country details. %s It will ignore any custom latitude or longitude values.', 'wp-store-locator' ), '<br><br>' ) ); ?></span></span>
+                <em class="wpsl-desc"><?php esc_html_e( 'You can drag the marker to adjust the exact location of the marker.', 'wp-store-locator' ); ?></em>
             </p>
             <?php
         }
@@ -869,11 +897,12 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
 
             global $post;
 
-            $link_url = wp_nonce_url( admin_url( 'post.php?'. $_SERVER['QUERY_STRING'] . '&wpsl_data_export=1' ), 'wpsl_export_' . $post->ID, 'wpsl_export_nonce' );
+            $query_string = isset( $_SERVER['QUERY_STRING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['QUERY_STRING'] ) ) : '';
+            $link_url = wp_nonce_url( admin_url( 'post.php?'. $query_string . '&wpsl_data_export=1' ), 'wpsl_export_' . $post->ID, 'wpsl_export_nonce' );
 
             ?>
             <p class="wpsl-submit-wrap">
-                <a id="wpsl-export-data" class="button-primary" href="<?php echo esc_url( $link_url ); ?>"><?php _e( 'Export Location Data', 'wpsl' ); ?></a>
+                <a id="wpsl-export-data" class="button-primary" href="<?php echo esc_url( $link_url ); ?>"><?php esc_html_e( 'Export Location Data', 'wp-store-locator' ); ?></a>
             </p>
             <?php
         }
@@ -891,33 +920,39 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
             $post_type        = get_post_type( $post );
             $post_type_object = get_post_type_object( $post_type );
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only displaying a message, not processing form data
+            $revision_title = isset( $_GET['revision'] ) ? wp_post_revision_title( absint( $_GET['revision'] ), false ) : false;
+
             $messages['wpsl_stores'] = array(
                 0  => '', // Unused. Messages start at index 1.
-                1  => __( 'Store updated.', 'wpsl' ),
-                2  => __( 'Custom field updated.', 'wpsl' ),
-                3  => __( 'Custom field deleted.', 'wpsl' ),
-                4  => __( 'Store updated.', 'wpsl' ),
-                5  => isset( $_GET['revision'] ) ? sprintf( __( 'Store restored to revision from %s', 'wpsl' ), wp_post_revision_title( (int) $_GET['revision'], false ) ) : false,
-                6  => __( 'Store published.', 'wpsl' ),
-                7  => __( 'Store saved.', 'wpsl' ),
-                8  => __( 'Store submitted.', 'wpsl' ),
+                1  => __( 'Store updated.', 'wp-store-locator' ),
+                2  => __( 'Custom field updated.', 'wp-store-locator' ),
+                3  => __( 'Custom field deleted.', 'wp-store-locator' ),
+                4  => __( 'Store updated.', 'wp-store-locator' ),
+                /* translators: %s: revision date */
+                5  => $revision_title ? sprintf( __( 'Store restored to revision from %s', 'wp-store-locator' ), $revision_title ) : false,
+                6  => __( 'Store published.', 'wp-store-locator' ),
+                7  => __( 'Store saved.', 'wp-store-locator' ),
+                8  => __( 'Store submitted.', 'wp-store-locator' ),
                 9  => sprintf(
-                    __( 'Store scheduled for: <strong>%1$s</strong>.', 'wpsl' ),
-                    date_i18n( __( 'M j, Y @ G:i', 'wpsl' ), strtotime( $post->post_date ) )
+                    /* translators: %1$s: scheduled date and time */
+                    __( 'Store scheduled for: <strong>%1$s</strong>.', 'wp-store-locator' ),
+                    // translators: Date format for scheduled posts
+                    date_i18n( __( 'M j, Y @ G:i', 'wp-store-locator' ), strtotime( $post->post_date ) )
                 ),
-                10 => __( 'Store draft updated.', 'wpsl' )
+                10 => __( 'Store draft updated.', 'wp-store-locator' )
             );
 
             if ( ( 'wpsl_stores' == $post_type ) && ( $post_type_object->publicly_queryable ) ) {
                 $permalink = get_permalink( $post->ID );
 
-                $view_link = sprintf( ' <a href="%s">%s</a>', esc_url( $permalink ), __( 'View store', 'wpsl' ) );
+                $view_link = sprintf( ' <a href="%s">%s</a>', esc_url( $permalink ), __( 'View store', 'wp-store-locator' ) );
                 $messages[ $post_type ][1] .= $view_link;
                 $messages[ $post_type ][6] .= $view_link;
                 $messages[ $post_type ][9] .= $view_link;
 
                 $preview_permalink = add_query_arg( 'preview', 'true', $permalink );
-                $preview_link = sprintf( ' <a target="_blank" href="%s">%s</a>', esc_url( $preview_permalink ), __( 'Preview store', 'wpsl' ) );
+                $preview_link = sprintf( ' <a target="_blank" href="%s">%s</a>', esc_url( $preview_permalink ), __( 'Preview store', 'wp-store-locator' ) );
                 $messages[ $post_type ][8]  .= $preview_link;
                 $messages[ $post_type ][10] .= $preview_link;
             }

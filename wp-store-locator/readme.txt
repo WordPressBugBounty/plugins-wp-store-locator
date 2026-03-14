@@ -1,10 +1,10 @@
 ﻿=== WP Store Locator ===
 Plugin URI: https://wpstorelocator.co
 Contributors: tijmensmit
-Tags: google maps, store locator, business locations, geocoding, stores, geo, zipcode locator, dealer locater, geocode, gmaps, google map, google map plugin, location finder, map tools, shop locator, wp google map
+Tags: google maps, store locator, store finder, maps, directions
 Requires at least: 3.7
-Tested up to: 6.8.3
-Stable tag: 2.2.261
+Tested up to: 6.9
+Stable tag: 2.3.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -129,87 +129,10 @@ Please report security bugs found in the source code of the WP Store Locator plu
 
 == Changelog ==
 
-= 2.2.261 = 
-* Fixed: PHP Object Injection vulnerability.
-
-= 2.2.260
-* New: Options to control the visibility of the zoom and fullscreen controls on the map ( Map section ).
-* Changed: When the street view controls are enabled, the camera control icon will no longer automatically appear on the map.
-
-= 2.2.253
-* Fixed: Permalinks stopped working after the last update, sorry :(
-
-= 2.2.252
-* Changed: Adjusted the loading order of the translations to prevent the 'Function _load_textdomain_just_in_time was called incorrectly' notice from appearing.     
-
-= 2.2.251
-* Fixed: HTML security issues ( Stored XSS vulnerability ) in the translation strings. Thanks to [cleantalk](https://cleantalk.org/) for reporting this.
-
-= 2.2.250
-* New: Added support for the new [Places API](https://developers.google.com/maps/documentation/javascript/place). You can find instructions on migrating to the new API [here](https://wpstorelocator.co/migrate-to-the-new-places-api/).
-
-= 2.2.241
-* Fixed: Not all markers showing up when multiple [wpsl_map] shortcodes are used on the same page.
-* Fixed: PHP 8.2 compatiblity issues.
-* Fixed: The custom map style not being applied to the preview map on the WPSL settings page.
-* Changed: Removed broken links to map style examples from the settings page.
-
-= 2.2.240
-* New: To reduce the chance of seeing the 'wpslCallback is not a function' error in the browser console ( and the map breaking ), the required JS files are now automatically excluded from the SiteGround Optimizer, Autoptimize, LiteSpeed Cache and WP Rocket plugins.
-* New: Optional deactivation survey on live sites to gather feedback to improve the plugin ( nothing is shown on dev domains / localhosts ).
-* Fixed: Cannot read property '__e3_' of undefined error when the marker cluster and the custom info window script is used together.
-* Fixed: Uncaught TypeError: callback is not a function when the start marker is dragged to a new location after a search is finished.
-* Fixed: The start marker duplicating itself when it's dragged to a new location when the 'Attempt to auto-locate the user' option is enabled.
-* Fixed: Uncaught ReferenceError: InfoBox is not defined when the Borlabs Cookie plugin is active in combination with the custom infobox.js script.
-* Fixed: Different JS event handlers not firing correctly when the Borlabs Cookie plugin is active.
-* Changed: Make sure HTTPS is always used for request to the Google Maps API in the admin area.
-* Changed: Included the latest version of the EDD_SL_Plugin_Updater class ( 1.9.1 ).
-
-= 2.2.237
-* Fixed: The "Loading the Google Maps JavaScript API without a callback is not supported" console warning.
-* Note: If you have the search widget add-on installed and are using the autocomplete function, then please make sure to update to the latest version ( 1.2.1 ).
-
-= 2.2.236
-* Fixed: The search function can break if the created opening hours doesn't contain every day of the week.
-
-= 2.2.235
-* Fixed: [Borlabs Cookie](https://borlabs.io/borlabs-cookie/) compatiblity problem with the Google Maps placeholder.
-
-= 2.2.234
-* Fixed: PHP 8 Compatiblity
-* Fixed: Polylang Compatiblity
-
-= 2.2.233
-* Fixed: A problem with the [Borlabs Cookie](https://borlabs.io/borlabs-cookie/) plugin where Google Maps wasn't blocked correctly.
-* Changed: Set the loaded Google Maps JavaScript [version](https://developers.google.com/maps/documentation/javascript/versions) to quarterly. So every quarter it will automatically load the latest version.
-
-= 2.2.232
-* Fixed: The opening hours triggering an error on some server configurations.
-* Fixed: Restored the [wpsl_skip_cpt_template](https://wpstorelocator.co/document/wpsl_skip_cpt_template/) filter which was accidently removed in a previous update.
-* Changed: Set the loaded Google Maps JavaScript [version](https://developers.google.com/maps/documentation/javascript/versions) to 3.39 instead of 3.36.
-
-= 2.2.231
-* Fixed: Bug that in some cases broken the Borlabs Cookie plugin from working correctly together with the store locator plugin.
-
-= 2.2.23
-* Fixed: The export data function on the single location pages in the admin area not working.
-* Fixed: The map and location data not showing up in the TwentyNineteen theme on individual location pages.
-* Changed: Updated the included EDD_SL_Plugin_Updater class that handles updates / license key checks for add-ons.
-
-= 2.2.22
-* Added: Support for the [Borlabs Cookie](https://borlabs.io/borlabs-cookie/) plugin. This allows you to [block the loading](https://wpstorelocator.co/document/the-general-data-protection-regulation/#borlabs) of Google Maps until the user agrees to it.
-* Added: A 'Validate API Keys' tool that will provided feedback for any issues with the used API keys.
-* Added: A tool that will show you the raw Google Geocode API response for any address you provide based on the current configuration together with a preview map.
-* Changed: Made sure that links included in error messages from the Google Geocode API are always clickable.
-* Changed: If no zip code is included in the returned location data after the users location is automatically determined, then it will now show the city / town name in the search field instead of leaving it empty.
-
-= 2.2.21
-* Changed: Set the loaded Google Maps JavaScript [version](https://developers.google.com/maps/documentation/javascript/versions) to 3.36 instead of 3.33.
-
-= 2.2.20
-* New: Added an option to the permalinks section to optionally remove the front base ( for example /blog/ ) from the store locator permalinks.
-* New: Added an option to the search section to force the Google Geocode API to assume the search input is a zip code. So searching for town / city names won't work if this option is enabled.
-* New: Included a [wpsl_autocomplete_options](https://wpstorelocator.co/document/wpsl_autocomplete_options/) filter to customize the included data in requests made to the places API ( used with autocomplete ).
-* Changed: Limited the requested data for the places API ( used with autocomplete ) to only 'geometry.location', which should reduce the cost on high traffic websites.
-* Removed: Unused CSS rules from the admin CSS.
-* Fixed: Using keyboard input to select a location after the first search with the autocomplete option enabled now returns the correct location.
+= 2.3.0
+* Added: Two blocks for the [wpsl] and [wpsl_map] shortcodes
+* Added: Temporary notice that enables users to sign up for testing the beta version of the 3.0 update
+* Changed: Ensured all code follows the latest WordPress Coding Standards
+* Fixed: Authenticated stored XSS vulnerability for the [wpsl_map] shortcode
+* Fixed: Shortcode option 'control_position' not working in the [wpsl_map] shortcode if the option is disabled on the settings page
+* Fixed: Styling issues with the Geocode API Response test dialog and the hours in the admin area

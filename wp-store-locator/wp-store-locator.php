@@ -1,11 +1,13 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) exit;
+
 /*
 Plugin Name: WP Store Locator
 Description: An easy to use location management system that enables users to search for nearby physical stores
 Author: Tijmen Smit
 Author URI: https://wpstorelocator.co/
-Version: 2.2.261
-Text Domain: wpsl
+Version: 2.3.0
+Text Domain: wp-store-locator
 Domain Path: /languages/
 License: GPL v3
 
@@ -30,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @author Tijmen Smit
 */
 
-if ( !class_exists( 'WP_Store_locator' ) ) {
+if ( ! class_exists( 'WP_Store_locator' ) ) {
 
 	class WP_Store_locator {
         
@@ -40,7 +42,7 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
          * @var   object|WPSL_Post_Types
          * @since 2.0.0
          */
-        var $post_types;
+        public $post_types;
 
         /**
          * WPSL_i18n object.
@@ -48,7 +50,7 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
          * @var   object|WPSL_i18n
          * @since 2.0.0
          */
-        var $i18n;
+        public $i18n;
 
         /**
          * WPSL_Frontend object.
@@ -56,7 +58,7 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
          * @var   object|WPSL_Frontend
          * @since 2.2.14
          */
-        var $frontend;
+        public $frontend;
 
         /**
          * WPSL_Templates object.
@@ -64,7 +66,7 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
          * @var   object|WPSL_Templates
          * @since 2.2.11
          */
-        var $templates;
+        public $templates;
         
         /**
          * Class constructor
@@ -94,7 +96,7 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
         public function define_constants() {
 
             if ( !defined( 'WPSL_VERSION_NUM' ) )
-                define( 'WPSL_VERSION_NUM', '2.2.261' );
+                define( 'WPSL_VERSION_NUM', '2.3.0' );
 
             if ( !defined( 'WPSL_URL' ) )
                 define( 'WPSL_URL', plugin_dir_url( __FILE__ ) );
@@ -120,8 +122,9 @@ if ( !class_exists( 'WP_Store_locator' ) ) {
             require_once( WPSL_PLUGIN_DIR . 'inc/class-post-types.php' );
             require_once( WPSL_PLUGIN_DIR . 'inc/class-i18n.php' );
             require_once( WPSL_PLUGIN_DIR . 'frontend/class-frontend.php' );
+            require_once( WPSL_PLUGIN_DIR . 'admin/class-block.php' );
 
-            if ( is_admin() || defined( 'WP_CLI' ) && WP_CLI ) {
+            if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
                 require_once( WPSL_PLUGIN_DIR . 'admin/roles.php' );
                 require_once( WPSL_PLUGIN_DIR . 'admin/class-admin.php' );
             }

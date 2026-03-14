@@ -35,12 +35,12 @@ if ( ! class_exists( 'WPSL_Exit_Survey' ) ) {
          */
         public function deactivate() {
 
-            if ( empty( $_REQUEST['wpsl_nonce'] ) || ! wp_verify_nonce( $_REQUEST['wpsl_nonce'], 'wpsl_survey_nonce' ) ) {
+            if ( empty( $_REQUEST['wpsl_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['wpsl_nonce'] ) ), 'wpsl_survey_nonce' ) ) {
                 return;
             }
 
-            $reason   = ( isset( $_REQUEST['wpsl_deactivation_reason'] ) ) ? $_REQUEST['wpsl_deactivation_reason'] : '';
-            $feedback = ( isset( $_REQUEST['wpsl_deactivation_feedback'] ) ) ? $_REQUEST['wpsl_deactivation_feedback'] : '';
+            $reason   = ( isset( $_REQUEST['wpsl_deactivation_reason'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['wpsl_deactivation_reason'] ) ) : '';
+            $feedback = ( isset( $_REQUEST['wpsl_deactivation_feedback'] ) ) ? sanitize_textarea_field( wp_unslash( $_REQUEST['wpsl_deactivation_feedback'] ) ) : '';
 
             if ( $reason ) {
                 $args = array(

@@ -16,19 +16,23 @@ if ( !defined( 'ABSPATH' ) ) exit;
  */
 function wpsl_install( $network_wide ) {
 
-    global $wpdb;
-
     if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 
         if ( $network_wide ) {
-            $blog_ids = $wpdb->get_col( "SELECT blog_id FROM $wpdb->blogs" );
+            $blog_ids = get_sites( 
+                array(  
+                    'fields' => 'ids', 
+                    'number' => 0, 
+                    'spam' => 0, 
+                    'deleted' => 0 
+                ) 
+            );
 
             foreach ( $blog_ids as $blog_id ) {
                 switch_to_blog( $blog_id );
                 wpsl_install_data();
-            }
-
-            restore_current_blog();
+                restore_current_blog();
+            }  
         } else {
             wpsl_install_data();
         }

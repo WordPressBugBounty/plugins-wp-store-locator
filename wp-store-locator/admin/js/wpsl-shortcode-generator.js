@@ -31,32 +31,32 @@ function WPSL_InsertShortcode() {
         shortcodeAtts += ' start_location="' + startLocation + '"';
     }
 
-    if ( typeof catRestriction !== "undefined" && catRestriction !== null && !catFilterType ) {
+    if ( typeof catRestriction !== "undefined" && catRestriction !== null && catRestriction.length > 0 ) {
         shortcodeAtts += ' category="' + catRestriction + '"';
-    }
-
-    // Make sure we target the correct ID based on the filter type selection.
-    if ( catFilterType == "dropdown" ) {
-        catSelectionID = "wpsl-cat-selection";
     } else {
-        catSelectionID = "wpsl-checkbox-selection";
-    }
+        // Only include filter options when no category restriction is set.
+        if ( catFilterType == "dropdown" ) {
+            catSelectionID = "wpsl-cat-selection";
+        } else {
+            catSelectionID = "wpsl-checkbox-selection";
+        }
 
-    catSelection = jQuery( '#' + catSelectionID + '' ).val();
+        catSelection = jQuery( '#' + catSelectionID + '' ).val();
 
-    if ( catSelection ) {
-        shortcodeAtts += ' category_selection="' + catSelection + '"';
-    }
+        if ( catSelection ) {
+            shortcodeAtts += ' category_selection="' + catSelection + '"';
+        }
 
-    if ( catFilterType ) {
-        shortcodeAtts += ' category_filter_type="' + catFilterType + '"';
-    }
+        if ( catFilterType ) {
+            shortcodeAtts += ' category_filter_type="' + catFilterType + '"';
+        }
 
-    if ( catFilterType == "checkboxes" ) {
-        checkboxColumns = parseInt( jQuery( "#wpsl-checkbox-columns" ).val() );
+        if ( catFilterType == "checkboxes" ) {
+            checkboxColumns = parseInt( jQuery( "#wpsl-checkbox-columns" ).val() );
 
-        if ( typeof checkboxColumns === 'number' ) {
-            shortcodeAtts += ' checkbox_columns="' + checkboxColumns + '"';
+            if ( typeof checkboxColumns === 'number' ) {
+                shortcodeAtts += ' checkbox_columns="' + checkboxColumns + '"';
+            }
         }
     }
 
@@ -113,17 +113,32 @@ jQuery( document ).ready( function( $ ) {
         $( this ).addClass( "wpsl-active-marker" );
     });
 
+    $( "#wpsl-cat-restriction" ).change( function() {
+        var restriction = $( this ).val();
+
+        if ( restriction !== null && restriction.length > 0 ) {
+            // Restriction selected: hide filter type and all dependent rows, reset them.
+            $( ".wpsl-cat-filter-type-row, .wpsl-cat-selection, .wpsl-checkbox-options, .wpsl-checkbox-selection" ).hide();
+            $( "#wpsl-cat-filter-types" ).val( "" );
+            $( "#wpsl-cat-selection" ).val( "" );
+            $( "#wpsl-checkbox-selection" ).val( [] );
+            $( "#wpsl-checkbox-columns" ).val( "3" );
+        } else {
+            // No restriction: show filter type row again.
+            $( ".wpsl-cat-filter-type-row" ).show();
+        }
+    });
+
     $( "#wpsl-cat-filter-types" ).change( function() {
         var filterType = $( this ).val();
 
         if ( filterType == 'dropdown' ) {
             $( ".wpsl-cat-selection" ).show();
-            $( ".wpsl-checkbox-options, .wpsl-cat-restriction, .wpsl-checkbox-selection" ).hide();
+            $( ".wpsl-checkbox-options, .wpsl-checkbox-selection" ).hide();
         } else if ( filterType == 'checkboxes' ) {
-            $( ".wpsl-cat-selection, .wpsl-cat-restriction" ).hide();
+            $( ".wpsl-cat-selection" ).hide();
             $( ".wpsl-checkbox-options, .wpsl-checkbox-selection" ).show();
         } else {
-            $( ".wpsl-cat-restriction" ).show();
             $( ".wpsl-checkbox-options, .wpsl-cat-selection, .wpsl-checkbox-selection" ).hide();
         }
     });

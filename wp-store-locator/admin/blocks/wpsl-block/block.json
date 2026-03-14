@@ -1,0 +1,61 @@
+{
+    "apiVersion": 3,
+    "name": "wpsl/store-locator",
+    "version": "1.0.0",
+    "title": "Store Locator",
+    "category": "wpsl",
+    "description": "Display a WP Store Locator map with search functionality.",
+    "keywords": [ "store", "locator", "map", "locations", "wpsl" ],
+    "textdomain": "wpsl",
+    "attributes": {
+        "template": {
+            "type": "string",
+            "default": ""
+        },
+        "start_location": {
+            "type": "string",
+            "default": ""
+        },
+        "auto_locate": {
+            "type": "string",
+            "default": ""
+        },
+        "category": {
+            "type": "array",
+            "default": [],
+            "items": {
+                "type": "string"
+            }
+        },
+        "category_selection": {
+            "type": "string",
+            "default": ""
+        },
+        "category_filter_type": {
+            "type": "string",
+            "default": ""
+        },
+        "checkbox_columns": {
+            "type": "string",
+            "default": "3"
+        },
+        "map_type": {
+            "type": "string",
+            "default": ""
+        },
+        "start_marker": {
+            "type": "string",
+            "default": ""
+        },
+        "store_marker": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "html": false,
+        "multiple": false
+    },
+    "editorScript": "file:./build/index.js",
+    "editorStyle": "file:./build/index.css"
+}
