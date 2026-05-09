@@ -4,7 +4,7 @@ Contributors: tijmensmit
 Tags: google maps, store locator, store finder, maps, directions
 Requires at least: 3.7
 Tested up to: 6.9
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -128,6 +128,11 @@ Please report security bugs found in the source code of the WP Store Locator plu
 4. The plugin settings
 
 == Changelog ==
+
+= 2.3.1
+* Fixed: A fatal error when [Polylang](https://wordpress.org/plugins/polylang) 3.8+ is used.
+* Fixed: The required fields check in Gutenberg no longer creates tons of notices if a new location is created with empty required fields.
+* Fixed: Correctly sanitize `get_the_title`. Via [Minaruzzaman Shovon](https://shovon.bd)
 
 = 2.3.0
 * Added: Two blocks for the [wpsl] and [wpsl_map] shortcodes

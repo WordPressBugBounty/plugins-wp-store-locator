@@ -76,7 +76,7 @@ function wpsl_create_underscore_templates( $template ) {
             $listing_template .= "\t\t\t" . '<% } %>' . "\r\n";
             $listing_template .= "\t\t\t" . '</p>' . "\r\n";
         }
-        
+
         $listing_template .= "\t\t\t" . wpsl_more_info_template() . "\r\n"; // Check if we need to show the 'More Info' link and info
         $listing_template .= "\t\t" . '</div>' . "\r\n";
         $listing_template .= "\t\t" . '<div class="wpsl-direction-wrap">' . "\r\n";

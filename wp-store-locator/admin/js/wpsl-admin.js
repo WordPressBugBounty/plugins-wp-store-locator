@@ -773,7 +773,8 @@ jQuery( document ).ready( function( $ ) {
 
     // Make sure the required store fields contain data.
     if ( $( "#wpsl-store-details" ).length ) {
-        $( "#publish" ).click( function() {
+        
+        function validateRequiredFields() {
             var firstErrorElem, currentTabClass, elemClass,
                 errorMsg	= '<div id="message" class="error"><p>' + wpslL10n.requiredFields + '</p></div>',
                 missingData = false;
@@ -833,6 +834,53 @@ jQuery( document ).ready( function( $ ) {
                 return false;
             } else {
                 return true;
+            }
+        }
+        
+        // Classic editor publish button
+        $( "#publish" ).click( function() {
+            return validateRequiredFields();
+        });
+        
+        // Classic editor form submit
+        $( "#post" ).submit( function( e ) {
+            if ( ! validateRequiredFields() ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Gutenberg editor publish button and panel
+        $( document ).on( "click", ".editor-post-publish-panel__toggle, .editor-post-publish-button, .editor-post-publish-panel__header-publish-button", function( e ) {
+            if ( ! validateRequiredFields() ) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Close the publish panel if it's open
+                $( ".editor-post-publish-panel" ).removeClass( "is-opened" );
+                
+                // Remove any publishing state
+                $( ".editor-post-publish-button" ).removeClass( "is-busy" );
+                
+                // Focus on the first error field after a short delay to ensure DOM updates
+                setTimeout( function() {
+                    var firstErrorField = $( ".wpsl-error" ).first();
+                    
+                    if ( firstErrorField.length ) {
+                        firstErrorField.focus();
+                    }
+
+                }, 100 );
+                
+                return false;
+            }
+        });
+        
+        // Also intercept the pre-publish check in Gutenberg
+        $( document ).on( "beforeunload", function( e ) {
+            if ( $( ".editor-post-publish-button.is-busy" ).length && ! validateRequiredFields() ) {
+                e.preventDefault();
+                return false;
             }
         });
     }

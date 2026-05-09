@@ -74,6 +74,37 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
         } 
         
         /**
+         * Check if Polylang API is available and load it if needed.
+         *
+         * @since 2.3.1
+         * @return boolean
+         */
+        public function polylang_api_exists() {
+            
+            if ( ! defined( 'POLYLANG_VERSION' ) || ! defined( 'POLYLANG_DIR' ) ) {
+                return false;
+            }
+            
+            if ( function_exists( 'pll__' ) ) {
+                return true;
+            }
+            
+            // Polylang api.php path for 3.8+
+            $api_file = POLYLANG_DIR . '/src/api.php';
+            
+            if ( ! file_exists( $api_file ) ) {
+                $api_file = POLYLANG_DIR . '/include/api.php'; // Polylang api.php path before 3.8
+            }            
+            
+            if ( file_exists( $api_file ) ) {
+                require_once $api_file;
+                return function_exists( 'pll__' );
+            }
+            
+            return false;
+        }
+                
+        /**
          * See if there is a translated page available for the provided store ID.
          * 
          * @since 2.0.0
@@ -118,12 +149,7 @@ if ( !class_exists( 'WPSL_i18n' ) ) {
 
             if ( defined( 'WPML_ST_VERSION' ) ) {
                 $translation = $text;
-            } elseif ( defined( 'POLYLANG_VERSION' ) && defined( 'POLYLANG_DIR' ) ) {
-
-                if ( ! function_exists( 'pll__' ) ) {
-                    require_once POLYLANG_DIR . '/include/api.php';
-                }
-
+            } elseif ( $this->polylang_api_exists() ) {
                 $translation = pll__( $text );
             } else {
                 $translation = wp_strip_all_tags(

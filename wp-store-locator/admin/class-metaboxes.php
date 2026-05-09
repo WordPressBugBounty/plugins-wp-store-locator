@@ -825,10 +825,9 @@ if ( !class_exists( 'WPSL_Metaboxes' ) ) {
          */
         public function set_post_pending( $post_id ) {
 
-            wp_update_post( array(
-                'ID'          => $post_id,
-                'post_status' => 'pending'
-            ) );
+            global $wpdb;
+
+            $wpdb->update( $wpdb->posts, array( 'post_status' => 'pending' ), array( 'ID' => $post_id ) );
 
             add_filter( 'redirect_post_location', array( $this, 'remove_message_arg' ) );
         }

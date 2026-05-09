@@ -389,7 +389,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                         $store_meta['description'] = apply_filters( 'the_content', $post_content );
                     }
 
-                    $store_meta['store'] = get_the_title( $store->ID );
+                    $store_meta['store'] = esc_html( get_the_title( $store->ID ) );
                     $store_meta['thumb'] = $this->get_store_thumb( $store->ID, $store_meta['store'] );
                     $store_meta['id']    = $store->ID;
 
@@ -1010,7 +1010,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 // Make sure the latlng is numeric before collecting the other meta data.
                 if ( is_numeric( $lat ) && is_numeric( $lng ) ) {
                     $store_meta[$i] = apply_filters( 'wpsl_cpt_info_window_meta_fields', array(
-                        'store'    => get_the_title( $store_id ),
+                        'store'    => esc_html( get_the_title( $store_id ) ),
                         'address'  => sanitize_text_field( get_post_meta( $store_id, 'wpsl_address',  true ) ),
                         'address2' => sanitize_text_field( get_post_meta( $store_id, 'wpsl_address2', true ) ),
                         'city'     => sanitize_text_field( get_post_meta( $store_id, 'wpsl_city',     true ) ),
