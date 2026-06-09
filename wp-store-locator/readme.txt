@@ -3,8 +3,8 @@ Plugin URI: https://wpstorelocator.co
 Contributors: tijmensmit
 Tags: google maps, store locator, store finder, maps, directions
 Requires at least: 3.7
-Tested up to: 6.9
-Stable tag: 2.3.1
+Tested up to: 7.0
+Stable tag: 2.3.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -128,6 +128,11 @@ Please report security bugs found in the source code of the WP Store Locator plu
 4. The plugin settings
 
 == Changelog ==
+
+= 2.3.2
+* Changed: Replaced the deprecated Cluster Marker library with the most [recent version](https://developers.google.com/maps/documentation/javascript/marker-clustering). You can customize the colors with this [filter](https://wpstorelocator.co/document/wpsl_cluster_marker_colors/)
+* Fixed: Incorrect height of the "Add period" button in WordPress 7.0+.
+* Fixed: Deprecated warning for htmlspecialchars() when the map styles are saved with an empty field.
 
 = 2.3.1
 * Fixed: A fatal error when [Polylang](https://wordpress.org/plugins/polylang) 3.8+ is used.

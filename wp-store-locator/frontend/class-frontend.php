@@ -1762,11 +1762,25 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 wpsl_deregister_other_gmaps();
             }
 
-            wp_enqueue_script( 'wpsl-js', apply_filters( 'wpsl_gmap_js', WPSL_URL . 'js/wpsl-gmap'. $min .'.js' ), array( 'jquery' ), WPSL_VERSION_NUM, true );
+            // Build dependencies for wpsl-js script
+            $wpsl_js_deps = array( 'jquery' );
+
+            // If marker clusters are enabled, add cluster library as a dependency
+            if ( $wpsl_settings['marker_clusters'] ) {
+                $wpsl_js_deps[] = 'wpsl-cluster';
+            }
+
+            wp_enqueue_script( 'wpsl-js', apply_filters( 'wpsl_gmap_js', WPSL_URL . 'js/wpsl-gmap'. $min .'.js' ), $wpsl_js_deps, WPSL_VERSION_NUM, true );
+
+            // Build Google Maps dependencies - ensure MarkerClusterer loads first if enabled
+            $gmap_deps = array();
+            if ( $wpsl_settings['marker_clusters'] ) {
+                $gmap_deps[] = 'wpsl-cluster';
+            }
 
             if ( !function_exists( 'BorlabsCookieHelper' ) ) {
                 // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External Google Maps API library, version controlled via URL parameter
-                wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), array(), null, true );
+                wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), $gmap_deps, null, true );
             } else {
                 if ( !$wpsl_settings['delay_loading']
                     ||
@@ -1777,7 +1791,7 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                     )
                 ) {
                     // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External Google Maps API library, version controlled via URL parameter
-                    wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), array(), null, true );
+                    wp_enqueue_script( 'wpsl-gmap', ( 'https://maps.google.com/maps/api/js' . wpsl_get_gmap_api_params( 'browser_key' ) . '' ), $gmap_deps, null, true );
                 }
             }
 
@@ -1888,11 +1902,20 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
 
             // If the marker clusters are enabled, include the js file and marker settings.
             if ( $wpsl_settings['marker_clusters'] ) {
-                wp_enqueue_script( 'wpsl-cluster', WPSL_URL . 'js/markerclusterer'. $min .'.js', array( 'wpsl-js' ), WPSL_VERSION_NUM, true  ); //not minified version is in the /js folder
 
-                $base_settings['clusterZoom']      = $wpsl_settings['cluster_zoom'];
-                $base_settings['clusterSize']      = $wpsl_settings['cluster_size'];
-                $base_settings['clusterImagePath'] = 'https://cdn.rawgit.com/googlemaps/js-marker-clusterer/gh-pages/images/m';
+                // Load the official Google MarkerClusterer library
+                // https://github.com/googlemaps/js-markerclusterer
+                wp_enqueue_script( 'wpsl-cluster', WPSL_URL . 'assets/vendor/markerclusterer/google/index.min.js', array(), WPSL_VERSION_NUM, true );
+
+                $base_settings['clusterZoom'] = $wpsl_settings['cluster_zoom'];
+                $base_settings['clusterSize'] = $wpsl_settings['cluster_size'];
+                $base_settings['clusterRendererStyle'] = isset( $wpsl_settings['cluster_renderer_style'] ) ? $wpsl_settings['cluster_renderer_style'] : 'default';
+
+                // Get cluster marker colors with filter support.
+                $cluster_colors = $this->get_cluster_marker_colors();
+                $base_settings['clusterLowDensityColor'] = $cluster_colors['lowDensityColor'];
+                $base_settings['clusterHighDensityColor'] = $cluster_colors['highDensityColor'];
+                $base_settings['clusterLabelColor'] = $cluster_colors['labelColor'];
             }
 
             // Check if we need to include the infobox script and settings.
@@ -1962,6 +1985,22 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
         }
 
         /**
+         * Return the cluster marker colors.
+         
+         * @since 2.3.2
+         * @return array Cluster color configuration
+         */
+        public function get_cluster_marker_colors() {
+            $defaults = array(
+                'lowDensityColor'  => '#0066ff',
+                'highDensityColor' => '#ff0000',
+                'labelColor'       => '#fff'
+            );
+
+            return apply_filters( 'wpsl_cluster_marker_colors', $defaults );
+        }
+
+        /**
          * Get the infobox settings.
          *
          * @since 2.0.0
@@ -1970,7 +2009,6 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
          * @return array $settings The plugin settings including the infobox settings
          */
         public function get_infobox_settings( $settings ) {
-
             $settings['infoBox'] = apply_filters( 'wpsl_infobox_settings', array(
                 'class'                  => 'wpsl-infobox',
                 'margin'                 => '2px', // The margin can be written in css style, so 2px 2px 4px 2px for top, right, bottom, left

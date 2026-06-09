@@ -465,6 +465,13 @@ function wpsl_check_upgrade() {
         update_option( 'wpsl_settings', $wpsl_settings );
     }
 
+
+    if ( version_compare( $current_version, '2.3.2', '<' ) ) {
+	    $wpsl_settings['cluster_renderer_style'] = 'default';
+	 
+		update_option( 'wpsl_settings', $wpsl_settings );
+    }
+
     update_option( 'wpsl_version', WPSL_VERSION_NUM );
 }
 

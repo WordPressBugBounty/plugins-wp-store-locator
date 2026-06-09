@@ -20,7 +20,6 @@ const filesToMinify = [
     // Frontend JS files
     { src: 'js/wpsl-gmap.js', dest: 'js/wpsl-gmap.min.js' },
     { src: 'js/infobox.js', dest: 'js/infobox.min.js' },
-    { src: 'js/markerclusterer.js', dest: 'js/markerclusterer.min.js' },
     
     // Admin CSS files
     { src: 'admin/css/micromodal.css', dest: 'admin/css/micromodal.min.css' },

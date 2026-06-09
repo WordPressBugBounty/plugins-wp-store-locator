@@ -1403,10 +1403,18 @@ function makeAjaxRequest( startLatLng, resetMap, autoLoad, infoWindow ) {
 				}
 			});
 
-			// Do we need to create a marker cluster?
-			checkMarkerClusters();
-
 			$( "#wpsl-result-list p:empty" ).remove();
+
+			if ( wpslSettings.runFitBounds == 1 ) {
+				fitBounds();
+			} else {
+				map.setZoom( Number( wpslSettings.zoomLevel ) );
+				map.setCenter( markersArray[0].position );
+			}
+
+			if ( wpslSettings.markerClusters == 1 ) {
+				checkMarkerClusters();
+			}
 		} else {
 			addMarker( startLatLng, 0, '', true, infoWindow );
 
@@ -1416,17 +1424,6 @@ function makeAjaxRequest( startLatLng, resetMap, autoLoad, infoWindow ) {
 
 			$storeList.html( "<li class='wpsl-no-results-msg'>" + noResultsMsg + "</li>" );
 		}
-
-		/*
-		 * Do we need to adjust the zoom level so that all the markers fit in the viewport,
-		 * or just center the map on the start marker.
-		 */
-        if ( wpslSettings.runFitBounds == 1 ) {
-            fitBounds();
-		} else {
-            map.setZoom( Number( wpslSettings.zoomLevel ) );
-            map.setCenter( markersArray[0].position );
-        }
 
 		/*
 		 * Store the default zoom and latlng values the first time
@@ -1676,8 +1673,7 @@ function getCheckboxIds() {
  */
 function checkMarkerClusters() {
 	if ( wpslSettings.markerClusters == 1 ) {
-		var markers, markersArrayNoStart,
-			clusterZoom = Number( wpslSettings.clusterZoom ),
+		let clusterZoom = Number( wpslSettings.clusterZoom ),
 			clusterSize = Number( wpslSettings.clusterSize );
 
 		if ( isNaN( clusterZoom ) ) {
@@ -1692,18 +1688,124 @@ function checkMarkerClusters() {
          * Remove the start location marker from the cluster so the location
          * count represents the actual returned locations, and not +1 for the start location.
          */
+		let markers;
 		if ( typeof wpslSettings.excludeStartFromCluster !== "undefined" && wpslSettings.excludeStartFromCluster == 1 ) {
-            markersArrayNoStart = markersArray.slice( 0 );
-            markersArrayNoStart.splice( 0,1 );
-        }
+            const markersArrayNoStart = markersArray.slice( 0 );
+            markersArrayNoStart.splice( 0, 1 );
+			markers = markersArrayNoStart;
+        } else {
+			markers = markersArray;
+		}
 
-        markers = ( typeof markersArrayNoStart === "undefined" ) ? markersArray : markersArrayNoStart;
-
-        markerClusterer = new MarkerClusterer( map, markers, {
-			gridSize: clusterSize,
-			maxZoom: clusterZoom
-		});
+		// Initialize the new Google MarkerClusterer with custom renderer.
+		try {
+			markerClusterer = new window.markerClusterer.MarkerClusterer({
+				map: map,
+				markers: markers,
+				algorithm: new window.markerClusterer.SuperClusterAlgorithm({
+					radius: clusterSize || 60,
+					maxZoom: clusterZoom || 16
+				}),
+				renderer: createClusterRenderer()
+			});
+		} catch ( error ) {
+			// Clustering failed, but markers are still on the map - functionality is preserved
+		}
 	}
+}
+
+/**
+ * Create a custom renderer for cluster markers with color support.
+ *
+ * Supports two render styles:
+ * - default: Simple circles with static colors based on marker density
+ * - interpolation: Color gradient based on marker count distribution
+ *
+ * @since  2.3.2
+ * @return {object} Renderer object with render function
+ */
+function createClusterRenderer() {
+	const rendererStyle = wpslSettings.clusterRendererStyle;
+	const lowDensityColor = wpslSettings.clusterLowDensityColor;
+	const highDensityColor = wpslSettings.clusterHighDensityColor;
+	const labelColor = wpslSettings.clusterLabelColor;
+
+	return {
+		render: function( cluster, stats ) {
+			try {
+				const count = cluster.markers.length;
+
+				let color, svg, size;
+				
+				if ( rendererStyle === 'interpolation' ) {
+					// Interpolate color based on marker count distribution
+					const maxMarkers = stats && stats.clusters && stats.clusters.markers ? stats.clusters.markers.max : 100;
+					const ratio = Math.min( count / maxMarkers, 1 );
+					color = interpolateColor( lowDensityColor, highDensityColor, ratio );
+
+					svg = `<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+						<circle cx="120" cy="120" opacity=".8" r="70" />
+						<text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="38" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text>
+					</svg>`;
+					size = 75;
+				} else {
+					// Default: Use high density color if count is above average
+					const threshold = stats && stats.clusters && stats.clusters.markers ? stats.clusters.markers.mean : 10;
+					color = count > Math.max( 10, threshold ) ? highDensityColor : lowDensityColor;
+
+					svg = `<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+						<circle cx="120" cy="120" opacity=".6" r="70" />
+						<circle cx="120" cy="120" opacity=".3" r="90" />
+						<circle cx="120" cy="120" opacity=".2" r="110" />
+						<text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="50" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text>
+					</svg>`;
+					size = 50;
+				}
+
+				return new google.maps.Marker({
+					position: cluster.position,
+					icon: {
+						url: 'data:image/svg+xml;base64,' + btoa( svg ),
+						scaledSize: new google.maps.Size( size, size ),
+						anchor: new google.maps.Point( size / 2, size / 2 )
+					},
+					zIndex: 999
+				});
+			} catch ( e ) {
+				console.error( '[WPSL] Cluster render error - disabling clustering:', e.message );
+				// Return empty/null to disable rendering
+				return null;
+			}
+		}
+	};
+}
+
+/**
+ * Linearly interpolate between two hex colors.
+ *
+ * @since  2.3.2
+ * @param  {string} color1 Start color in hex format (e.g., #0066ff)
+ * @param  {string} color2 End color in hex format (e.g., #ff0000)
+ * @param  {number} factor Interpolation factor between 0 and 1
+ * @return {string} Interpolated color in hex format
+ */
+function interpolateColor( color1, color2, factor ) {
+	const c1 = parseInt( color1.slice( 1 ), 16 );
+	const c2 = parseInt( color2.slice( 1 ), 16 );
+
+	const r1 = ( c1 >> 16 ) & 255;
+	const g1 = ( c1 >> 8 ) & 255;
+	const b1 = c1 & 255;
+
+	const r2 = ( c2 >> 16 ) & 255;
+	const g2 = ( c2 >> 8 ) & 255;
+	const b2 = c2 & 255;
+
+	const r = Math.round( r1 + ( r2 - r1 ) * factor );
+	const g = Math.round( g1 + ( g2 - g1 ) * factor );
+	const b = Math.round( b1 + ( b2 - b1 ) * factor );
+
+	return '#' + ( ( r << 16 ) | ( g << 8 ) | b ).toString( 16 ).padStart( 6, '0' );
 }
 
 /**
@@ -1741,7 +1843,7 @@ function addMarker( latLng, storeId, infoWindowData, draggable, infoWindow ) {
 		anchor: new google.maps.Point( Number( markerSettings.anchor[0] ), Number( markerSettings.anchor[1] ) )
 	};
 
-    marker = new google.maps.Marker({
+	marker = new google.maps.Marker({
 		position: latLng,
 		map: map,
 		optimized: false, //fixes markers flashing while bouncing
@@ -1749,14 +1851,14 @@ function addMarker( latLng, storeId, infoWindowData, draggable, infoWindow ) {
 		draggable: draggable,
 		storeId: storeId,
 		icon: mapIcon
-	});	
+	});
 
 	// Store the marker for later use.
 	markersArray.push( marker );
 
-    google.maps.event.addListener( marker, "click",( function( currentMap ) {
+	google.maps.event.addListener( marker, "click",( function( currentMap ) {
 		return function() {
-			
+
 			// The start marker will have a store id of 0, all others won't.
 			if ( storeId != 0 ) {
 
@@ -1773,13 +1875,13 @@ function addMarker( latLng, storeId, infoWindowData, draggable, infoWindow ) {
 			}
 
 			google.maps.event.clearListeners( infoWindow, "domready" );
-			
+
 			google.maps.event.addListener( infoWindow, "domready", function() {
 				infoWindowClickActions( marker, currentMap );
 				checkMaxZoomLevel();
 			});
 		};
-    }( map ) ) );
+	}( map ) ) );
 	
 	// Only the start marker will be draggable.
 	if ( draggable ) {
@@ -1791,7 +1893,7 @@ function addMarker( latLng, storeId, infoWindowData, draggable, infoWindow ) {
 			reverseGeocode( event.latLng, function() {
 				findStoreLocations( event.latLng, resetMap, autoLoad = false, infoWindow );
 			});
-		}); 
+		});
     }
 }
 
@@ -1819,38 +1921,41 @@ function decodeHtmlEntity( str ) {
  *
  * This needs to happen to make sure all info windows
  * are closed then the markers are merged.
+ *
+ * @since 2.3.2 Updated for new Google MarkerClusterer API
  */
 function clusterListener() {
-	var clusters, clusterLen, markerLen, i, j;
-
 	google.maps.event.addListener( map, "zoom_changed", function() {
 		google.maps.event.addListenerOnce( map, "idle", function() {
 
-			if ( typeof markerClusterer !== "undefined" ) {
-				clusters = markerClusterer.clusters_;
+			if ( typeof markerClusterer !== "undefined" && typeof activeWindowMarkerId !== "undefined" ) {
 
-				if ( clusters.length ) {
-					for ( i = 0, clusterLen = clusters.length; i < clusterLen; i++ ) {
-						for ( j = 0, markerLen = clusters[i].markers_.length; j < markerLen; j++ ) {
+				// Get clusters from the new MarkerClusterer API
+				const clusters = markerClusterer.getClusters();
+
+				if ( clusters && clusters.length ) {
+					for ( let i = 0; i < clusters.length; i++ ) {
+						const clusterMarkers = clusters[i].markers;
+
+						if ( !clusterMarkers ) continue;
+
+						for ( let j = 0; j < clusterMarkers.length; j++ ) {
 
 							/*
 							 * Match the storeId from the cluster marker with the
 							 * marker id that was set when the info window was opened
 							 */
-							if ( clusters[i].markers_[j].storeId == activeWindowMarkerId ) {
+							if ( clusterMarkers[j].storeId == activeWindowMarkerId ) {
 
 								/*
-								 * If there is a visible info window, but the markers_[j].map is null ( hidden )
-								 * it means the info window belongs to a marker that is part of a marker cluster.
+								 * If there is a visible info window, but the marker is hidden (map is null)
+								 * it means the info window belongs to a marker that is part of a cluster.
 								 *
-								 * If that is the case then we hide the info window ( the individual marker isn't visible ).
-								 *
-								 * The default info window script handles this automatically, but the
-								 * infobox library in combination with the marker clusters doesn't.
+								 * If that is the case then we hide the info window.
 								 */
-								if ( infoWindow.getVisible() && clusters[i].markers_[j].map === null ) {
+								if ( infoWindow.getVisible() && clusterMarkers[j].map === null ) {
 									infoWindow.setVisible( false );
-								} else if ( !infoWindow.getVisible() && clusters[i].markers_[j].map !== null ) {
+								} else if ( !infoWindow.getVisible() && clusterMarkers[j].map !== null ) {
 									infoWindow.setVisible( true );
 								}
 

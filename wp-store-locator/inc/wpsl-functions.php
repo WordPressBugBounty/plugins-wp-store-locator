@@ -129,6 +129,7 @@ function wpsl_get_default_settings() {
         'marker_clusters'           => 0,
         'cluster_zoom'              => 0,
         'cluster_size'              => 0,
+        'cluster_renderer_style'    => 'default',
         'new_window'                => 0,
         'reset_map'                 => 0,
         'template_id'               => 'default',

@@ -524,7 +524,7 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                     <span class="wpsl-info">
                                         <span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Recommended for maps with a large amount of markers.', 'wp-store-locator' ); ?></span>
                                     </span>
-                                </label> 
+                                </label>
                                <input type="checkbox" value="" <?php checked( $wpsl_settings['marker_clusters'], true ); ?> name="wpsl_map[marker_clusters]" id="wpsl-marker-clusters" class="wpsl-has-conditional-option">
                             </p>
 
@@ -539,16 +539,24 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                         <span class="wpsl-info">
                                             <span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'If this zoom level is reached or exceeded, then all markers are moved out of the marker cluster and shown as individual markers.', 'wp-store-locator' ); ?></span>
                                         </span>
-                                    </label> 
+                                    </label>
                                    <?php echo $wpsl_admin->settings_page->show_cluster_options( 'cluster_zoom' ); ?>
                                 </p>
                                 <p>
                                    <label for="wpsl-marker-cluster-size"><?php esc_html_e( 'Cluster size', 'wp-store-locator' ); ?>:
                                         <span class="wpsl-info">
-                                            <span class="wpsl-info-text wpsl-hide"><?php /* translators: %s: line break */ echo wp_kses_post( sprintf( __( 'The grid size of a cluster in pixels. %s A larger number will result in a lower amount of clusters and also make the algorithm run faster.', 'wp-store-locator' ), '<br><br>' ) ); ?></span>
+                                            <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'This pixel value determines how close markers need to be to each other to be grouped into a cluster. %s A larger number will result in a lower amount of clusters and also make the algorithm run faster.', 'wp-store-locator' ), '<br><br>' ) ); ?></span>
                                         </span>
-                                    </label> 
+                                    </label>
                                    <?php echo $wpsl_admin->settings_page->show_cluster_options( 'cluster_size' ); ?>
+                                </p>
+                                <p>
+                                   <label for="wpsl-cluster-renderer-style"><?php esc_html_e( 'Cluster renderer style', 'wp-store-locator' ); ?>:
+                                        <span class="wpsl-info">
+                                            <span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Default: Simple circles with static colors. Interpolation: Color gradient based on cluster density.', 'wp-store-locator' ); ?></span>
+                                        </span>
+                                    </label>
+                                   <?php echo $wpsl_admin->settings_page->show_cluster_renderer_style(); ?>
                                 </p>
                             </div>
                             <p class="submit">

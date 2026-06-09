@@ -543,6 +543,11 @@ div.wpsl-active {
     vertical-align: middle;
 }
 
+body[class*="version-7"] #wpsl-store-hours .wpsl-add-period {
+    height: 40px;
+    vertical-align: middle;
+}
+
 .wpsl-pre-38 .wpsl-add-period {
     height: 27px;    
 }

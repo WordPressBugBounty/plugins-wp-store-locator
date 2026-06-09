@@ -77,7 +77,7 @@ function wpsl_litespeed_optimize_js_excludes( $exclude_list ) {
     $exclude_list[] = 'wpsl-gmap'. $min .'.js';
 
     if ( $wpsl_settings['marker_clusters'] ) {
-        $exclude_list[] = 'markerclusterer'. $min .'.js';
+        $exclude_list[] = 'index.min.js'; // assets/vendor/markerclusterer/google/index.min.js
     }
 
     $exclude_list[] = 'underscore'. $min .'.js';
@@ -110,7 +110,7 @@ function wpsl_wp_rocket_optimize_js_excludes( $exclude_list ) {
     $exclude_list[] = '/wp-content/plugins/wp-store-locator/js/wpsl-gmap'. $min .'.js';
 
     if ( $wpsl_settings['marker_clusters'] ) {
-        $exclude_list[] = '/wp-content/plugins/wp-store-locator/js/markerclusterer'. $min .'.js';
+        $exclude_list[] = '/wp-content/plugins/wp-store-locator/assets/vendor/markerclusterer/google/index.min.js';
     }
 
     return apply_filters( 'wpsl_exclude_js', $exclude_list );

@@ -237,10 +237,17 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             } else {
                 $output['cluster_size'] = wpsl_get_default_setting( 'cluster_size' );
             }
-                        
-            /* 
+
+            // Check for a valid cluster renderer style value.
+            if ( isset( $_POST['wpsl_map']['cluster_renderer_style'] ) && in_array( $_POST['wpsl_map']['cluster_renderer_style'], $this->get_default_cluster_option( 'cluster_renderer_style' ), true ) ) {
+                $output['cluster_renderer_style'] = sanitize_text_field( $_POST['wpsl_map']['cluster_renderer_style'] );
+            } else {
+                $output['cluster_renderer_style'] = wpsl_get_default_setting( 'cluster_renderer_style' );
+            }
+
+            /*
              * Make sure all the ux related fields that should contain an int, actually are an int.
-             * Otherwise we use the default value. 
+             * Otherwise we use the default value.
              */
             foreach ( $ux_absints as $ux_key ) {
                 if ( isset( $_POST['wpsl_ux'][$ux_key] ) && absint( $_POST['wpsl_ux'][$ux_key] ) ) {
@@ -968,7 +975,7 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
          * @return string $cluster_values The default cluster options
          */
 		public function get_default_cluster_option( $type ) {
-            
+
             $cluster_values = array(
                 'cluster_zoom' => array(
                     '7',
@@ -985,9 +992,13 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                     '60',
                     '70',
                     '80'
-                ), 
+                ),
+                'cluster_renderer_style' => array(
+                    'default',
+                    'interpolation'
+                ),
             );
-            
+
             return $cluster_values[$type];
         }
         
@@ -1031,10 +1042,30 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 			}
 			
 			$dropdown .= "</select>";
-			
-			return $dropdown;			
+
+			return $dropdown;
 		}
-        
+
+        /**
+         * Create a dropdown for the cluster renderer style.
+         *
+         * @since 2.3.2
+         * @return string $dropdown The html for the renderer style dropdown
+         */
+        public function show_cluster_renderer_style() {
+
+            global $wpsl_settings;
+
+            $current_style = isset( $wpsl_settings['cluster_renderer_style'] ) ? $wpsl_settings['cluster_renderer_style'] : 'default';
+
+            $dropdown = '<select id="wpsl-cluster-renderer-style" name="wpsl_map[cluster_renderer_style]" autocomplete="off">';
+            $dropdown .= '<option value="default" ' . selected( $current_style, 'default', false ) . '>' . esc_html__( 'Default', 'wp-store-locator' ) . '</option>';
+            $dropdown .= '<option value="interpolation" ' . selected( $current_style, 'interpolation', false ) . '>' . esc_html__( 'Interpolation', 'wp-store-locator' ) . '</option>';
+            $dropdown .= '</select>';
+
+            return $dropdown;
+        }
+
         /**
          * Show the options of the start and store markers.
          *
@@ -1258,17 +1289,15 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
 
             global $wpsl_settings;
 
-            $map_style = '';
-
-            if ( isset( $wpsl_settings['map_style'] ) ) {
+            if ( isset( $wpsl_settings['map_style'] ) && ! empty( $wpsl_settings['map_style'] ) ) {
                 $map_style = json_decode( $wpsl_settings['map_style'] );
 
                 if ( $map_style !== null ) {
-                    $map_style = wp_strip_all_tags( stripslashes( $map_style ) );
+                    return wp_strip_all_tags( stripslashes( $map_style ) );
                 }
             }
 
-            return $map_style;
+            return '';
         }
     }
 }
