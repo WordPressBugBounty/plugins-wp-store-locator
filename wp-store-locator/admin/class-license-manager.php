@@ -26,7 +26,6 @@ class WPSL_License_Manager {
 	 * @param string  $file
 	 */
     function __construct( $item_name, $version, $author, $file  ) {
-
         $this->item_name      = $item_name;
 		$this->item_shortname = 'wpsl_' . preg_replace( '/[^a-zA-Z0-9_\s]/', '', str_replace( ' ', '_', strtolower( $this->item_name ) ) );
 		$this->version        = $version;
@@ -38,6 +37,10 @@ class WPSL_License_Manager {
         add_action( 'admin_init',            array( $this, 'auto_updater' ), 0 );
         add_action( 'admin_init',            array( $this, 'license_actions' ) );
         add_filter( 'wpsl_license_settings', array( $this, 'add_license_field' ), 1 );
+
+        // Schedule license check
+        add_action( $this->item_shortname . '_license_check', array( $this, 'check_license' ) );
+        $this->schedule_license_check();
 	}
     
    /**
@@ -60,24 +63,24 @@ class WPSL_License_Manager {
      * @return void
      */
     public function auto_updater() {
+        // Allow both valid and expired statuses to receive updates
+        $status = $this->get_license_option( 'status' );
+        if ( ! in_array( $status, array( 'valid', 'expired' ), true ) ) {
+            return;
+        }
 
-        if ( $this->get_license_option( 'status' ) !== 'valid' ) {
-			return;
-		}
-
-		$args = array(
-			'version'   => $this->version,
-			'license'   => $this->get_license_option( 'key' ),
-			'author'    => $this->author,
+        $args = array(
+            'version'   => $this->version,
+            'license'   => $this->get_license_option( 'key' ),
+            'author'    => $this->author,
             'item_name' => $this->item_name
-		);
+        );
 
-		// Setup the updater.
-		$edd_updater = new EDD_SL_Plugin_Updater(
-			$this->api_url,
-			$this->file,
-			$args
-		);    
+        $edd_updater = new EDD_SL_Plugin_Updater(
+            $this->api_url,
+            $this->file,
+            $args
+        );
     }
     
     /**
@@ -87,7 +90,6 @@ class WPSL_License_Manager {
      * @return void
      */
     public function license_actions() {
-
     	if ( !isset( $_POST['wpsl_licenses'] ) ) {
             return;
         }
@@ -118,39 +120,55 @@ class WPSL_License_Manager {
      * @return void
      */
     public function activate_license() {
-    
-        // Stop if the current license is already active. 
+
+        // Stop if the current license is already active.
         if ( $this->get_license_option( 'status' ) == 'valid' ) {
-			return;
-		}
+            return;
+        }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification is done in process_license_form() before this method is called
         $license = isset( $_POST['wpsl_licenses'][ $this->item_shortname ] ) ? sanitize_text_field( wp_unslash( $_POST['wpsl_licenses'][ $this->item_shortname ] ) ) : '';
 
-		// data to send in our API request.
-		$api_params = array(
-			'edd_action' => 'activate_license',
-			'license' 	 => $license,
-			'item_name'  => urlencode( $this->item_name ),
-			'url'        => home_url()
-		);
+        $api_params = array(
+            'edd_action' => 'activate_license',
+            'license'    => $license,
+            'item_name'  => urlencode( $this->item_name ),
+            'url'        => home_url()
+        );
 
-        // Get the license data from the API.
-		$license_data = $this->call_license_api( $api_params );
+        $license_data = $this->call_license_api( $api_params );
 
         if ( $license_data ) {
+            // Treat expired licenses as valid (lifetime updates, only support expires)
+            $is_expired_license = ( 'expired' === ( $license_data->error ?? '' ) );
+            $status  = $is_expired_license ? 'valid' : ( $license_data->license ?? 'invalid' );
+            $support = $is_expired_license ? 'expired' : ( $license_data->support_status ?? 'active' );
+
             update_option(
                 $this->item_shortname . '_license_data',
                 array(
                     'key'        => $license,
-                    'expiration' => $license_data->expires,
-                    'status'     => $license_data->license
+                    'expiration' => $license_data->expires ?? '',
+                    'status'     => $status,
+                    'support'    => $support,
                 )
             );
 
-            if ( $license_data->success ) {
-                $this->set_license_notice( $this->item_name . ' license activated.', 'updated' );
-            } else if ( !empty( $license_data->error ) ) {
+            if ( ( $license_data->success ?? false ) || $is_expired_license ) {
+                if ( 'expired' === $support ) {
+                    $message = $license_data->support_message
+                        ?? __( 'Your 1-year support has expired. Renew to regain access to support.', 'wp-store-locator' );
+                    $this->set_license_notice(
+                        $this->item_name . ' ' . __( 'license activated.', 'wp-store-locator' ) . ' ' . $message,
+                        'updated'
+                    );
+                } else {
+                    $this->set_license_notice(
+                        $this->item_name . ' ' . __( 'license activated.', 'wp-store-locator' ),
+                        'updated'
+                    );
+                }
+            } elseif ( ! empty( $license_data->error ) ) {
                 $this->handle_activation_errors( $license_data->error );
             }
         }
@@ -176,7 +194,8 @@ class WPSL_License_Manager {
 		$license_data = $this->call_license_api( $api_params );
         
         if ( $license_data ) {
-            if ( $license_data->license == 'deactivated' ) {
+            // Allow deactivation if license is deactivated, expired, or failed (user should be able to remove it locally)
+            if ( in_array( $license_data->license, array( 'deactivated', 'expired', 'failed' ), true ) ) {
                 delete_option( $this->item_shortname . '_license_data' );    
                 
                 $this->set_license_notice( $this->item_name . ' license deactivated.', 'updated' );
@@ -196,7 +215,6 @@ class WPSL_License_Manager {
      * @return void|array $license_data The returned license data on success
      */     
     public function call_license_api( $api_params ) {
-        
         $response = wp_remote_post(
 			$this->api_url,
 			array(
@@ -225,7 +243,6 @@ class WPSL_License_Manager {
      * @return void|string          The value for the license option.
      */ 
     public function get_license_option( $option ) {
-        
         $license_data = get_option( $this->item_shortname . '_license_data' ); 
         
         if ( isset( $license_data[ $option ] ) ) {
@@ -233,6 +250,66 @@ class WPSL_License_Manager {
         }
     }
 
+    /**
+     * Schedule the license check event if not already scheduled.
+     *
+     * @since 2.3.21
+     * @return void
+     */
+    private function schedule_license_check() {
+        if ( ! wp_next_scheduled( $this->item_shortname . '_license_check' ) ) {
+            wp_schedule_event( time(), 'daily', $this->item_shortname . '_license_check' );
+        }
+    }
+
+    /**
+     * Check the license status with the remote server.
+     *
+     * @since 2.3.21
+     * @return void
+     */
+    public function check_license() {
+        $license_key = $this->get_license_option( 'key' );
+
+        if ( empty( $license_key ) ) {
+            return;
+        }
+
+        $api_params = array(
+            'edd_action' => 'check_license',
+            'license'    => $license_key,
+            'item_name'  => urlencode( $this->item_name ),
+            'url'        => home_url()
+        );
+
+        $license_data = $this->call_license_api( $api_params );
+
+        if ( $license_data && isset( $license_data->license ) ) {
+            $current_status  = $this->get_license_option( 'status' );
+            $current_support = $this->get_license_option( 'support' );
+            $new_status      = $license_data->license;
+            $new_support     = $license_data->support_status ?? 'active';
+
+            if ( $current_status !== $new_status || $current_support !== $new_support ) {
+                update_option(
+                    $this->item_shortname . '_license_data',
+                    array(
+                        'key'        => $license_key,
+                        'expiration' => $license_data->expires ?? '',
+                        'status'     => $new_status,
+                        'support'    => $new_support,
+                    )
+                );
+
+                // Only show the notice when support has newly flipped to expired
+                if ( 'expired' === $new_support && 'active' === $current_support ) {
+                    $message = $license_data->support_message
+                        ?? __( 'Your 1-year support has expired. Renew to regain access to support.', 'wp-store-locator' );
+                    $this->set_license_notice( $message, 'error' );
+                }
+            }
+        }
+    }
     /**
      * Set a notice holding license information.
      *
@@ -253,7 +330,6 @@ class WPSL_License_Manager {
      * @return void
      */     
     public function handle_activation_errors( $activation_errors ) {
-
         switch ( $activation_errors ) {
             case 'item_name_mismatch':
                 /* translators: %s: add-on name */
@@ -283,18 +359,18 @@ class WPSL_License_Manager {
      * @param  array $settings The existing settings.
      * @return array
      */
-	public function add_license_field( $settings ) {
-        
-		$license_setting = array(
-			array(
+    public function add_license_field( $settings ) {
+        $license_setting = array(
+            array(
                 'name'       => $this->item_name,
-				'short_name' => $this->item_shortname,
+                'short_name' => $this->item_shortname,
                 'status'     => $this->get_license_option( 'status' ),
                 'key'        => $this->get_license_option( 'key' ),
-                'expiration' => $this->get_license_option( 'expiration' )
-			)
-		);
+                'expiration' => $this->get_license_option( 'expiration' ),
+                'support'    => $this->get_license_option( 'support' ),
+            )
+        );
 
-		return array_merge( $settings, $license_setting );
-	}
+        return array_merge( $settings, $license_setting );
+    }
 }

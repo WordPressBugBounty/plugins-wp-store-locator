@@ -53,7 +53,7 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                     <tr>
                         <th scope="col"><?php esc_html_e( 'Add-On', 'wp-store-locator' ); ?></th>
                         <th scope="col"><?php esc_html_e( 'License Key', 'wp-store-locator' ); ?></th>
-                        <th scope="col"><?php esc_html_e( 'License Expiry Date', 'wp-store-locator' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Support Expiry Date', 'wp-store-locator' ); ?></th>
                     </tr>
                 </thead>
                 <tbody id="the-list">
@@ -76,7 +76,20 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                         echo '<td>';
                         
                         if ( $wpsl_license['expiration'] && $wpsl_license['status'] == 'valid' ) {
-                            echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $wpsl_license['expiration'] ) ) );
+                            if ( 'lifetime' === strtolower( $wpsl_license['expiration'] ) ) {
+                                esc_html_e( 'Lifetime', 'wp-store-locator' );
+                            } else {
+                                echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $wpsl_license['expiration'] ) ) );
+                            }
+
+                            // Show tooltip if support has expired
+                            if ( isset( $wpsl_license['support'] ) && 'expired' === $wpsl_license['support'] ) {
+                                ?>
+                                <span class="wpsl-info wpsl-required-setting">
+                                    <span class="wpsl-info-text wpsl-hide"><?php printf( __( 'Your support has expired. If you would like to renew, you can do so through your %1$saccount page%2$s with a %3$s30%% discount%4$s.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/account/" target="_blank" style="text-decoration: underline;">', '</a>', '<strong>', '</strong>' ); ?></span>
+                                </span>
+                                <?php
+                            }
                         }
                         
                         echo '</td>';
