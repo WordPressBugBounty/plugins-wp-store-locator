@@ -571,6 +571,14 @@ $borlabs_exists = function_exists( 'BorlabsCookieHelper' );
                                     </label>
                                    <?php echo $wpsl_admin->settings_page->show_cluster_renderer_style(); ?>
                                 </p>
+                                <p>
+                                   <label for="wpsl-cluster-marker-shape"><?php esc_html_e( 'Cluster marker shape', 'wp-store-locator' ); ?>:
+                                        <span class="wpsl-info">
+                                            <span class="wpsl-info-text wpsl-hide"><?php /* translators: %1$s: opening link tag, %2$s: closing link tag */ echo wp_kses_post( sprintf( __( 'The shape used for the cluster markers on the map. Extra shapes can be added with the %1$swpsl_cluster_marker_shapes%2$s filter.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/wpsl_cluster_marker_shapes/">', '</a>' ) ); ?></span>
+                                        </span>
+                                    </label>
+                                   <?php echo $wpsl_admin->settings_page->show_cluster_marker_shape(); ?>
+                                </p>
                             </div>
                             <p class="submit">
                                 <input type="submit" value="<?php esc_html_e( 'Save Changes', 'wp-store-locator' ); ?>" class="button-primary">

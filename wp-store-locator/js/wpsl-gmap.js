@@ -1699,6 +1699,10 @@ function checkMarkerClusters() {
 
 		// Initialize the new Google MarkerClusterer with custom renderer.
 		try {
+			if ( typeof markerClusterer !== "undefined" && markerClusterer !== null ) {
+				markerClusterer.setMap(null);
+			}
+
 			markerClusterer = new window.markerClusterer.MarkerClusterer({
 				map: map,
 				markers: markers,
@@ -1729,43 +1733,40 @@ function createClusterRenderer() {
 	const lowDensityColor = wpslSettings.clusterLowDensityColor;
 	const highDensityColor = wpslSettings.clusterHighDensityColor;
 	const labelColor = wpslSettings.clusterLabelColor;
+	const templates = wpslSettings.clusterTemplates || {};
 
 	return {
 		render: function( cluster, stats ) {
 			try {
 				const count = cluster.markers.length;
 
-				let color, svg, size;
-				
+				let color;
+
 				if ( rendererStyle === 'interpolation' ) {
 					// Interpolate color based on marker count distribution
 					const maxMarkers = stats && stats.clusters && stats.clusters.markers ? stats.clusters.markers.max : 100;
 					const ratio = Math.min( count / maxMarkers, 1 );
 					color = interpolateColor( lowDensityColor, highDensityColor, ratio );
-
-					svg = `<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-						<circle cx="120" cy="120" opacity=".8" r="70" />
-						<text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="38" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text>
-					</svg>`;
-					size = 75;
 				} else {
 					// Default: Use high density color if count is above average
 					const threshold = stats && stats.clusters && stats.clusters.markers ? stats.clusters.markers.mean : 10;
 					color = count > Math.max( 10, threshold ) ? highDensityColor : lowDensityColor;
-
-					svg = `<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-						<circle cx="120" cy="120" opacity=".6" r="70" />
-						<circle cx="120" cy="120" opacity=".3" r="90" />
-						<circle cx="120" cy="120" opacity=".2" r="110" />
-						<text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="50" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text>
-					</svg>`;
-					size = 50;
 				}
+
+				// The SVG templates are set in PHP and can be changed with the wpsl_cluster_marker_templates filter.
+				const template = templates[rendererStyle] || templates['default'];
+				const svg = renderClusterTemplate( template.svg, {
+					color: color,
+					labelColor: labelColor,
+					count: count
+				});
+				const size = parseInt( template.size, 10 ) || 50;
 
 				return new google.maps.Marker({
 					position: cluster.position,
+					optimized: false, // Forces Google Maps to respect the true SVG size
 					icon: {
-						url: 'data:image/svg+xml;base64,' + btoa( svg ),
+						url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent( svg ),
 						scaledSize: new google.maps.Size( size, size ),
 						anchor: new google.maps.Point( size / 2, size / 2 )
 					},
@@ -1778,6 +1779,23 @@ function createClusterRenderer() {
 			}
 		}
 	};
+}
+
+/**
+ * Replace the ${placeholder} tokens in a cluster SVG template.
+ *
+ * Unknown tokens are left untouched so a typo in a custom
+ * template stays visible instead of becoming "undefined".
+ *
+ * @since  2.3.22
+ * @param  {string} template The SVG template containing ${name} tokens
+ * @param  {object} vars     The replacement values keyed by token name
+ * @return {string} The SVG with all known tokens replaced
+ */
+function renderClusterTemplate( template, vars ) {
+	return String( template ).replace( /\$\{(\w+)\}/g, function( match, key ) {
+		return vars.hasOwnProperty( key ) ? vars[key] : match;
+	});
 }
 
 /**
@@ -1931,7 +1949,7 @@ function clusterListener() {
 			if ( typeof markerClusterer !== "undefined" && typeof activeWindowMarkerId !== "undefined" ) {
 
 				// Get clusters from the new MarkerClusterer API
-				const clusters = markerClusterer.getClusters();
+				const clusters = markerClusterer.clusters;
 
 				if ( clusters && clusters.length ) {
 					for ( let i = 0; i < clusters.length; i++ ) {

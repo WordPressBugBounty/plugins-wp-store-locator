@@ -1916,6 +1916,9 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
                 $base_settings['clusterLowDensityColor'] = $cluster_colors['lowDensityColor'];
                 $base_settings['clusterHighDensityColor'] = $cluster_colors['highDensityColor'];
                 $base_settings['clusterLabelColor'] = $cluster_colors['labelColor'];
+
+                // Get cluster marker SVG templates with filter support.
+                $base_settings['clusterTemplates'] = $this->get_cluster_marker_templates();
             }
 
             // Check if we need to include the infobox script and settings.
@@ -1998,6 +2001,71 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             );
 
             return apply_filters( 'wpsl_cluster_marker_colors', $defaults );
+        }
+
+        /**
+         * Return the cluster marker SVG templates.
+         *
+         * The templates support the ${color}, ${labelColor} and ${count}
+         * placeholders, they are replaced with the actual values in JS
+         * when the cluster marker is rendered on the map.
+         *
+         * The 'size' value is the width/height in pixels the SVG
+         * is scaled to on the map.
+         *
+         * If a custom marker shape is selected on the settings page, then
+         * the shape template is used for both renderer styles.
+         *
+         * @since 2.3.22
+         * @return array Cluster SVG templates keyed by the renderer style
+         */
+        public function get_cluster_marker_templates() {
+
+            global $wpsl_settings;
+
+            $defaults = array(
+                'default' => array(
+                    'svg'  => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><circle cx="120" cy="120" opacity=".6" r="70" /><circle cx="120" cy="120" opacity=".3" r="90" /><circle cx="120" cy="120" opacity=".2" r="110" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="50" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+                    'size' => 50,
+                ),
+                'interpolation' => array(
+                    'svg'  => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><circle cx="120" cy="120" opacity=".8" r="70" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="38" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+                    'size' => 75,
+                ),
+            );
+
+            $templates = $defaults;
+
+            // Check if a custom marker shape is selected instead of the default circles.
+            $selected_shape = isset( $wpsl_settings['cluster_marker_shape'] ) ? $wpsl_settings['cluster_marker_shape'] : 'default';
+
+            if ( 'default' !== $selected_shape ) {
+                $shapes = wpsl_get_cluster_marker_shapes();
+
+                if ( isset( $shapes[ $selected_shape ]['svg'] ) ) {
+                    $shape_template = array(
+                        'svg'  => $shapes[ $selected_shape ]['svg'],
+                        'size' => isset( $shapes[ $selected_shape ]['size'] ) ? $shapes[ $selected_shape ]['size'] : 50,
+                    );
+
+                    $templates['default']       = $shape_template;
+                    $templates['interpolation'] = $shape_template;
+                }
+            }
+
+            $templates = apply_filters( 'wpsl_cluster_marker_templates', $templates );
+
+            /*
+             * Fall back to the default circles if a filter or custom shape
+             * supplied broken or missing SVG code for one of the cluster styles.
+             */
+            foreach ( $defaults as $style => $default_template ) {
+                if ( ! isset( $templates[ $style ]['svg'] ) || ! wpsl_is_valid_cluster_svg( $templates[ $style ]['svg'] ) ) {
+                    $templates[ $style ] = $default_template;
+                }
+            }
+
+            return $templates;
         }
 
         /**

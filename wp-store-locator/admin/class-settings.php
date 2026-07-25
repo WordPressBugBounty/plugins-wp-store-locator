@@ -245,6 +245,15 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
                 $output['cluster_renderer_style'] = wpsl_get_default_setting( 'cluster_renderer_style' );
             }
 
+            // Check for a valid cluster marker shape value.
+            $valid_shapes = array_merge( array( 'default' ), array_keys( wpsl_get_cluster_marker_shapes() ) );
+
+            if ( isset( $_POST['wpsl_map']['cluster_marker_shape'] ) && in_array( $_POST['wpsl_map']['cluster_marker_shape'], $valid_shapes, true ) ) {
+                $output['cluster_marker_shape'] = sanitize_text_field( $_POST['wpsl_map']['cluster_marker_shape'] );
+            } else {
+                $output['cluster_marker_shape'] = wpsl_get_default_setting( 'cluster_marker_shape' );
+            }
+
             /*
              * Make sure all the ux related fields that should contain an int, actually are an int.
              * Otherwise we use the default value.
@@ -1061,6 +1070,35 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             $dropdown = '<select id="wpsl-cluster-renderer-style" name="wpsl_map[cluster_renderer_style]" autocomplete="off">';
             $dropdown .= '<option value="default" ' . selected( $current_style, 'default', false ) . '>' . esc_html__( 'Default', 'wp-store-locator' ) . '</option>';
             $dropdown .= '<option value="interpolation" ' . selected( $current_style, 'interpolation', false ) . '>' . esc_html__( 'Interpolation', 'wp-store-locator' ) . '</option>';
+            $dropdown .= '</select>';
+
+            return $dropdown;
+        }
+
+        /**
+         * Create a dropdown for the cluster marker shape.
+         *
+         * The list contains the default circles and the shapes returned
+         * by wpsl_get_cluster_marker_shapes().
+         *
+         * @since 2.3.22
+         * @return string $dropdown The html for the marker shape dropdown
+         */
+        public function show_cluster_marker_shape() {
+
+            global $wpsl_settings;
+
+            $current_shape = isset( $wpsl_settings['cluster_marker_shape'] ) ? $wpsl_settings['cluster_marker_shape'] : 'default';
+            $shapes        = wpsl_get_cluster_marker_shapes();
+
+            $dropdown = '<select id="wpsl-cluster-marker-shape" name="wpsl_map[cluster_marker_shape]" autocomplete="off">';
+            $dropdown .= '<option value="default" ' . selected( $current_shape, 'default', false ) . '>' . esc_html__( 'Default (circles)', 'wp-store-locator' ) . '</option>';
+
+            foreach ( $shapes as $shape_key => $shape ) {
+                $label = isset( $shape['label'] ) ? $shape['label'] : ucfirst( $shape_key );
+                $dropdown .= '<option value="' . esc_attr( $shape_key ) . '" ' . selected( $current_shape, $shape_key, false ) . '>' . esc_html( $label ) . '</option>';
+            }
+
             $dropdown .= '</select>';
 
             return $dropdown;

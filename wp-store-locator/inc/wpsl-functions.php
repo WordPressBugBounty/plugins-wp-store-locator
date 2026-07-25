@@ -130,6 +130,7 @@ function wpsl_get_default_settings() {
         'cluster_zoom'              => 0,
         'cluster_size'              => 0,
         'cluster_renderer_style'    => 'default',
+        'cluster_marker_shape'      => 'default',
         'new_window'                => 0,
         'reset_map'                 => 0,
         'template_id'               => 'default',
@@ -184,6 +185,85 @@ function wpsl_get_default_settings() {
     );
 
     return $default_settings;
+}
+
+/**
+ * Get the available cluster marker shapes.
+ *
+ * Each shape holds the label shown in the admin dropdown, the SVG
+ * template and the size in pixels the SVG is scaled to on the map.
+ *
+ * The templates support the ${color}, ${labelColor} and ${count}
+ * placeholders, they are replaced with the actual values in JS
+ * when the cluster marker is rendered on the map.
+ *
+ * Extra shapes added through the wpsl_cluster_marker_shapes filter
+ * automatically show up in the admin dropdown.
+ *
+ * @since 2.3.22
+ * @return array $shapes The cluster marker shapes
+ */
+function wpsl_get_cluster_marker_shapes() {
+
+    $shapes = array(
+        'square' => array(
+            'label' => __( 'Square', 'wp-store-locator' ),
+            'svg'   => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect x="25" y="25" width="190" height="190" rx="34" opacity=".25" /><rect x="45" y="45" width="150" height="150" rx="26" opacity=".85" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="60" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+            'size'  => 55,
+        ),
+        'hexagon' => array(
+            'label' => __( 'Hexagon', 'wp-store-locator' ),
+            'svg'   => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><polygon points="120,10 25,65 25,175 120,230 215,175 215,65" opacity=".25" /><polygon points="120,30 42,75 42,165 120,210 198,165 198,75" opacity=".85" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="58" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+            'size'  => 55,
+        ),
+        'diamond' => array(
+            'label' => __( 'Diamond', 'wp-store-locator' ),
+            'svg'   => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><polygon points="120,10 230,120 120,230 10,120" opacity=".25" /><polygon points="120,35 205,120 120,205 35,120" opacity=".85" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="52" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+            'size'  => 60,
+        ),
+        'donut' => array(
+            'label' => __( 'Donut', 'wp-store-locator' ),
+            'svg'   => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><circle cx="120" cy="120" r="65" opacity=".9" /><circle cx="120" cy="120" r="90" fill="none" stroke="${color}" stroke-width="14" opacity=".45" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="55" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+            'size'  => 55,
+        ),
+        'pulse' => array(
+            'label' => __( 'Pulse', 'wp-store-locator' ),
+            'svg'   => '<svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><circle cx="120" cy="120" opacity=".15" r="118" /><circle cx="120" cy="120" opacity=".3" r="95" /><circle cx="120" cy="120" opacity=".85" r="65" /><text x="50%" y="50%" style="fill:${labelColor}" text-anchor="middle" font-size="55" dominant-baseline="middle" font-family="roboto,arial,sans-serif">${count}</text></svg>',
+            'size'  => 65,
+        ),
+    );
+
+    return apply_filters( 'wpsl_cluster_marker_shapes', $shapes );
+}
+
+/**
+ * Check if the provided cluster marker template contains valid SVG code.
+ *
+ * Used to validate SVG templates supplied through the
+ * wpsl_cluster_marker_shapes / wpsl_cluster_marker_templates filters
+ * before they are passed to the map, broken SVG code falls back to
+ * the default cluster style.
+ *
+ * The ${} placeholders are valid XML attribute / text content,
+ * so they don't affect the check.
+ *
+ * @since  2.3.22
+ * @param  mixed $svg The SVG template code
+ * @return bool Whether or not the template is valid SVG code
+ */
+function wpsl_is_valid_cluster_svg( $svg ) {
+
+    if ( ! is_string( $svg ) || trim( $svg ) === '' ) {
+        return false;
+    }
+
+    $use_errors = libxml_use_internal_errors( true );
+    $xml        = simplexml_load_string( trim( $svg ) );
+
+    libxml_clear_errors();
+    libxml_use_internal_errors( $use_errors );
+
+    return $xml !== false && strtolower( $xml->getName() ) === 'svg';
 }
 
 /**
