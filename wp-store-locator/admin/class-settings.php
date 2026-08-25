@@ -1154,7 +1154,8 @@ if ( !class_exists( 'WPSL_Settings' ) ) {
             if ( is_dir( $dir ) ) {
                 if ( $dh = opendir( $dir ) ) {
                     while ( false !== ( $file = readdir( $dh ) ) ) {
-                        if ( $file == '.' || $file == '..' || ( strpos( $file, '2x' ) !== false ) ) continue;
+                        // Skip the retina versions ( both the @2x and 2x naming conventions ).
+                        if ( $file == '.' || $file == '..' || preg_match( '/@?2x\.[^.]+$/', $file ) ) continue;
                         $marker_images[] = $file;
                     }
 

@@ -1519,9 +1519,11 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
          * Create a filename with @2x or 2x in it for the selected marker color.
          *
          * So when a user selected green.png in the admin panel. The JS on the front-end will end up
-         * loading green2x.png (or green@2x.png for custom markers) to provide support for retina compatible devices.
+         * loading green@2x.png (or green2x.png) to provide support for retina compatible devices.
          *
-         * Plugin markers use '2x' to comply with PHPCS naming rules, while custom markers can use '@2x'.
+         * Both retina naming conventions are supported. Custom marker folders created
+         * before 2.3.0 use '@2x', the markers included with the plugin were renamed
+         * to '2x' in 2.3.0 to comply with the WordPress Coding Standards.
          *
          * @since 1.0.0
          * @param  string $filename The name of the selected marker
@@ -1532,24 +1534,36 @@ if ( !class_exists( 'WPSL_Frontend' ) ) {
             $parts = explode( '.', $filename );
             $name  = $parts[0];
             $ext   = isset( $parts[1] ) ? $parts[1] : 'png';
-            
+
             // Check if the filename already contains a retina suffix (already processed)
             if ( strpos( $name, '@2x' ) !== false || preg_match( '/2x$/', $name ) ) {
                 return $filename;
             }
-            
-            // List of default plugin marker names (use '2x' for PHPCS compliance)
-            $plugin_markers = array( 'red', 'blue', 'green', 'orange', 'purple', 'pink', 'dark-blue', 'dark-green', 'dark-orange' );
-            
-            // Check if this is a plugin default marker
-            $is_plugin_marker = in_array( $name, $plugin_markers, true );
-            
-            // For plugin markers, use '2x' (PHPCS compliant), for custom markers preserve '@2x' convention ( for now )
-            $retina_suffix = $is_plugin_marker ? '2x' : '@2x';
-            
-            $filename = $name . $retina_suffix . '.' . $ext;
 
-            return $filename;
+            $marker_dir = apply_filters( 'wpsl_admin_marker_dir', WPSL_PLUGIN_DIR . 'img/markers/' );
+
+            // Use the retina file that actually exists in the marker folder.
+            foreach ( array( '@2x', '2x' ) as $retina_suffix ) {
+                if ( file_exists( $marker_dir . $name . $retina_suffix . '.' . $ext ) ) {
+                    return $name . $retina_suffix . '.' . $ext;
+                }
+            }
+
+            /*
+             * The marker folder exists, but doesn't contain a retina version of the
+             * selected marker. Load the standard file instead of a broken URL,
+             * otherwise the marker doesn't show on the map at all.
+             */
+            if ( is_dir( $marker_dir ) ) {
+                return $filename;
+            }
+
+            /*
+             * The marker folder isn't readable from PHP ( possible when the
+             * wpsl_admin_marker_dir filter points at a remote URL instead of a
+             * server path ). Keep the '@2x' convention that was used before 2.3.0.
+             */
+            return $name . '@2x.' . $ext;
         }
 
         /**

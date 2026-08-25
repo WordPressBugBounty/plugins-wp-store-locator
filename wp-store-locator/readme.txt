@@ -3,8 +3,8 @@ Plugin URI: https://wpstorelocator.co
 Contributors: tijmensmit
 Tags: google maps, store locator, store finder, maps, directions
 Requires at least: 3.7
-Tested up to: 7.0
-Stable tag: 2.3.22
+Tested up to: 7.1
+Stable tag: 2.3.23
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -129,7 +129,11 @@ Please report security bugs found in the source code of the WP Store Locator plu
 
 == Changelog ==
 
-= 2.3.22 =
+= 2.3.23
+* Fixed: Custom markers named after one of the included colors ( like blue.png ) disappearing from the map. The plugin looked for blue2x.png, instead of the blue@2x.png described in the [documentation](https://wpstorelocator.co/document/use-custom-markers/). Both names now work. Via [neilgee](https://wordpress.org/support/users/neilgee/)
+* Changed: If a custom marker has no retina version, the standard image is now used instead of showing no marker at all.
+
+= 2.3.22
 * Added: Support for different cluster marker shapes. You can add your own with the [wpsl_cluster_marker_shapes](https://wpstorelocator.co/document/wpsl_cluster_marker_shapes/) filter.
 * Fixed: Prevented the marker cluster images breaking with certain settings. Via [modernwoe](https://wordpress.org/support/users/modernwoe/)
 
