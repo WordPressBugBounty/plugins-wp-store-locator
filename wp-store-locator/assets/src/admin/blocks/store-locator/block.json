@@ -1,0 +1,97 @@
+{
+    "apiVersion": 3,
+    "name": "wpsl/store-locator",
+    "version": "3.0.0",
+    "title": "Store Locator",
+    "category": "wpsl",
+    "description": "Display a WP Store Locator map with search functionality.",
+    "keywords": [ "store", "locator", "map", "locations", "wpsl" ],
+    "textdomain": "wp-store-locator",
+    "attributes": {
+        "template": {
+            "type": "string",
+            "default": ""
+        },
+        "start_location": {
+            "type": "string",
+            "default": ""
+        },
+        "auto_locate": {
+            "type": "string",
+            "default": ""
+        },
+        "country": {
+            "type": "string",
+            "default": ""
+        },
+        "state": {
+            "type": "string",
+            "default": ""
+        },
+        "city": {
+            "type": "string",
+            "default": ""
+        },
+        "distance_unit": {
+            "type": "string",
+            "default": ""
+        },
+        "category": {
+            "type": "array",
+            "default": [],
+            "items": {
+                "type": "string"
+            }
+        },
+        "category_selection": {
+            "type": "string",
+            "default": ""
+        },
+        "category_filter_type": {
+            "type": "string",
+            "default": ""
+        },
+        "checkbox_columns": {
+            "type": "string",
+            "default": "3"
+        },
+        "map_type": {
+            "type": "string",
+            "default": ""
+        },
+        "map_style": {
+            "type": "string",
+            "default": ""
+        },
+        "start_marker": {
+            "type": "string",
+            "default": ""
+        },
+        "store_marker": {
+            "type": "string",
+            "default": ""
+        },
+        "active_marker": {
+            "type": "string",
+            "default": ""
+        },
+        "marker_clusters": {
+            "type": "string",
+            "default": ""
+        },
+        "marker_labels": {
+            "type": "string",
+            "default": ""
+        },
+        "disable_shapes": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "html": false,
+        "multiple": false
+    },
+    "editorScript": "file:./index.js",
+    "editorStyle": "file:./index.css"
+}

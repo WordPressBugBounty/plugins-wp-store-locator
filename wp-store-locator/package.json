@@ -1,14 +1,32 @@
 {
   "name": "wp-store-locator",
   "version": "3.0.0",
-  "description": "WP Store Locator - Build tools for minification",
+  "description": "WP Store Locator",
   "scripts": {
-    "minify": "node build-minify.js",
-    "minify:watch": "node build-minify.js --watch"
+    "build": "npm run build:js && npm run build:js:src && npm run build:blocks && npm run build:css",
+    "build:blocks": "wp-scripts build --config node_modules/@wordpress/scripts/config/webpack.config.js --webpack-src-dir=assets/src/admin/blocks --output-path=assets/dist/admin/blocks",
+    "build:js": "webpack --mode=production",
+    "build:js:src": "terser assets/src/admin/js/ajax-queue.js -c -m --format comments=some -o assets/src/admin/js/ajax-queue.min.js && terser assets/src/admin/js/retina.js -c -m --format comments=some -o assets/src/admin/js/retina.min.js && terser assets/src/admin/js/wpsl-exit-survey.js -c -m --format comments=some -o assets/src/admin/js/wpsl-exit-survey.min.js && terser assets/src/admin/js/wpsl-shared-funcs.js -c -m --format comments=some -o assets/src/admin/js/wpsl-shared-funcs.min.js && terser assets/src/admin/js/wpsl-shortcode-generator.js -c -m --format comments=some -o assets/src/admin/js/wpsl-shortcode-generator.min.js && terser assets/src/admin/js/wpsl-geocode-locations.js -c -m --format comments=some -o assets/src/admin/js/wpsl-geocode-locations.min.js && terser assets/src/admin/js/wpsl-key-visibility.js -c -m --format comments=some -o assets/src/admin/js/wpsl-key-visibility.min.js && terser assets/src/admin/js/wpsl-admin-ui.js -c -m --format comments=some -o assets/src/admin/js/wpsl-admin-ui.min.js && terser assets/src/admin/js/wpsl-cpt-upgrade.js -c -m --format comments=some -o assets/src/admin/js/wpsl-cpt-upgrade.min.js",
+    "build:css": "node tools/build-css.js",
+    "dev": "webpack --mode=development --watch",
+    "build:dev": "webpack --mode=development"
   },
+  "keywords": [],
+  "author": "",
+  "license": "GPLv3",
   "devDependencies": {
-    "terser": "^5.31.0",
-    "clean-css": "^5.3.3",
-    "chokidar": "^3.6.0"
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@wordpress/scripts": "^34.2.0",
+    "babel-loader": "^10.0.0",
+    "clean-css-cli": "^5.6.3",
+    "glob": "^13.0.3",
+    "terser": "^5.43.1",
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack": "^5.101.0",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@googlemaps/markerclusterer": "^2.6.2"
   }
 }

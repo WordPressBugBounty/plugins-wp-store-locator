@@ -1,0 +1,143 @@
+/*
+ * The canvas placeholder and inspector bits both blocks share, ported from
+ * v2 ( both of its blocks carried an identical copy of this file each ).
+ */
+
+.wpsl-block-preview {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 24px;
+    background: #f9f9f9;
+    text-align: center;
+}
+
+.wpsl-block-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1e1e1e;
+
+    .wpsl-block-icon {
+        color: #000;
+    }
+}
+
+.wpsl-block-preview-shortcode {
+    display: block;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #333;
+    word-break: break-all;
+    margin-bottom: 12px;
+}
+
+.wpsl-block-preview-hint {
+    font-size: 12px;
+    color: #757575;
+    margin: 0;
+}
+
+.wpsl-block-category-restriction {
+    margin-bottom: 16px;
+
+    .components-base-control__label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+}
+
+.wpsl-block-marker-preview {
+    display: block;
+    margin: 4px 0 16px;
+    max-height: 40px;
+}
+
+.wpsl-block-country-select {
+    margin-bottom: 16px;
+
+    > .components-base-control__label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .components-base-control__help {
+        margin-top: 8px;
+    }
+}
+
+.wpsl-block-multiselect {
+    .wpsl-multiselect-menu li label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        cursor: pointer;
+
+        span {
+            line-height: 16px;
+        }
+    }
+
+    .wpsl-multiselect-menu input[type="checkbox"] {
+        -webkit-appearance: none;
+        appearance: none;
+        position: relative;
+        flex: 0 0 auto;
+        width: 16px;
+        height: 16px;
+        min-width: 16px;
+        margin: 0;
+        padding: 0;
+        border: 1px solid #d1d5db;
+        border-radius: var(--wpsl-radius, 3px);
+        background-color: #fff;
+        box-shadow: none;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+
+        &:hover {
+            border-color: #6fac34;
+        }
+
+        &:checked {
+            background-color: #6fac34;
+            border-color: #6fac34;
+        }
+
+        // The tick, drawn the way the settings page draws it.
+        &:checked::before {
+            content: "";
+            display: block;
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 4px;
+            height: 8px;
+            margin: 0;
+            background: none;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        &:focus-visible {
+            outline: 2px solid #6fac34;
+            outline-offset: 2px;
+        }
+    }
+}

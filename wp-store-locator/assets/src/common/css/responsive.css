@@ -1,0 +1,339 @@
+@media (max-width: 825px) {
+    #wpsl-search-input {
+        width: 348px;
+    }
+
+    .wpsl-results-only #wpsl-search-wrap .wpsl-dropdown {
+        width: 70px;
+    }
+
+    #wpsl-search-wrap .wpsl-input {
+        width: 100%;
+        margin-bottom: 10px !important;
+    }
+
+    .wpsl-cat-results-filter #wpsl-search-wrap .wpsl-input,
+    .wpsl-no-filters #wpsl-search-wrap .wpsl-input,
+    .wpsl-results-only #wpsl-search-wrap .wpsl-input {
+        width: auto;
+    }
+
+    .wpsl-input label,
+    #wpsl-radius label,
+    #wpsl-category label,
+    .wpsl-cat-results-filter #wpsl-search-wrap .wpsl-input,
+    .wpsl-no-filters #wpsl-search-wrap .wpsl-input,
+    .wpsl-results-only #wpsl-search-wrap .wpsl-input {
+        width: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    #wpsl-search-wrap .wpsl-dropdown {
+        width: 114px;
+    }
+}
+
+@media (max-width: 675px) {
+    #wpsl-search-wrap #wpsl-search-btn {
+        float: left;
+        margin: 0 5px 0 0;
+    }
+
+    #wpsl-panel,
+    .wpsl-results-only #wpsl-search-wrap .wpsl-input,
+    .wpsl-dropdown {
+        width: 100%;
+    }
+
+    .wpsl-search {
+        padding: 2%;
+    }
+
+    .wpsl-input {
+        margin-right: 0;
+    }
+
+    /* Vertical template: stack panel and map */
+    #wpsl-wrap.wpsl-flex {
+        flex-direction: column;
+    }
+
+    #wpsl-wrap.wpsl-flex #wpsl-map {
+        width: 100%;
+        order: 1;
+        margin-bottom: 15px;
+        flex: none;
+        min-height: 350px;
+    }
+
+    /* Horizontal template: single column layout for results */
+    #wpsl-stores .wpsl-v3-columns-2,
+    #wpsl-stores .wpsl-v3-columns-3 {
+        grid-template-columns: 1fr;
+    }
+
+    #wpsl-wrap #wpsl-result-list,
+    #wpsl-wrap #wpsl-gmap,
+    #wpsl-wrap #wpsl-osm-wrap,
+    #wpsl-wrap .wpsl-map-style-wrap,
+    #wpsl-wrap #wpsl-map {
+        float: none !important;
+        width: 100% !important;
+    }
+
+    .wpsl-direction-before {
+        padding-left: 0;
+    }
+
+    #wpsl-wrap #wpsl-gmap,
+    #wpsl-wrap #wpsl-osm-wrap,
+    #wpsl-wrap .wpsl-map-style-wrap,
+    #wpsl-wrap #wpsl-map {
+        margin-bottom: 15px;
+    }
+
+    .wpsl-cat-results-filter .wpsl-select-wrap,
+    .wpsl-filter .wpsl-select-wrap,
+    #wpsl-result-list {
+        margin-bottom: 10px;
+    }
+
+    #wpsl-result-list p {
+        padding-left: 0;
+    }
+
+    #wpsl-stores.wpsl-not-loaded {
+        height: 25px;
+    }
+
+    #wpsl-reset-map {
+        top: 25px;
+    }
+
+    #wpsl-wrap #wpsl-gmap,
+    #wpsl-wrap #wpsl-osm-wrap,
+    #wpsl-wrap .wpsl-map-style-wrap,
+    #wpsl-wrap #wpsl-map {
+        margin-top: 10px;
+    }
+
+    .wpsl-no-filters #wpsl-search-wrap .wpsl-input,
+    #wpsl-category,
+    .wpsl-input,
+    .wpsl-select-wrap,
+    .wpsl-input,
+    #wpsl-search-btn {
+        margin-bottom: 0;
+    }
+
+    #wpsl-stores.wpsl-no-autoload {
+        height: auto !important;
+    }
+
+    #wpsl-checkbox-filter.wpsl-checkbox-3-columns li,
+    #wpsl-checkbox-filter.wpsl-checkbox-4-columns li {
+        width: 49%;
+    }
+}
+
+@media (max-width: 570px) {
+    #wpsl-search-wrap #wpsl-search-btn {
+        margin-bottom: 5px;
+    }
+
+    #wpsl-wrap .wpsl-search,
+    .wpsl-v3-css #wpsl-wrap .wpsl-search {
+        padding: 4%;
+    }
+
+    #wpsl-search-input {
+        width: 100% !important;
+    }
+
+    .wpsl-cat-results-filter #wpsl-search-wrap .wpsl-input,
+    .wpsl-cat-results-filter #wpsl-search-input,
+    .wpsl-no-results #wpsl-search-input,
+    .wpsl-results-only #wpsl-search-input {
+        width: 100% !important;
+    }
+
+    .wpsl-search-btn-wrap {
+        margin-top: 15px;
+    }
+
+    .wpsl-checkboxes-enabled .wpsl-search-btn-wrap {
+        margin-top: 0;
+    }
+
+    #wpsl-search-wrap div,
+    #wpsl-search-btn {
+        margin-right: 0;
+    }
+
+    #wpsl-search-wrap div label {
+        display: block;
+        width: 100%;
+    }
+
+    #wpsl-results {
+        width: auto;
+    }
+
+    .wpsl-select-wrap {
+        width: 100%;
+    }
+
+    #wpsl-radius,
+    #wpsl-results {
+        width: 50%;
+    }
+
+    #wpsl-radius {
+        margin-right: 4%;
+    }
+    
+    /* Input field: stack label above input */
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-input {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-input > div {
+        width: 100%;
+        margin-bottom: 5px;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap #wpsl-search-input {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* Mapbox autocomplete: full width on mobile */
+    #mapbox-autocomplete,
+    #mapbox-autocomplete .mapboxgl-ctrl-geocoder,
+    #mapbox-autocomplete .mapboxgl-ctrl-geocoder--input {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    #wpsl-search-wrap .wpsl-select-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius,
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-results {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+    }
+
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius label,
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-results label {
+        display: block;
+        width: 100%;
+    }
+
+    #wpsl-search-wrap .wpsl-select-wrap .wpsl-dropdown {
+        width: 100% !important;
+    }
+
+    /* V3-specific overrides (kept for compatibility) */
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-select-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius,
+    #wpsl-search-wrap .wpsl-select-wrap #wpsl-results {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        margin: 0 !important;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius label,
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-select-wrap #wpsl-results label {
+        display: block;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-select-wrap .wpsl-dropdown {
+        width: 100% !important;
+    }
+
+    #wpsl-wrap #wpsl-search-wrap select {
+        background-image: none;
+    }
+
+    /* Category: full width, stacked label/dropdown */
+    #wpsl-search-wrap #wpsl-category .wpsl-dropdown,
+    #wpsl-search-wrap #wpsl-category select,
+    #wpsl-search-wrap #wpsl-category {
+        display: block;
+        width: 100%;
+        /* margin-bottom: 10px; */
+    }
+
+    #wpsl-search-wrap #wpsl-category label {
+        display: block !important;
+        width: 100%;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap #wpsl-category {
+        display: block !important;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap #wpsl-category label {
+        display: block !important;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap #wpsl-category .wpsl-dropdown {
+        width: 100% !important;
+    }
+
+    .wpsl-search-btn-wrap {
+        clear: both;
+    }
+
+    .wpsl-no-filters #wpsl-search-wrap .wpsl-input,
+    .wpsl-no-filters #wpsl-search-input {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 420px) {
+    #wpsl-checkbox-filter li {
+        margin: 0;
+    }
+
+    #wpsl-checkbox-filter.wpsl-checkbox-1-columns li,
+    #wpsl-checkbox-filter.wpsl-checkbox-2-columns li,
+    #wpsl-checkbox-filter.wpsl-checkbox-3-columns li,
+    #wpsl-checkbox-filter.wpsl-checkbox-4-columns li {
+        width: 100%;
+    }
+}

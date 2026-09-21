@@ -1,0 +1,28 @@
+<?php
+/**
+ * License control template.
+ *
+ * @var $args array
+ */
+$name = $args['name'];
+if ( ! empty( $args['type'] ) && 'theme' === $args['type'] ) {
+	$name = wp_get_theme()->get( 'Name' );
+}
+do_action( "edd_sl_sdk_license_control_before_{$args['id']}", $args );
+?>
+
+<div class="edd-sl-sdk__license">
+	<label for="edd_sl_sdk[<?php echo esc_attr( $args['item_id'] ); ?>]">
+		<?php echo esc_html( $args['messenger']->get_license_key_label( $name ) ); ?>
+	</label>
+	<div class="edd-sl-sdk__license-control">
+		<input type="password" autocomplete="off" class="edd-sl-sdk__license--input regular-text" id="edd_sl_sdk[<?php echo esc_attr( $args['item_id'] ); ?>]" name="<?php echo esc_attr( $args['license']->get_key_option_name() ); ?>" value="<?php echo esc_attr( $args['license']->get_license_key() ); ?>" data-item="<?php echo esc_attr( $args['item_id'] ); ?>" data-key="<?php echo esc_attr( $args['license']->get_key_option_name() ); ?>" data-slug="<?php echo esc_attr( $args['slug'] ); ?>" />
+		<?php
+		$args['license']->get_actions( true );
+		?>
+	</div>
+	<?php $args['license']->get_license_status_message(); ?>
+</div>
+
+<?php
+do_action( "edd_sl_sdk_license_control_after_{$args['id']}", $args );
