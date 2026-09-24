@@ -746,7 +746,7 @@ class Home {
      * @return array [ 'count' => int, 'items' => [ key => [ 'description', 'dismissible', 'details' ] ] ]
      */
     public function get_alerts() {
-        $alerts = wpsl_get_service( 'plugin_alerts' );
+        $alerts = wpsl_container()->has( 'plugin_alerts' ) ? wpsl_get_service( 'plugin_alerts' ) : null;
         $active = $alerts ? $alerts->get_active_alerts() : [];
         $items  = [];
 

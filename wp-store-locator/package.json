@@ -1,6 +1,6 @@
 {
   "name": "wp-store-locator",
-  "version": "3.0.0",
+  "version": "3.0.2",
   "description": "WP Store Locator",
   "scripts": {
     "build": "npm run build:js && npm run build:js:src && npm run build:blocks && npm run build:css",

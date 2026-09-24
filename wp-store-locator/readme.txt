@@ -5,7 +5,7 @@ Tags: store locator, google maps, openstreetmap, store finder, dealer locator
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -235,6 +235,10 @@ Please report security bugs found in the source code of the WP Store Locator plu
 Major rewrite. Update the CSV Manager, Statistics, and Search Widget add-ons to version 2.0 or later. Older add-ons are automatically disabled on 3.0 until you update them. Google Maps directions now use the Routes API, which has to be enabled in your Google Cloud project: https://console.cloud.google.com/apis/library/routes.googleapis.com. Coming from a 3.0 beta? Purge every server, plugin and CDN cache after updating, or the browser keeps loading the old scripts and styles.
 
 == Changelog ==
+
+= 3.0.2 2026-09-24 =
+Fixed
+* Fatal error "Service not found: plugin_alerts" on admin and AJAX requests when another plugin, such as MainWP Child, logs the user in during `init`.
 
 = 3.0.1 2026-09-24 =
 Fixed

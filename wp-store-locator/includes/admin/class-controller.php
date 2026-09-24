@@ -141,10 +141,23 @@ class Controller {
         $this->container->get( 'system' );
 
         /*
-         * admin-ajax.php sets WP_ADMIN, so this runs on nopriv requests like
-         * the store search too. Every alert hook needs a logged in admin.
+         * Fixes "Service not found: plugin_alerts" on admin-ajax.php requests.
+         *
+         * admin-ajax.php sets WP_ADMIN, so this also runs on nopriv requests
+         * like the store search. The registration in init_services() runs at
+         * init priority 0, so a user logged in later during init reaches this
+         * point without it having registered. Register it here in that case.
+         *
+         * @since 3.0.2
+         * Props robertstaddon (https://wordpress.org/support/users/robertstaddon/)
          */
         if ( is_user_logged_in() ) {
+            if ( ! $this->container->has( 'plugin_alerts' ) ) {
+                $this->container->register_shared( 'plugin_alerts', function() {
+                    return new \WPSL\Admin\Core\Alerts();
+                } );
+            }
+
             $this->container->get( 'plugin_alerts' );
         }
 
