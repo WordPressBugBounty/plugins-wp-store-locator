@@ -48,7 +48,7 @@ $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
         </div>
     </div>
 
-    <div id="wpsl-appearance-preview">
+    <div id="wpsl-appearance-preview" data-template="<?php echo esc_attr( $template_id ); ?>">
         <div id="wpsl-default-view" class="wpsl-appearance-view wpsl-customize-options" >
             <div class="wpsl-styled-template-preview<?php echo $wpsl_settings->get( 'tools', 'disable_v3_css' ) ? '' : ' wpsl-v3-css'; ?>">
                 <?php echo $appearance->get_template( $template_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>

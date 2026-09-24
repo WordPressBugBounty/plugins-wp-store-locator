@@ -620,10 +620,13 @@ class Home {
         $items = [
             [
                 'id'    => 'map_service',
-                'label' => esc_html__( 'Choose a map service', 'wp-store-locator' ),
+                /* translators: %s: the map service name, e.g. Google Maps */
+                'label' => $service['key_failed'] ? sprintf( esc_html__( 'Fix your %s API key', 'wp-store-locator' ), esc_html( $service['name'] ) ) : esc_html__( 'Choose a map service', 'wp-store-locator' ),
                 'done'  => $service['ready'],
                 'count' => null,
                 'url'   => admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings#wpsl-api' ),
+                // Tooltip on the warning icon next to the label while a saved key fails.
+                'warning' => $service['key_failed'] ? esc_html__( 'An invalid API key was detected. Open this step and press "Save and verify" to see what is wrong with it.', 'wp-store-locator' ) : '',
             ],
             [
                 'id'      => 'first_location',
@@ -637,7 +640,8 @@ class Home {
                  * sending anyone there before the service works. The message
                  * says why, and the template points the step at step one.
                  */
-                'blocked' => $service['ready'] ? '' : $service['reason'],
+                // Once a location exists the step is done, so there is nothing left to block.
+                'blocked' => ( $service['ready'] || (int) $stores->publish > 0 ) ? '' : $service['reason'],
             ],
             [
                 'id'    => 'placed_on_page',
@@ -804,13 +808,16 @@ class Home {
      * Where the map service stands: which one, and whether it can be used.
      *
      * @since  3.0.0
-     * @return array [ 'service', 'name', 'ready', 'reason' ] - reason is the
-     *               empty string when ready, otherwise says what is missing.
+     * @return array [ 'service', 'name', 'ready', 'reason', 'key_failed' ] - reason
+     *               is the empty string when ready, otherwise says what is missing.
+     *               key_failed is true when a key is entered but did not validate.
      */
     public function get_map_service_status() {
         $service  = $this->settings->get( 'api', 'active_map_service' );
         $services = wpsl_get_map_services();
         $name     = isset( $services[ $service ] ) ? $services[ $service ] : '';
+
+        $key_failed = false;
 
         if ( ! isset( self::SERVICE_KEYS[ $service ] ) ) {
             // An add-on's service is not ours to nag about.
@@ -822,23 +829,44 @@ class Home {
             $reason = $ready ? '' : esc_html__( 'Choose a map service before you add locations.', 'wp-store-locator' );
         } else {
             $ready = true;
+            $api   = $this->settings->get_group( 'api' );
 
-            foreach ( self::SERVICE_KEYS[ $service ] as $option ) {
-                if ( ! get_option( $option, 0 ) ) {
-                    $ready = false;
-                    break;
+            foreach ( self::SERVICE_KEYS[ $service ] as $setting => $option ) {
+                if ( get_option( $option, 0 ) ) {
+                    continue;
+                }
+
+                $ready = false;
+
+                /*
+                 * A key is there but did not pass: the service was chosen, the
+                 * key is what needs fixing. Typical after a 2.x upgrade, where
+                 * the migrated server key is tested and can fail on an IP or
+                 * referrer restriction.
+                 */
+                if ( ! empty( $api[ $setting ] ) ) {
+                    $key_failed = true;
                 }
             }
 
-            /* translators: %s: the map service name, e.g. Mapbox */
-            $reason = $ready ? '' : sprintf( esc_html__( '%s needs a valid API key before you can add locations.', 'wp-store-locator' ), $name );
+            if ( $ready ) {
+                $reason = '';
+            } elseif ( $key_failed ) {
+                // Step one now reads "Fix your ... API key", so point back to it.
+                /* translators: %s: the map service name, e.g. Mapbox */
+                $reason = sprintf( esc_html__( 'Fix your %s API key in the step above first. Locations cannot be added until it works.', 'wp-store-locator' ), esc_html( $name ) );
+            } else {
+                /* translators: %s: the map service name, e.g. Mapbox */
+                $reason = sprintf( esc_html__( '%s needs a valid API key before you can add locations.', 'wp-store-locator' ), esc_html( $name ) );
+            }
         }
 
         return [
-            'service' => $service,
-            'name'    => $name,
-            'ready'   => $ready,
-            'reason'  => $reason,
+            'service'    => $service,
+            'name'       => $name,
+            'ready'      => $ready,
+            'reason'     => $reason,
+            'key_failed' => ! $ready && $key_failed,
         ];
     }
 
@@ -897,7 +925,7 @@ class Home {
      * The checklist as the page's script needs it after a step changes.
      *
      * @since  3.0.0
-     * @return array [ 'items' => [ [ 'id', 'done', 'url', 'blocked' ] ],
+     * @return array [ 'items' => [ [ 'id', 'label', 'done', 'url', 'blocked' ] ],
      *                 'done' => int, 'total' => int, 'show' => bool ]
      */
     public function get_setup_state() {
@@ -909,9 +937,12 @@ class Home {
         foreach ( $checklist as $item ) {
             $items[] = [
                 'id'      => $item['id'],
+                // The map service step renames itself when its key fails.
+                'label'   => isset( $item['label'] ) ? $item['label'] : '',
                 'done'    => (bool) $item['done'],
                 'url'     => isset( $item['url'] ) ? $item['url'] : '',
                 'blocked' => isset( $item['blocked'] ) ? $item['blocked'] : '',
+                'warning' => isset( $item['warning'] ) ? $item['warning'] : '',
             ];
         }
 
@@ -988,6 +1019,7 @@ class Home {
             'results'         => $results,
             'browser_pending' => $pending,
             'state'           => $this->get_setup_state(),
+            'alerts'          => $this->get_alert_keys(),
         ] );
     }
 
@@ -1000,7 +1032,27 @@ class Home {
     public function setup_status() {
         $this->verify_ajax_request();
 
-        wp_send_json_success( [ 'state' => $this->get_setup_state() ] );
+        wp_send_json_success( [
+            'state'  => $this->get_setup_state(),
+            'alerts' => $this->get_alert_keys(),
+        ] );
+    }
+
+    /**
+     * The alerts still active after a key check, so the page can drop the ones
+     * it fixed ( the migrated server key alert goes once the key validates )
+     * without a reload.
+     *
+     * @since  3.0.1
+     * @return array [ 'keys' => string[], 'count' => int ]
+     */
+    private function get_alert_keys() {
+        $alerts = $this->get_alerts();
+
+        return [
+            'keys'  => array_map( 'strval', array_keys( $alerts['items'] ) ),
+            'count' => $alerts['count'],
+        ];
     }
 
     /**

@@ -460,8 +460,7 @@ breaking the Mapbox attribution element.
 .wpsl-v3-css #wpsl-search-wrap .wpsl-input > div:not( #wpsl-stadia-autocomplete-results ),
 .wpsl-v3-css #wpsl-search-wrap .wpsl-input input,
 .wpsl-v3-css #wpsl-search-wrap #wpsl-radius,
-.wpsl-v3-css #wpsl-search-wrap #wpsl-results,
-.wpsl-v3-css #wpsl-search-btn {
+.wpsl-v3-css #wpsl-search-wrap #wpsl-results {
     display: flex;
     align-items: center;
     height: 40px;
@@ -469,11 +468,17 @@ breaking the Mapbox attribution element.
     min-height: 40px;
 }
 
-.wpsl-v3-css #wpsl-search-wrap input,
-.wpsl-v3-css #wpsl-search-wrap button,
-.wpsl-v3-css .wpsl-search input,
-.wpsl-v3-css .wpsl-search button,
-.wpsl-v3-css #wpsl-result-filters button {
+/*
+ * The search button and the dropdown buttons are left out of this reset ( the
+ * button reset sits in :where() and carries no weight; the search button is an
+ * <input> in some templates, so it is excluded from the input selectors with a
+ * weightless :where( :not() ) ). They get these values from their own rules,
+ * at the specificity v2 used, so custom CSS written for v2 still wins.
+ */
+.wpsl-v3-css #wpsl-search-wrap input:where(:not(#wpsl-search-btn)),
+.wpsl-v3-css .wpsl-search input:where(:not(#wpsl-search-btn)),
+.wpsl-v3-css #wpsl-result-filters button,
+:where(.wpsl-v3-css #wpsl-search-wrap, .wpsl-v3-css .wpsl-search) button {
     text-transform: none;
     letter-spacing: normal;
     padding-top: 0;
@@ -525,50 +530,6 @@ breaking the Mapbox attribution element.
     padding: 0.5em 0.714em;
     justify-content: center;
     letter-spacing: normal;
-}
-
-.wpsl-v3-css .wpsl-dropdown {
-    height: 40px;
-    max-height: 40px;
-    box-sizing: border-box;
-}
-
-.wpsl-dropdown .wpsl-selected-item {
-    color: var(--wpsl-header-dropdown-text, inherit) !important;
-    background: transparent !important;
-    border: none;
-    cursor: pointer;
-}
-
-.wpsl-v3-css .wpsl-dropdown .wpsl-selected-item {
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    box-shadow: none;
-    height: 100%;
-    box-sizing: border-box;
-    line-height: 1 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin: 0 !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border: none !important;
-    cursor: pointer;
-    text-align: start !important;
-    padding-left: 0.857em !important;
-    padding-right: 2.5em !important;
-}
-
-.wpsl-v3-css .wpsl-dropdown li {
-    padding-left: 0.857em !important;
-    padding-right: 0.857em !important;
-    padding-top: 0.643em !important;
-    padding-bottom: 0.643em !important;
 }
 
 /* V3 Checkbox Filter Alignment - prevents theme interference */
@@ -640,7 +601,8 @@ breaking the Mapbox attribution element.
     box-sizing: border-box;
 }
 
-#wpsl-search-wrap input,
+/* The :where( :not() ) keeps the <input> search button at one ID. */
+#wpsl-search-wrap input:where(:not(#wpsl-search-btn)),
 #wpsl-search-btn {
     border: 1px solid #e8e8e8;
     border-radius: 3px;
@@ -658,9 +620,20 @@ breaking the Mapbox attribution element.
     text-transform: none !important;
 }
 
-.wpsl-v3-css #wpsl-search-btn {
+/*
+ * v3 look for the search button. The .wpsl-v3-css context is in :where(), so
+ * this stays at the v2 specificity ( one ID ) and wins by source order only.
+ */
+:where(.wpsl-v3-css) #wpsl-search-btn {
+    display: flex;
+    align-items: center;
     box-sizing: border-box;
-    padding: 0.5em 0.714em;
+    height: 40px;
+    max-height: 40px;
+    min-height: 40px;
+    padding: 0 0.714em;
+    letter-spacing: normal;
+    box-shadow: none;
 }
 
 #wpsl-search-btn:disabled {
@@ -697,7 +670,6 @@ breaking the Mapbox attribution element.
     z-index: 3;
     margin-bottom: 12px;
     padding: 12px 12px 0 12px;
-    background: #f4f3f3;
 }
 
 .wpsl-v3-css #wpsl-wrap .wpsl-search {
@@ -949,82 +921,6 @@ breaking the Mapbox attribution element.
     border-bottom: 8px solid var(--wpsl-header-dropdown-text, #000);
 }
 
-.wpsl-v3-css .wpsl-selected-item:after {
-    width: 10px;
-    height: 10px;
-    margin-top: -5px;
-    border: 0;
-    background-color: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
-    mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
-}
-
-.wpsl-v3-css .wpsl-active .wpsl-selected-item:after {
-    margin-top: -5px;
-    border: 0;
-    transform: rotate(180deg);
-}
-
-#wpsl-wrap .wpsl-dropdown li:hover,
-#wpsl-wrap .wpsl-dropdown li:focus {
-    background: var(--wpsl-header-dropdown-item-background-hover, #f8f9f8) !important;
-    color: var(--wpsl-header-dropdown-item-text-hover, #000) !important;
-    position: relative;
-    z-index: 3;
-}
-
-#wpsl-wrap .wpsl-dropdown li:focus-visible {
-    outline: var(--wpsl-focus-outline, auto);
-    outline-offset: -2px;
-    border-radius: 3px;
-}
-
-#wpsl-wrap .wpsl-dropdown li:focus:not(:focus-visible) {
-    outline: none;
-}
-
-#wpsl-wrap .wpsl-dropdown li {
-    background: transparent;
-    color: var(--wpsl-header-dropdown-item-text, inherit);
-}
-
-#wpsl-wrap .wpsl-dropdown.wpsl-active li {
-    background: transparent;
-    color: var(--wpsl-header-dropdown-item-text, inherit);
-}
-
-#wpsl-wrap .wpsl-dropdown li.wpsl-selected-dropdown {
-    background: var(--wpsl-header-dropdown-item-background-selected, #fff) !important;
-    color: var(--wpsl-header-dropdown-item-text-selected, #000) !important;
-}
-
-#wpsl-wrap .wpsl-dropdown .wpsl-selected-item:hover {
-    color: var(--wpsl-header-dropdown-text-hover, inherit) !important;
-}
-
-#wpsl-wrap .wpsl-dropdown .wpsl-selected-item:hover:after {
-    border-top-color: var(--wpsl-header-dropdown-text-hover, #000);
-}
-
-#wpsl-wrap .wpsl-dropdown.wpsl-active .wpsl-selected-item:hover:after {
-    border-bottom-color: var(--wpsl-header-dropdown-text-hover, #000);
-    border-top-color: transparent;
-}
-
-#wpsl-wrap .wpsl-dropdown.wpsl-active {
-    background: var(--wpsl-header-dropdown-background-expanded, #fff) !important;
-}
-
-#wpsl-wrap .wpsl-dropdown.wpsl-active .wpsl-selected-item {
-    background: transparent !important;
-    color: var(--wpsl-header-dropdown-text-hover, #000) !important;
-}
-
-#wpsl-wrap .wpsl-dropdown.wpsl-active .wpsl-selected-item:after {
-    border-bottom-color: var(--wpsl-header-dropdown-text-hover, #000);
-    border-top-color: transparent;
-}
-
 .wpsl-dropdown .wpsl-selected-item,
 .wpsl-dropdown li,
 .wpsl-selected-item {
@@ -1035,6 +931,137 @@ breaking the Mapbox attribution element.
 
 .wpsl-selected-dropdown {
     font-weight: bold;
+}
+
+/*
+ * v3 dropdown look.
+ *
+ * These rules come after the v2 ones above and keep their specificity: the
+ * v3 context ( #wpsl-wrap, .wpsl-v3-css, .wpsl-active ) sits in :where(), which
+ * adds nothing. That way custom CSS written against the v2 selectors, such as
+ * `.wpsl-dropdown li:hover`, still overrides them. Where a declaration has to
+ * stay !important, the selector is kept as light as the v2 one, so a custom
+ * rule with !important still wins.
+ */
+:where(.wpsl-v3-css) .wpsl-dropdown {
+    height: 40px;
+    max-height: 40px;
+    box-sizing: border-box;
+}
+
+.wpsl-dropdown .wpsl-selected-item {
+    color: var(--wpsl-header-dropdown-text, inherit);
+    border: none;
+    cursor: pointer;
+}
+
+/* Themes style <button> backgrounds and states, keep them off the toggle. */
+:where(.wpsl-dropdown) .wpsl-selected-item {
+    background: transparent !important;
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown .wpsl-selected-item:focus {
+    color: var(--wpsl-header-dropdown-text, inherit);
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown .wpsl-selected-item:hover {
+    color: var(--wpsl-header-dropdown-text-hover, inherit);
+}
+
+:where(.wpsl-v3-css) .wpsl-dropdown .wpsl-selected-item {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    box-shadow: none;
+    height: 100%;
+    box-sizing: border-box;
+    line-height: 1 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: normal;
+    border: none !important;
+    cursor: pointer;
+    text-align: start !important;
+    padding-left: 0.857em !important;
+    padding-right: 2.5em !important;
+}
+
+:where(.wpsl-v3-css) .wpsl-dropdown li {
+    padding-left: 0.857em !important;
+    padding-right: 0.857em !important;
+    padding-top: 0.643em !important;
+    padding-bottom: 0.643em !important;
+}
+
+:where(.wpsl-v3-css) .wpsl-selected-item:after {
+    width: 10px;
+    height: 10px;
+    margin-top: -5px;
+    border: 0;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+:where(.wpsl-v3-css) .wpsl-active .wpsl-selected-item:after {
+    margin-top: -5px;
+    border: 0;
+    transform: rotate(180deg);
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown .wpsl-selected-item:hover:after {
+    border-top-color: var(--wpsl-header-dropdown-text-hover, #000);
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown.wpsl-active .wpsl-selected-item:after {
+    border-bottom-color: var(--wpsl-header-dropdown-text-hover, #000);
+    border-top-color: transparent;
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown li {
+    background: transparent;
+    color: var(--wpsl-header-dropdown-item-text, inherit);
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown li:hover,
+:where(#wpsl-wrap) .wpsl-dropdown li:focus {
+    background: var(--wpsl-header-dropdown-item-background-hover, #f8f9f8);
+    color: var(--wpsl-header-dropdown-item-text-hover, #000);
+    position: relative;
+    z-index: 3;
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown li:focus-visible {
+    outline: var(--wpsl-focus-outline, auto);
+    outline-offset: -2px;
+    border-radius: 3px;
+}
+
+:where(#wpsl-wrap) .wpsl-dropdown li:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* The selected item keeps its colors on hover. */
+:where(#wpsl-wrap .wpsl-dropdown li).wpsl-selected-dropdown {
+    background: var(--wpsl-header-dropdown-item-background-selected, #fff) !important;
+    color: var(--wpsl-header-dropdown-item-text-selected, #000) !important;
+}
+
+:where(#wpsl-wrap .wpsl-dropdown).wpsl-active {
+    background: var(--wpsl-header-dropdown-background-expanded, #fff) !important;
+}
+
+:where(#wpsl-wrap .wpsl-dropdown.wpsl-active) .wpsl-selected-item {
+    background: transparent !important;
+    color: var(--wpsl-header-dropdown-text-hover, #000) !important;
 }
 
 #wpsl-wrap .wpsl-selected-item {
@@ -1066,14 +1093,6 @@ breaking the Mapbox attribution element.
 #wpsl-direction-details,
 #wpsl-map {
     height: var(--wpsl-map-height, 350px) !important;
-}
-
-#wpsl-result-list {
-    height: var(--wpsl-map-height, 350px) !important;
-}
-
-.wpsl-horizontal-template #wpsl-result-list {
-    height: var(--wpsl-results-height, 350px) !important;
 }
 
 .wpsl-vertical-template #wpsl-wrap,
@@ -1424,7 +1443,8 @@ breaking the Mapbox attribution element.
     top: 50%;
     inset-inline-end: 0;
     transform: translateY(-50%);
-    border-top: 8px solid var(--wpsl-listing-results-text, #000);
+    border-top-width: 8px;
+    border-top-style: solid;
     border-inline-start: 6px solid rgba(0, 0, 0, 0);
     border-inline-end: 6px solid rgba(0, 0, 0, 0);
 }
@@ -1438,7 +1458,8 @@ breaking the Mapbox attribution element.
     top: 50%;
     inset-inline-end: 0;
     transform: translateY(-50%);
-    border-top: 8px solid var(--wpsl-listing-results-text, #000);
+    border-top-width: 8px;
+    border-top-style: solid;
     border-inline-start: 6px solid rgba(0, 0, 0, 0);
     border-inline-end: 6px solid rgba(0, 0, 0, 0);
 }
@@ -1454,7 +1475,8 @@ breaking the Mapbox attribution element.
     content: '';
     bottom: 6px;
     inset-inline-end: 0;
-    border-bottom: 8px solid var(--wpsl-listing-results-text, #000);
+    border-bottom-width: 8px;
+    border-bottom-style: solid;
     border-top: none;
     border-inline-start: 6px solid rgba(0, 0, 0, 0);
     border-inline-end: 6px solid rgba(0, 0, 0, 0);
@@ -1470,7 +1492,6 @@ breaking the Mapbox attribution element.
     width: 10px;
     height: 10px;
     border: 0;
-    background-color: var(--wpsl-listing-results-text, #000);
     -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
     mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2010%2010'%3E%3Cpath%20d='M1,3%20L5,7%20L9,3'%20fill='none'%20stroke='%23000'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain;
 }
@@ -1516,7 +1537,6 @@ breaking the Mapbox attribution element.
 .wpsl-flex-hours .wpsl-closing-soon::after {
     margin-inline-end: -4px;
     content: '\0020\00B7\0020';
-    color: var(--wpsl-listing-results-text, #000);
     white-space: pre;
 }
 
@@ -1543,7 +1563,6 @@ breaking the Mapbox attribution element.
 .wpsl-info-window .wpsl-opening-hours-status .wpsl-closing-soon::after {
     margin-inline-end: -4px;
     content: " · ";
-    color: var(--wpsl-listing-results-text, #000);
     white-space: pre;
 }
 
@@ -2212,21 +2231,6 @@ div[id^="wpsl-base-"].wpsl-gdpr-checkpoint {
     display: inline-block !important;
 }
 
-/* ==========================================================================
-   19. Icon Colors
-   ========================================================================== */
-
-#wpsl-wrap #wpsl-stores [class*="wpsl-icon-"]::before {
-    color: var(--wpsl-listing-icons-color, #000);
-}
-
-#wpsl-wrap .wpsl-info-window [class*="wpsl-icon-"]::before,
-#wpsl-wrap .gm-style-iw-d [class*="wpsl-icon-"]::before,
-#wpsl-wrap .mapboxgl-popup-content [class*="wpsl-icon-"]::before,
-#wpsl-wrap .leaflet-popup-content [class*="wpsl-icon-"]::before {
-    color: var(--wpsl-popup-icons-color, #000);
-}
-
 #wpsl-wrap [class*="wpsl-icon-"]:not(.wpsl-geolocation-accept)::before {
     margin: 0;
     width: 18px;
@@ -2333,6 +2337,11 @@ div[id^="wpsl-base-"].wpsl-gdpr-checkpoint {
     z-index: 100;
     box-shadow: none !important;
     font-size: 100%;
+}
+
+/* Mapbox sets its own font on the geocoder, which the input and suggestions inherit. */
+#wpsl-wrap #mapbox-autocomplete .mapboxgl-ctrl-geocoder {
+    font-family: inherit;
 }
 
 #wpsl-wrap.wpsl-flex #mapbox-autocomplete {
@@ -2640,7 +2649,11 @@ div[id^="wpsl-base-"].wpsl-gdpr-checkpoint {
     margin-inline-end: 3px;
 }
 
-/* Legacy Google Maps autocomplete */
+/* Legacy Google Maps autocomplete. It is appended to the body with Google's own font. */
+body .pac-container {
+    font-family: inherit;
+}
+
 .pac-container .pac-item:hover {
     cursor: pointer;
 }
@@ -2894,14 +2907,6 @@ div[id^="wpsl-base-"].wpsl-gdpr-checkpoint {
     display: inline;
 }
 
-#wpsl-wrap .wpsl-name-support #wpsl-search-btn {
-    margin-inline-start: 10px;
-}
-
-#wpsl-wrap .wpsl-name-support.wpsl-filter #wpsl-search-btn {
-    margin-inline-start: 0;
-}
-
 #wpsl-wrap.wpsl-names .wpsl-distance {
     display: none !important;
 }
@@ -2969,6 +2974,16 @@ div[id^="wpsl-base-"].wpsl-gdpr-checkpoint {
     margin-inline-end: 5px;
     box-sizing: border-box;
     border: 1px solid #e8e8e8;
+}
+
+/*
+ * The panel puts the search field and filters in the same column as the
+ * results, which use the base size. Without a size of their own they take
+ * the theme's body size, which is often much bigger. :where() keeps this at
+ * zero specificity, so theme CSS still wins.
+ */
+:where(#wpsl-panel) {
+    font-size: var(--wpsl-font-size-base, 14px);
 }
 
 .wpsl-full-page-template #wpsl-panel {

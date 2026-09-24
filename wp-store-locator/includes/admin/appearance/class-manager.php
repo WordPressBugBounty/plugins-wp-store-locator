@@ -153,6 +153,14 @@ class Manager {
                     $sanitized_data['template_id'] = $template_to_activate;
                 }
                 $this->settings->update( 'appearance', $sanitized_data );
+
+                /*
+                 * The 2.x "Hide the scrollbar?" flag is shown as the "Show all
+                 * results" mode, so the submitted mode now holds the choice.
+                 */
+                if ( isset( $sanitized_data['dimensions']['horizontal']['results_height_mode'] ) && $this->settings->get( 'ux', 'listing_below_no_scroll' ) ) {
+                    $this->settings->set( 'ux', 'listing_below_no_scroll', 0 );
+                }
             }
         } elseif ( $is_ajax ) {
             return wp_send_json_error( [ 'message' => __( 'No appearance data received.', 'wp-store-locator' ) ] );
@@ -450,7 +458,8 @@ class Manager {
             // Search width
             $search_width_mode = isset( $dimensions['search_width_mode'] ) ? $dimensions['search_width_mode'] : 'custom';
             $search_width = isset( $dimensions['search_width'] ) ? absint( $dimensions['search_width'] ) : 179;
-            $search_width_value = ( $search_width_mode === 'default' ) ? 'auto' : $search_width . 'px';
+            // 'Default' is the v2 width, as on the frontend.
+            $search_width_value = ( $search_width_mode === 'default' ) ? '179px' : $search_width . 'px';
             $inline_vars[] = '--wpsl-search-input-width: ' . $search_width_value;
         }
         
@@ -464,7 +473,7 @@ class Manager {
             $heights = wpsl_dimension_heights( $dimensions, 'horizontal' );
 
             $inline_vars[] = '--wpsl-map-height: ' . $heights['map_height'] . 'px';
-            $inline_vars[] = '--wpsl-results-height: ' . $heights['results_height'] . 'px';
+            $inline_vars[] = '--wpsl-results-height: ' . ( $heights['show_all_results'] ? 'none' : $heights['results_height'] . 'px' );
         } elseif ( $template_id === 'vertical' ) {
             $heights = wpsl_dimension_heights( $dimensions, 'vertical' );
 
@@ -516,6 +525,11 @@ class Manager {
             'category_filter'      => 'category',
             'category_filter_only' => 'category_only_filter',
         ];
+
+        // The category only option has no effect without the category filter.
+        if ( empty( $search_settings['category_filter'] ) ) {
+            unset( $filter_map['category_filter_only'] );
+        }
     
         $active_filters = [];
     
@@ -543,7 +557,7 @@ class Manager {
         if ( $cat_checkboxes ) {
             $classes[] = 'wpsl-no-bottom-margin';
             $classes[] = 'wpsl-checkboxes-enabled';
-        } elseif ( ! empty( $search_settings['category_filter_only'] ) || ( $has_all( ['category', 'countries'], $active_filters ) && count( $active_filters ) === 2 ) ) {
+        } elseif ( ( ! empty( $search_settings['category_filter'] ) && ! empty( $search_settings['category_filter_only'] ) ) || ( $has_all( ['category', 'countries'], $active_filters ) && count( $active_filters ) === 2 ) ) {
             $classes[] = 'wpsl-cat-filter';
         } else {
             // Valid combinations for wpsl-no-bottom-margin
@@ -855,7 +869,7 @@ class Manager {
         $search_settings = $this->settings->get_group( 'search' );
         
         // Hide input field if category_only_filter is active
-        if ( ! empty( $search_settings['category_filter_only'] ) ) {
+        if ( ! empty( $search_settings['category_filter'] ) && ! empty( $search_settings['category_filter_only'] ) ) {
             return 'style="display:none;"';
         }
 

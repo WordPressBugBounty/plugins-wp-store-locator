@@ -146,6 +146,9 @@ class Manager {
         wp_enqueue_style( 'wpsl-admin-responsive', WPSL_URL . $css_base . 'admin/css/responsive' . $css_ext, false, WPSL_VERSION_NUM );
         wp_enqueue_style( 'wpsl-common', WPSL_URL . $css_base . 'common/css/common' . $css_ext, false, WPSL_VERSION_NUM );
         wp_enqueue_style( 'wpsl-filters', WPSL_URL . $css_base . 'common/css/filters' . $css_ext, false, WPSL_VERSION_NUM );
+
+        // The theme colors, never layered here: the Appearance preview shows the chosen colors.
+        wp_enqueue_style( 'wpsl-colors', WPSL_URL . $css_base . 'common/css/colors' . $css_ext, [ 'wpsl-common' ], WPSL_VERSION_NUM );
         wp_enqueue_style( 'wpsl-responsive', WPSL_URL . $css_base . 'common/css/responsive' . $css_ext, false, WPSL_VERSION_NUM );
 
         $screen    = get_current_screen();

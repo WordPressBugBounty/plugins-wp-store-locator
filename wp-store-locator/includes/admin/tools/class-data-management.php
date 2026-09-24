@@ -129,7 +129,8 @@ class Data_Management {
             'wpsl_valid_gmaps_server_key',
             'wpsl_valid_mapbox_key',
             'wpsl_valid_openrouteservice_key',
-            'wpsl_valid_stadia_key'
+            'wpsl_valid_stadia_key',
+            'wpsl_migrated_server_key_error'
         ];
 
         foreach ( $option_names as $option_name ) {

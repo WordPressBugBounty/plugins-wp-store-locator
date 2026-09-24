@@ -479,6 +479,74 @@ function wpsl_get_server_public_ip() {
 }
 
 /**
+ * Format a plain "Error code: x\nReason: y" status string into HTML,
+ * bolding the labels and joining the lines with a single line break.
+ *
+ * @since  3.0.1
+ * @param  string $response The status string.
+ * @return string           Escaped HTML.
+ */
+function wpsl_format_key_error( $response ) {
+    $html = [];
+
+    foreach ( explode( "\n", (string) $response ) as $line ) {
+        $pos = strpos( $line, ': ' );
+
+        if ( $pos !== false ) {
+            $label  = substr( $line, 0, $pos + 1 );
+            $value  = substr( $line, $pos + 2 );
+            $html[] = '<strong>' . esc_html( $label ) . '</strong> ' . esc_html( $value );
+        } else {
+            $html[] = esc_html( $line );
+        }
+    }
+
+    return implode( '<br>', $html );
+}
+
+/**
+ * The full notice body for a failed Google Maps server key: the error code and
+ * reason, followed by the fix-it hint when there is one.
+ *
+ * Built when it is shown rather than stored, so it follows the current
+ * wording and the site language.
+ *
+ * @since  3.0.1
+ * @param  string $status The status string returned by the key check.
+ * @return string         Escaped HTML.
+ */
+function wpsl_get_gmaps_error_details( $status ) {
+    return '<p>' . wpsl_format_key_error( $status ) . '</p>' . wpsl_get_gmaps_error_hint( $status );
+}
+
+/**
+ * Find the first IPv4 or IPv6 address in a piece of text, such as the
+ * originating IP Google puts in its IP restriction error.
+ *
+ * @since  3.0.1
+ * @param  string $text
+ * @return string The address, or an empty string when there is none.
+ */
+function wpsl_find_ip_in_text( $text ) {
+    // Anything built from the characters an address can contain, validated below.
+    if ( ! preg_match_all( '/[0-9a-f:.]{7,45}/i', (string) $text, $candidates ) ) {
+        return '';
+    }
+
+    foreach ( $candidates[0] as $candidate ) {
+        // As found first, then without the period of a sentence that ends
+        // right after the address.
+        foreach ( [ $candidate, rtrim( $candidate, '.' ) ] as $ip ) {
+            if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+                return $ip;
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
  * Build an extra, actionable hint for known Google Maps key errors.
  *
  * Handles the IP address restriction error (extracts the originating IP) and the
@@ -512,19 +580,68 @@ function wpsl_get_gmaps_error_hint( $status ) {
         '</p>';
     }
 
-    // IP address restriction: the originating IP is included in the message.
-    if ( stripos( $status, 'IP address' ) !== false && preg_match( '/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/', $status, $matches ) ) {
-        $ip = esc_html( $matches[1] );
+    /*
+     * IP address restriction: Google includes the originating IP in the message.
+     * That IP is this server's, and it is the one missing from the key's allowed
+     * list, so say so plainly: repeating it as "the IP to change it to" read as
+     * if the key were already restricted to it.
+     */
+    $blocked_ip = ( stripos( $status, 'IP address' ) !== false ) ? wpsl_find_ip_in_text( $status ) : '';
 
-        $hint = sprintf(
-            /* translators: 1: originating IP address, 2: opening link tag, 3: closing link tag */
-            esc_html__( 'You have restricted this API key to an IP address that differs from where the API call originated (%1$s). If you %2$schange the IP restriction%3$s to %1$s, the error should be resolved.', 'wp-store-locator' ),
-            $ip,
-            $best_practices,
+    if ( $blocked_ip ) {
+        $ip = esc_html( $blocked_ip );
+
+        $cause = sprintf(
+            /* translators: %s: this server's IP address */
+            esc_html__( 'Google blocked this request because it came from %s, the IP address of your server, and that address is not on the list of IP addresses this key allows.', 'wp-store-locator' ),
+            '<strong>' . $ip . '</strong>'
+        );
+
+        $fix = sprintf(
+            /* translators: 1: this server's IP address, 2: opening link tag to Google Cloud credentials, 3: closing link tag */
+            esc_html__( '%2$sEdit the key in Google Cloud Console%3$s and add %1$s to its IP address restrictions. It can take up to five minutes before the change applies.', 'wp-store-locator' ),
+            '<strong>' . $ip . '</strong>',
+            '<a target="_blank" href="https://console.cloud.google.com/apis/credentials">',
             '</a>'
         );
 
-        return '<p>' . $hint . '</p>';
+        return '<p>' . $cause . '</p><p><strong>' . esc_html__( 'How to fix this', 'wp-store-locator' ) . '</strong><br>' . $fix . '</p>';
+    }
+
+    /*
+     * API restriction: the key is limited to a list of APIs that leaves out the
+     * Geocoding API, a common mistake when one key was set up for the map only.
+     * Google answers "Requests to this API geocoding_backend method ... are blocked."
+     */
+    if ( stripos( $status, 'Requests to this API' ) !== false && stripos( $status, 'blocked' ) !== false ) {
+        $cause = esc_html__( 'The API restrictions of this key do not include the Geocoding API, which the server key needs to look up the coordinates of your locations.', 'wp-store-locator' );
+
+        $fix = sprintf(
+            /* translators: 1: opening link tag to Google Cloud credentials, 2: closing link tag */
+            esc_html__( '%1$sEdit the key in Google Cloud Console%2$s and add the Geocoding API to its API restrictions. It can take up to five minutes before the change applies.', 'wp-store-locator' ),
+            '<a target="_blank" href="https://console.cloud.google.com/apis/credentials">',
+            '</a>'
+        );
+
+        return '<p>' . $cause . '</p><p><strong>' . esc_html__( 'How to fix this', 'wp-store-locator' ) . '</strong><br>' . $fix . '</p>';
+    }
+
+    /*
+     * The Geocoding API isn't enabled in the key's project. Google answers "This
+     * API project is not authorized to use this API." or, for a disabled API,
+     * "... has not been used in project ... before or it is disabled."
+     */
+    if ( stripos( $status, 'not authorized to use this API' ) !== false || stripos( $status, 'it is disabled' ) !== false ) {
+        $cause = esc_html__( 'The Geocoding API is not enabled in the Google Cloud project of this key.', 'wp-store-locator' );
+
+        $fix = sprintf(
+            /* translators: 1: opening link tag to the Geocoding API page in Google Cloud, 2: closing link tag */
+            esc_html__( '%1$sEnable the Geocoding API%2$s in the same project as the key, then try again. It can take up to five minutes before the change applies.', 'wp-store-locator' ),
+            '<a target="_blank" href="https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com">',
+            '</a>'
+        );
+
+        return '<p>' . $cause . '</p><p><strong>' . esc_html__( 'How to fix this', 'wp-store-locator' ) . '</strong><br>' . $fix . '</p>';
     }
 
     // HTTP referrer restriction: a server key should use an IP restriction instead.

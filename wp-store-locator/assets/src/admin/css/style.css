@@ -5285,6 +5285,18 @@ ol.wpsl-home-check summary::-webkit-details-marker {
     line-height: 1;
 }
 
+/* Inside the step's own label row, next to the text instead of a flex item. */
+#wpsl-content-wrap #wpsl-home-map-service-warning {
+    display: inline-block;
+    margin: 0;
+    margin-inline-start: 8px;
+    vertical-align: middle;
+}
+
+#wpsl-content-wrap #wpsl-home-map-service-warning[hidden] {
+    display: none;
+}
+
 .wpsl-home-resources {
     margin: 0;
     padding: 0;

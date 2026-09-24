@@ -98,7 +98,8 @@ $show_setup = $home->should_show_setup( $checklist );
                                 </details>
                             <?php } elseif ( 'map_service' === $item['id'] ) { ?>
                                 <details class="wpsl-home-step wpsl-home-map-service" id="wpsl-home-map-service">
-                                    <summary class="wpsl-home-check-label"><?php echo esc_html( $item['label'] ); ?></summary>
+                                    <?php $key_warning = ! empty( $item['warning'] ) ? $item['warning'] : ''; ?>
+                                    <summary class="wpsl-home-check-label"><span class="wpsl-home-map-service-label"><?php echo esc_html( $item['label'] ); ?></span><span class="wpsl-info wpsl-warning wpsl-home-step-warning" id="wpsl-home-map-service-warning" <?php if ( ! $key_warning ) { echo 'hidden'; } ?>><span class="wpsl-info-text wpsl-hide"><?php echo esc_html( $key_warning ); ?></span></span></summary>
                                     <form id="wpsl-home-service-form" autocomplete="off" data-current="<?php echo esc_attr( $form['current'] ); ?>">
                                         <?php // Verdicts print above the fields they judge, where the settings page puts its own. ?>
                                         <div class="wpsl-home-service-result" aria-live="polite"></div>

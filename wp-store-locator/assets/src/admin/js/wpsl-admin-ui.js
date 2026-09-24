@@ -196,6 +196,36 @@
         $dot.remove();
     }
 
+    /**
+     * Drop the alerts a key check just fixed, such as the migrated server key
+     * alert once that key validates, so they don't linger until a reload.
+     *
+     * @param  {Object} alerts { keys: [ alert keys still active ], count }
+     * @return {void}
+     */
+    function syncAlerts( alerts ) {
+        const $box = $( '#wpsl-home-alerts' );
+
+        if ( ! alerts || ! Array.isArray( alerts.keys ) || ! $box.length ) {
+            return;
+        }
+
+        const $list = $box.find( '.wpsl-alerts-list' );
+
+        $list.children( 'li' ).each( function() {
+            if ( alerts.keys.indexOf( $( this ).attr( 'data-plugin' ) ) === -1 ) {
+                $( this ).remove();
+            }
+        } );
+
+        if ( ! $list.children( 'li' ).length ) {
+            $list.hide();
+            $box.find( '.wpsl-no-alerts' ).show();
+        }
+
+        updateAdminBarBadge( alerts.count );
+    }
+
     /*
      * The feedback popup.
      *
@@ -355,6 +385,7 @@
      */
     const $firstStep = $( '#wpsl-home-first-location' );
     const $warning   = $( '#wpsl-home-first-location-warning' );
+    const $keyWarning = $( '#wpsl-home-map-service-warning' );
     const $progress  = $( '#wpsl-home-progress' );
     const $setup     = $( '#wpsl-home-setup' );
 
@@ -376,7 +407,7 @@
     /**
      * Redraw the checklist from the state the server reports.
      *
-     * @param {Object} state { items: [ { id, done, url, blocked } ], done, total, show }
+     * @param {Object} state { items: [ { id, label, done, url, blocked } ], done, total, show }
      */
     function applyState( state ) {
         if ( ! state ) {
@@ -386,13 +417,23 @@
         $.each( state.items, function( index, item ) {
             markStep( item.id, item.done );
 
+            // "Choose a map service" reads "Fix your ... API key" while a saved key fails.
+            // The label is escaped server side, so .html() keeps translated entities intact.
+            if ( 'map_service' === item.id && item.label ) {
+                $( '#wpsl-home-map-service .wpsl-home-map-service-label' ).html( item.label );
+
+                $keyWarning.prop( 'hidden', ! item.warning );
+                $keyWarning.find( '.wpsl-info-text' ).html( item.warning || '' );
+            }
+
             if ( 'first_location' === item.id ) {
                 $firstStep
                     .attr( 'data-blocked', item.blocked || '' )
                     .attr( 'href', item.blocked ? '#wpsl-home-map-service' : item.url );
 
                 $warning.prop( 'hidden', ! item.blocked );
-                $warning.find( '.wpsl-info-text' ).text( item.blocked || '' );
+                // Escaped server side, like the label: .html() keeps translated entities intact.
+                $warning.find( '.wpsl-info-text' ).html( item.blocked || '' );
             }
         } );
 
@@ -710,6 +751,7 @@
         } ).then( function( response ) {
             if ( response && response.success ) {
                 applyState( response.data.state );
+                syncAlerts( response.data.alerts );
             }
 
             busy( false );
@@ -760,6 +802,7 @@
             }
 
             applyState( data.state );
+            syncAlerts( data.alerts );
             busy( false );
         } ).catch( function() {
             addNotice( 'error', config.i18n.requestFailed );
@@ -772,6 +815,10 @@
 
     if ( $warning.length ) {
         bindInfoPopup( $warning );
+    }
+
+    if ( $keyWarning.length ) {
+        bindInfoPopup( $keyWarning );
     }
 
     if ( $details.length ) {

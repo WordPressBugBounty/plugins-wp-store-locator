@@ -59,6 +59,23 @@ class Alerts {
     const ROUTES_API_URL = 'https://console.cloud.google.com/apis/library/routes.googleapis.com';
 
     /**
+     * The key the failed migrated server key alert is filed under.
+     *
+     * @since 3.0.1
+     * @var string
+     */
+    const MIGRATED_KEY_ALERT = 'wpsl-migrated-server-key';
+
+    /**
+     * The option holding Google's error for a server key that failed its
+     * check during the 2.x upgrade, see wpsl_validate_migrated_api_keys().
+     *
+     * @since 3.0.1
+     * @var string
+     */
+    const MIGRATED_KEY_OPTION = 'wpsl_migrated_server_key_error';
+
+    /**
      * List of conflicting plugins
      *
      * @since 3.0.0
@@ -289,6 +306,52 @@ class Alerts {
                     '</a>'
                 ),
                 'details'     => $this->get_routes_api_details(),
+            ],
+        ];
+    }
+
+    /**
+     * Tell sites that upgraded from 2.x that their server key failed its check.
+     *
+     * The upgrade tests the migrated server key silently, so without this the
+     * only trace of a failure is an open step on the Home page. A key that
+     * was already broken in 2.x only showed up when a location failed to
+     * geocode, so the upgrade is often the first time anyone hears of it.
+     *
+     * Gone as soon as the key validates, or the map service is no longer
+     * Google Maps.
+     *
+     * @since  3.0.1
+     * @return array The alert, or an empty array when it does not apply
+     */
+    public function get_migrated_key_alert() {
+        $error = get_option( self::MIGRATED_KEY_OPTION, '' );
+
+        if ( ! $error || ! is_string( $error ) ) {
+            return [];
+        }
+
+        $settings = wpsl_get_service( 'wpsl_settings' );
+
+        // Fixed since, or no longer relevant: nothing left to report.
+        if ( get_option( 'wpsl_valid_gmaps_server_key' ) || $settings->get( 'api', 'active_map_service' ) !== 'gmaps' ) {
+            delete_option( self::MIGRATED_KEY_OPTION );
+
+            return [];
+        }
+
+        return [
+            self::MIGRATED_KEY_ALERT => [
+                'name'        => __( 'Google Maps server key', 'wp-store-locator' ),
+                'dismissible' => true,
+                'description' => sprintf(
+                    /* translators: 1: opening link tag to the API settings, 2: closing link tag */
+                    __( 'Your Google Maps server key was carried over from the previous version, but Google rejected it. New and edited locations cannot be geocoded until it is fixed. See the details below, then %1$ssave and verify the key%2$s again.', 'wp-store-locator' ),
+                    '<a href="' . esc_url( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings#wpsl-api' ) ) . '">',
+                    '</a>'
+                ),
+                // Only Google's error is stored, so the wording and language follow the current code.
+                'details'     => wpsl_get_gmaps_error_details( $error ),
             ],
         ];
     }
@@ -580,6 +643,7 @@ class Alerts {
         return array_merge(
             $active_alerts,
             $this->get_handler_alert(),
+            $this->get_migrated_key_alert(),
             $this->get_routes_api_alert(),
             $this->get_coordinate_alert(),
             $this->get_outdated_addon_alerts()
@@ -650,6 +714,16 @@ class Alerts {
             $alerts['routes_api'] = [ 'dismissed' => true ];
 
             update_option( 'wpsl_alerts', $alerts, false );
+
+            wp_send_json_success( [
+                'message' => __( 'Alert dismissed.', 'wp-store-locator' ),
+                'count'   => $this->get_alert_count(),
+            ] );
+        }
+
+        // The stored error is all this alert is, so dismissing it removes that.
+        if ( self::MIGRATED_KEY_ALERT === $plugin_basename ) {
+            delete_option( self::MIGRATED_KEY_OPTION );
 
             wp_send_json_success( [
                 'message' => __( 'Alert dismissed.', 'wp-store-locator' ),

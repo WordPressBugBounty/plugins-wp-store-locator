@@ -503,17 +503,16 @@ class Filters {
     /**
      * Check if category filter only mode is enabled.
      *
+     * The option can remain saved after the category filter itself is disabled
+     * ( it's hidden in the settings UI then ), so the category filter has to be
+     * active as well. Otherwise the radius / results filters disappear with nothing
+     * replacing them.
+     *
      * @since  3.0.0
      * @return bool
      */
     public function is_category_filter_only() {
-        $category_only = false;
-
-        if ( $this->settings->get( 'search', 'category_filter_only' ) ) {
-            $category_only = true;
-        }
-
-        return $category_only;
+        return $this->is_category_enabled() && (bool) $this->settings->get( 'search', 'category_filter_only' );
     }
 
     /**

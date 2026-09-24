@@ -32,6 +32,17 @@ class Validate_Keys {
     private $settings;
 
     /**
+     * The status string of the last failed server key check.
+     *
+     * Kept for callers that validate silently ( $notify = false ) but still
+     * want to tell the user why the key failed, see wpsl_validate_migrated_api_keys().
+     *
+     * @since 3.0.1
+     * @var string
+     */
+    private $last_server_error = '';
+
+    /**
      * Constructor
      *
      * @since 3.0.0
@@ -167,6 +178,17 @@ class Validate_Keys {
     }
 
     /**
+     * The status string of the last failed server key check in this request,
+     * unformatted. Format it with wpsl_get_gmaps_error_details() when shown.
+     *
+     * @since  3.0.1
+     * @return string Empty when no server key check failed.
+     */
+    public function get_last_server_error() {
+        return $this->last_server_error;
+    }
+
+    /**
      * Format a plain "Error code: x\nReason: y" status string into HTML,
      * bolding the labels and joining the lines with a single line break.
      *
@@ -175,21 +197,7 @@ class Validate_Keys {
      * @return string           The escaped, formatted HTML
      */
     private function format_key_error( $response ) {
-        $html = [];
-
-        foreach ( explode( "\n", $response ) as $line ) {
-            $pos = strpos( $line, ': ' );
-
-            if ( $pos !== false ) {
-                $label  = substr( $line, 0, $pos + 1 );
-                $value  = substr( $line, $pos + 2 );
-                $html[] = '<strong>' . esc_html( $label ) . '</strong> ' . esc_html( $value );
-            } else {
-                $html[] = esc_html( $line );
-            }
-        }
-
-        return implode( '<br>', $html );
+        return wpsl_format_key_error( $response );
     }
 
     /**
@@ -337,6 +345,8 @@ class Validate_Keys {
         // If the state is not OK, then there's a problem with the key.
         if ( $response !== 'OK' ) {
             update_option( 'wpsl_valid_gmaps_server_key', 0, 'no' );
+
+            $this->last_server_error = $response;
 
             if ( $this->may_answer_request( $notify ) ) {
                 $key_status = [

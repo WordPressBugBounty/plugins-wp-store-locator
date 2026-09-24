@@ -16,6 +16,14 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/* 
+ * is_plugin_active() is defined in wp-admin/includes/plugin.php, 
+ * which is not loaded by default on the frontend or early in plugins_loaded.
+ */
+if ( ! function_exists( 'is_plugin_active' ) ) {
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+}
+
 /**
  * Get common settings used by the optimization exclusion functions
  *

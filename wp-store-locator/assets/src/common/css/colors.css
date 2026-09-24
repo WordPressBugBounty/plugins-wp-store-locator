@@ -1,0 +1,260 @@
+/*
+ * Theme colors: the --wpsl-header-*, --wpsl-listing-* and --wpsl-popup-* colors
+ * of the search area, the results and the map popups. Split off from styles.css,
+ * common.css and filters.css in 3.0.1; add new theme color rules here.
+ *
+ * Loaded normally when "Overwrite theme styles" is on, so these colors win.
+ * Loaded as colors-layered.min.css ( this file inside @layer wpsl ) when it is
+ * off, so any color the theme sets wins and these only fill the gaps.
+ *
+ * Not in here, on purpose:
+ * - The plugin's own controls ( dropdowns, filter panel, clear buttons ). Their
+ *   backgrounds are set by the plugin, so their colors stay in the main files,
+ *   or a theme's generic button color could end up on the plugin's background.
+ * - !important: inside a layer that would beat the theme's own !important rules.
+ * - The button colors ( --wpsl-submit-*, --wpsl-general-* ), those always apply.
+ */
+
+/* From styles.css */
+
+.wpsl-opening-hours-status a .wpsl-opens-time time:after,
+.wpsl-store-location a.wpsl-store-listing:before {
+    border-top-color: var(--wpsl-listing-results-text, currentColor);
+}
+
+.wpsl-opening-hours-status a .wpsl-currently-open time:after,
+.wpsl-opening-hours-status a .wpsl-currently-closed time:after,
+.wpsl-opening-hours-status a .wpsl-currently-open~time:after,
+.wpsl-opening-hours-status a .wpsl-currently-closed~time:after {
+    border-top-color: var(--wpsl-listing-results-text, currentColor);
+}
+
+.wpsl-opening-hours-status a.wpsl-active-details .wpsl-opens-time time:after,
+.wpsl-opening-hours-status a.wpsl-active-details:not(:has(.wpsl-opens-next)) time:after,
+.wpsl-store-location a.wpsl-store-listing.wpsl-active-details:before {
+    border-bottom-color: var(--wpsl-listing-results-text, currentColor);
+}
+
+.wpsl-v3-css .wpsl-opening-hours-status a .wpsl-opens-time time:after,
+.wpsl-v3-css .wpsl-opening-hours-status a .wpsl-currently-open time:after,
+.wpsl-v3-css .wpsl-opening-hours-status a .wpsl-currently-closed time:after,
+.wpsl-v3-css .wpsl-opening-hours-status a .wpsl-currently-open~time:after,
+.wpsl-v3-css .wpsl-opening-hours-status a .wpsl-currently-closed~time:after,
+.wpsl-v3-css .wpsl-store-location a.wpsl-store-listing:before {
+    background-color: var(--wpsl-listing-results-text, currentColor);
+}
+
+.wpsl-flex-hours .wpsl-currently-closed::after,
+.wpsl-flex-hours .wpsl-currently-open::after,
+.wpsl-flex-hours .wpsl-closing-soon::after {
+    color: var(--wpsl-listing-results-text, currentColor);
+}
+
+.wpsl-info-window .wpsl-opening-hours-status .wpsl-currently-closed::after,
+.wpsl-info-window .wpsl-opening-hours-status .wpsl-currently-open::after,
+.wpsl-info-window .wpsl-opening-hours-status .wpsl-closing-soon::after {
+    color: var(--wpsl-listing-results-text, currentColor);
+}
+
+/* ==========================================================================
+   19. Icon Colors
+   ========================================================================== */
+#wpsl-wrap #wpsl-stores [class*="wpsl-icon-"]::before {
+    color: var(--wpsl-listing-icons-color, #000);
+}
+
+#wpsl-wrap .wpsl-info-window [class*="wpsl-icon-"]::before,
+#wpsl-wrap .gm-style-iw-d [class*="wpsl-icon-"]::before,
+#wpsl-wrap .mapboxgl-popup-content [class*="wpsl-icon-"]::before,
+#wpsl-wrap .leaflet-popup-content [class*="wpsl-icon-"]::before {
+    color: var(--wpsl-popup-icons-color, #000);
+}
+
+/* From common.css */
+
+/* ========================================
+   Theme Styles - Using CSS Custom Properties
+   Shared between frontend and admin customizer
+   ======================================== */
+#wpsl-wrap .wpsl-search {
+    background: var(--wpsl-header-container-background);
+}
+
+#wpsl-wrap .wpsl-search label {
+    color: var(--wpsl-header-container-text);
+}
+
+#wpsl-wrap .wpsl-search input[type=text] {
+    background: var(--wpsl-header-input-background);
+    color: var(--wpsl-header-input-text);
+    border-color: var(--wpsl-header-input-border);
+}
+
+#wpsl-wrap .wpsl-search input[type=text]::placeholder {
+    color: var(--wpsl-header-input-text);
+}
+
+#wpsl-wrap .wpsl-search input[type=text]:hover {
+    background: var(--wpsl-header-input-background-hover);
+    color: var(--wpsl-header-input-text-hover);
+    border-color: var(--wpsl-header-input-border-hover);
+}
+
+#wpsl-wrap .wpsl-search input[type=text]:hover::placeholder {
+    color: var(--wpsl-header-input-text-hover);
+}
+
+#wpsl-wrap #wpsl-search-input:hover {
+    color: var(--wpsl-header-input-text-hover);
+}
+
+#wpsl-wrap.wpsl-vertical-template .wpsl-search-wrap,
+#wpsl-wrap.wpsl-has-panel .wpsl-search-wrap {
+    background: var(--wpsl-header-input-background);
+    border-color: var(--wpsl-header-input-border);
+}
+
+#wpsl-wrap.wpsl-vertical-template .wpsl-search input[type=text]::placeholder,
+#wpsl-wrap.wpsl-has-panel .wpsl-search input[type=text]::placeholder {
+    color: var(--wpsl-header-input-text);
+}
+
+#wpsl-wrap #wpsl-search-wrap select {
+    background-color: var(--wpsl-header-dropdown-background);
+    border-color: var(--wpsl-header-dropdown-border);
+    color: var(--wpsl-header-dropdown-text);
+}
+
+#wpsl-wrap #wpsl-search-wrap select:hover,
+#wpsl-wrap #wpsl-search-wrap select:focus {
+    background-color: var(--wpsl-header-dropdown-background-hover);
+    color: var(--wpsl-header-dropdown-text-hover);
+    border-color: var(--wpsl-header-dropdown-border-hover);
+}
+
+#wpsl-wrap #wpsl-search-wrap select:hover option,
+#wpsl-wrap #wpsl-search-wrap select:focus option {
+    background: var(--wpsl-header-dropdown-background-hover);
+    color: var(--wpsl-header-dropdown-text-hover);
+}
+
+#wpsl-wrap #wpsl-result-list {
+    background: var(--wpsl-listing-results-background);
+    color: var(--wpsl-listing-results-text);
+}
+
+.wpsl-v3-css #wpsl-wrap #wpsl-panel {
+    background: var(--wpsl-listing-results-background, #fff);
+}
+
+#wpsl-wrap #wpsl-direction-details a:not(.wpsl-styled-btn),
+#wpsl-wrap #wpsl-stores a:not(.wpsl-styled-btn) {
+    color: var(--wpsl-listing-results-link);
+}
+
+#wpsl-wrap #wpsl-direction-details a:not(.wpsl-styled-btn):hover,
+#wpsl-wrap #wpsl-stores a:not(.wpsl-styled-btn):hover {
+    color: var(--wpsl-listing-results-link-hover);
+}
+
+/* Google Maps Popups */
+#wpsl-wrap .gm-style-iw-d,
+#wpsl-wrap .gm-style .gm-style-iw-c,
+#wpsl-wrap .gm-style .gm-style-iw-t::after,
+#wpsl-wrap .gm-style .gm-style-iw-tc::after,
+#wpsl-wrap .gm-style .gm-style-iw-d::-webkit-scrollbar-track,
+#wpsl-wrap .gm-style .gm-style-iw-d::-webkit-scrollbar-track-piece {
+    background: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .gm-style-iw-d {
+    color: var(--wpsl-popup-content-text);
+}
+
+#wpsl-wrap .gm-style-iw-d a {
+    color: var(--wpsl-popup-content-link);
+}
+
+#wpsl-wrap .gm-style-iw-d a:hover {
+    color: var(--wpsl-popup-content-link-hover);
+}
+
+#wpsl-wrap .gm-ui-hover-effect > span {
+    background-color: var(--wpsl-popup-content-close);
+}
+
+#wpsl-wrap .gm-ui-hover-effect:hover > span {
+    background-color: var(--wpsl-popup-content-close-hover);
+}
+
+#wpsl-wrap .mapboxgl-popup-content {
+    background: var(--wpsl-popup-content-background);
+    color: var(--wpsl-popup-content-text);
+}
+
+#wpsl-wrap .mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+    border-bottom-color: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+    border-top-color: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+    border-inline-end-color: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+    border-inline-start-color: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .mapboxgl-popup-content a {
+    color: var(--wpsl-popup-content-link);
+}
+
+#wpsl-wrap .mapboxgl-popup-content a:hover {
+    color: var(--wpsl-popup-content-link-hover);
+}
+
+#wpsl-wrap .mapboxgl-popup-close-button {
+    color: var(--wpsl-popup-content-close);
+}
+
+#wpsl-wrap .mapboxgl-popup-close-button:hover {
+    color: var(--wpsl-popup-content-close-hover);
+}
+
+#wpsl-wrap .leaflet-popup-content-wrapper,
+#wpsl-wrap .leaflet-popup-tip {
+    background: var(--wpsl-popup-content-background);
+}
+
+#wpsl-wrap .leaflet-popup-content {
+    color: var(--wpsl-popup-content-text);
+}
+
+#wpsl-wrap .leaflet-popup-content a {
+    color: var(--wpsl-popup-content-link);
+}
+
+#wpsl-wrap .leaflet-popup-content a:hover {
+    color: var(--wpsl-popup-content-link-hover);
+}
+
+#wpsl-wrap .leaflet-popup-close-button {
+    color: var(--wpsl-popup-content-close);
+}
+
+#wpsl-wrap .leaflet-popup-close-button:hover {
+    color: var(--wpsl-popup-content-close-hover);
+}
+
+/* From filters.css */
+
+.wpsl-filter label {
+    color: var( --wpsl-header-dropdown-text-hover, #000 );
+}
+
+.wpsl-nested-toggle:hover {
+    background-color: var( --wpsl-header-dropdown-background-hover, #f5f5f5 );
+}

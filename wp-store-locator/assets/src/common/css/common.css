@@ -4,22 +4,41 @@
  * @since 3.0.0
  */
 
- /* Column layouts using attribute selector */
-#wpsl-stores [class*="wpsl-v3-columns-"] {
+ /*
+ * Result columns ( horizontal template ). #wpsl-stores sits in :where() so these
+ * rules carry no id specificity, and a theme's own column CSS for the results
+ * list wins, as it did in 2.x. One column is a normal list rather than a grid,
+ * so floated or flex columns from 2.x CSS keep working. Its spacing is a
+ * margin-bottom, which has to beat the v3 margin reset on the list items.
+ *
+ * The columns follow the width of the results list, not the screen: each one
+ * stays at least 260px wide, so a narrow list drops from 3 to 2 to 1 column.
+ */
+:where(#wpsl-stores) .wpsl-v3-columns-2,
+:where(#wpsl-stores) .wpsl-v3-columns-3 {
     display: grid;
     gap: 15px;
 }
 
-#wpsl-stores .wpsl-v3-columns-2 {
-    grid-template-columns: repeat( 2, 1fr );
+#wpsl-wrap #wpsl-result-list ul.wpsl-v3-columns-1 > li {
+    margin-bottom: 15px;
 }
 
-#wpsl-stores .wpsl-v3-columns-3 {
-    grid-template-columns: repeat( 3, 1fr );
+/* Cancels the last item's margin, also when a theme makes the list a flex or grid container. */
+#wpsl-wrap #wpsl-result-list ul.wpsl-v3-columns-1 {
+    margin-bottom: -15px;
 }
 
-#wpsl-stores [class*="wpsl-v3-columns-"] .wpsl-preloader,
-#wpsl-stores [class*="wpsl-v3-columns-"] .wpsl-preloader-row {
+:where(#wpsl-stores) .wpsl-v3-columns-2 {
+    grid-template-columns: repeat( auto-fill, minmax( min( 100%, max( 260px, ( 100% - 15px ) / 2 ) ), 1fr ) );
+}
+
+:where(#wpsl-stores) .wpsl-v3-columns-3 {
+    grid-template-columns: repeat( auto-fill, minmax( min( 100%, max( 260px, ( 100% - 30px ) / 3 ) ), 1fr ) );
+}
+
+:where(#wpsl-stores) [class*="wpsl-v3-columns-"] .wpsl-preloader,
+:where(#wpsl-stores) [class*="wpsl-v3-columns-"] .wpsl-preloader-row {
     grid-column: 1 / -1;
     align-self: start;
 }
@@ -49,7 +68,7 @@
     margin-top: 17px;
     margin-bottom: 7px;
     align-items: center;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 
 #wpsl-wrap.wpsl-flex .wpsl-cta-section {
@@ -163,12 +182,16 @@
     padding: 0;
     border: none;
     border-radius: 0;
-    background: transparent;
     box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+}
+
+/* The search button takes its background from the submit colors further down. */
+#wpsl-panel #wpsl-clear-search-input {
+    background: transparent;
 }
 
 #wpsl-panel input[type="text"]:focus-visible,
@@ -183,13 +206,13 @@
     outline: none;
 }
 
-#wpsl-wrap .wpsl-dropdown button.wpsl-selected-item:focus-visible {
+:where(#wpsl-wrap) .wpsl-dropdown button.wpsl-selected-item:focus-visible {
     outline: var(--wpsl-focus-outline, auto);
     outline-offset: 2px;
     border-radius: 3px;
 }
 
-#wpsl-wrap .wpsl-dropdown button:focus:not(:focus-visible) {
+:where(#wpsl-wrap) .wpsl-dropdown button:focus:not(:focus-visible) {
     outline: none;
 }
 
@@ -230,13 +253,13 @@
     outline: none;
 }
 
-#wpsl-wrap .wpsl-dropdown [role="option"]:focus-visible,
+:where(#wpsl-wrap) .wpsl-dropdown [role="option"]:focus-visible,
 #wpsl-filter-options [role="listbox"] li:focus-visible {
     outline: var(--wpsl-focus-outline, auto);
     outline-offset: -2px;
 }
 
-#wpsl-wrap .wpsl-dropdown [role="option"]:focus:not(:focus-visible),
+:where(#wpsl-wrap) .wpsl-dropdown [role="option"]:focus:not(:focus-visible),
 #wpsl-filter-options [role="listbox"] li:focus:not(:focus-visible) {
     outline: none;
 }
@@ -285,47 +308,21 @@
     cursor: pointer;
 }
 
-/* ========================================
-   Theme Styles - Using CSS Custom Properties
-   Shared between frontend and admin customizer
-   ======================================== */
-#wpsl-wrap .wpsl-search { 
-    background: var(--wpsl-header-container-background); 
-}
-
-#wpsl-wrap .wpsl-search label { 
-    color: var(--wpsl-header-container-text); 
-}
-
 #wpsl-wrap .wpsl-search input[type=text] { 
-    background: var(--wpsl-header-input-background); 
-    color: var(--wpsl-header-input-text); 
-    border: 1px solid var(--wpsl-header-input-border);
+    border-width: 1px; 
+    border-style: solid;
     box-shadow: none; 
 }
 
-#wpsl-wrap .wpsl-search input[type=text]::placeholder { 
-    color: var(--wpsl-header-input-text);
-}
-
 #wpsl-wrap .wpsl-search input[type=text]:hover { 
-    background: var(--wpsl-header-input-background-hover); 
-    color: var(--wpsl-header-input-text-hover); 
-    border: 1px solid var(--wpsl-header-input-border-hover); 
-}
-
-#wpsl-wrap .wpsl-search input[type=text]:hover::placeholder { 
-    color: var(--wpsl-header-input-text-hover); 
-}
-
-#wpsl-wrap #wpsl-search-input:hover { 
-    color: var(--wpsl-header-input-text-hover); 
+    border-width: 1px; 
+    border-style: solid; 
 }
 
 #wpsl-wrap.wpsl-vertical-template .wpsl-search-wrap,
 #wpsl-wrap.wpsl-has-panel .wpsl-search-wrap {
-    background: var(--wpsl-header-input-background);
-    border: 1px solid var(--wpsl-header-input-border);
+    border-width: 1px;
+    border-style: solid;
     height: 42px;
 }
 
@@ -352,7 +349,6 @@
 
 #wpsl-wrap.wpsl-vertical-template .wpsl-search input[type=text]::placeholder,
 #wpsl-wrap.wpsl-has-panel .wpsl-search input[type=text]::placeholder {
-    color: var(--wpsl-header-input-text);
     opacity: 1;
 }
 
@@ -379,12 +375,11 @@
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-color: var(--wpsl-header-dropdown-background);
     background-image: url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M5 6l5 5 5-5 2 1-7 7-7-7 2-1z" fill="%23000000"/></svg>');
     background-repeat: no-repeat;
     background-position: right 5px top 55%;
-    border: 1px solid var(--wpsl-header-dropdown-border);
-    color: var(--wpsl-header-dropdown-text);
+    border-width: 1px;
+    border-style: solid;
 
     /* Room for the caret, so the longest option does not run under it. */
     padding-right: 28px;
@@ -395,34 +390,32 @@
     background-image: url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><path d="M5 6l5 5 5-5 2 1-7 7-7-7 2-1z" fill="%23000000"/></svg>'); 
     background-repeat: no-repeat; 
     background-position: right 5px top 55%; 
-    background-color: var(--wpsl-header-dropdown-background-hover); 
-    color: var(--wpsl-header-dropdown-text-hover); 
-    border: 1px solid var(--wpsl-header-dropdown-border-hover); 
+    border-width: 1px; 
+    border-style: solid; 
 }
 
-#wpsl-wrap #wpsl-search-wrap select:hover option, 
-#wpsl-wrap #wpsl-search-wrap select:focus option { 
-    background: var(--wpsl-header-dropdown-background-hover); 
-    color: var(--wpsl-header-dropdown-text-hover); 
+/*
+ * The #wpsl-wrap context is in :where() on the dropdown and search button
+ * rules, so they keep the specificity of the v2 selectors ( .wpsl-dropdown,
+ * #wpsl-search-btn ) and custom CSS written for v2 still overrides them.
+ */
+:where(#wpsl-wrap) .wpsl-dropdown {
+    background: var(--wpsl-header-dropdown-background);
+    color: var(--wpsl-header-dropdown-text);
+    border: 1px solid var(--wpsl-header-dropdown-border);
 }
 
-#wpsl-wrap .wpsl-dropdown { 
-    background: var(--wpsl-header-dropdown-background); 
-    color: var(--wpsl-header-dropdown-text); 
-    border: 1px solid var(--wpsl-header-dropdown-border); 
+:where(#wpsl-wrap) .wpsl-dropdown:hover {
+    background: var(--wpsl-header-dropdown-background-hover);
+    color: var(--wpsl-header-dropdown-text-hover);
+    border: 1px solid var(--wpsl-header-dropdown-border-hover);
 }
 
-#wpsl-wrap .wpsl-dropdown:hover { 
-    background: var(--wpsl-header-dropdown-background-hover); 
-    color: var(--wpsl-header-dropdown-text-hover); 
-    border: 1px solid var(--wpsl-header-dropdown-border-hover); 
+:where(#wpsl-wrap) .wpsl-dropdown ul {
+    background: var(--wpsl-header-dropdown-background);
 }
 
-#wpsl-wrap .wpsl-dropdown ul { 
-    background: var(--wpsl-header-dropdown-background); 
-}
-
-#wpsl-wrap .wpsl-dropdown li:hover { 
+:where(#wpsl-wrap) .wpsl-dropdown li:hover {
     background: var(--wpsl-header-dropdown-item-background-hover); 
     color: var(--wpsl-header-dropdown-item-text-hover); 
 }
@@ -477,6 +470,11 @@
     color: var(--wpsl-header-dropdown-item-text-selected);
 }
 
+/* The item text sits in a label, which the .wpsl-filter label rule colors directly. */
+#wpsl-wrap #wpsl-filter-options li[aria-selected="true"] label {
+    color: var(--wpsl-header-dropdown-item-text-selected);
+}
+
 #wpsl-wrap #wpsl-clear-filter {
     background: var(--wpsl-header-dropdown-reset-background);
     border: 1px solid var(--wpsl-header-dropdown-reset-border);
@@ -498,37 +496,35 @@
 }
 
 #wpsl-appearance-preview .wpsl-preview-btn.wpsl-preview-submit,
-[id^="wpsl-"][id$="-wrap"] #wpsl-search-btn,
-#wpsl-wrap #wpsl-search-btn { 
-    background: var(--wpsl-submit-gradient, linear-gradient(180deg, #f4f4f4 0%, #e6e6e6 100%)); 
-    color: var(--wpsl-submit-text, #333); 
-    border: 1px solid var(--wpsl-submit-border, #d2d2d2); 
-    margin: 0 !important;
+:where([id^="wpsl-"][id$="-wrap"]) #wpsl-search-btn {
+    background: var(--wpsl-submit-gradient, linear-gradient(180deg, #f4f4f4 0%, #e6e6e6 100%));
+    color: var(--wpsl-submit-text, #333);
+    border: 1px solid var(--wpsl-submit-border, #d2d2d2);
+    margin: 0;
 }
 
-#wpsl-wrap.wpsl-flex #wpsl-search-btn {
+:where(#wpsl-wrap.wpsl-flex) #wpsl-search-btn {
     border: none;
 }
 
 #wpsl-appearance-preview .wpsl-preview-btn.wpsl-preview-submit:hover,
-[id^="wpsl-"][id$="-wrap"] #wpsl-search-btn:hover,
-#wpsl-wrap #wpsl-search-btn:hover { 
-    background: var(--wpsl-submit-gradient-hover, var(--wpsl-submit-gradient, linear-gradient(180deg, #f4f4f4 0%, #d8d8d8 100%))); 
-    color: var(--wpsl-submit-text-hover, var(--wpsl-submit-text, #333)); 
-    border: 1px solid var(--wpsl-submit-border-hover, var(--wpsl-submit-border, #d2d2d2)); 
+:where([id^="wpsl-"][id$="-wrap"]) #wpsl-search-btn:hover {
+    background: var(--wpsl-submit-gradient-hover, var(--wpsl-submit-gradient, linear-gradient(180deg, #f4f4f4 0%, #d8d8d8 100%)));
+    color: var(--wpsl-submit-text-hover, var(--wpsl-submit-text, #333));
+    border: 1px solid var(--wpsl-submit-border-hover, var(--wpsl-submit-border, #d2d2d2));
     cursor: pointer;
 }
 
-#wpsl-wrap.wpsl-flex #wpsl-search-btn:hover {
+:where(#wpsl-wrap.wpsl-flex) #wpsl-search-btn:hover {
     border: none;
 }
 
-#wpsl-wrap #wpsl-search-btn svg { 
-    color: var(--wpsl-submit-icon, currentColor); 
+:where(#wpsl-wrap) #wpsl-search-btn svg {
+    color: var(--wpsl-submit-icon, currentColor);
     fill: none;
 }
 
-#wpsl-wrap #wpsl-search-btn:hover svg { 
+:where(#wpsl-wrap) #wpsl-search-btn:hover svg {
     color: var(--wpsl-submit-icon-hover, var(--wpsl-submit-icon, currentColor)); 
 }
 
@@ -559,25 +555,6 @@
     color: var(--wpsl-header-reset-icon-hover); 
 }
 
-#wpsl-wrap #wpsl-result-list { 
-    background: var(--wpsl-listing-results-background); 
-    color: var(--wpsl-listing-results-text); 
-}
-
-.wpsl-v3-css #wpsl-wrap #wpsl-panel { 
-    background: var(--wpsl-listing-results-background, #fff); 
-}
-
-#wpsl-wrap #wpsl-direction-details a:not(.wpsl-styled-btn),
-#wpsl-wrap #wpsl-stores a:not(.wpsl-styled-btn) { 
-    color: var(--wpsl-listing-results-link); 
-}
-
-#wpsl-wrap #wpsl-direction-details a:not(.wpsl-styled-btn):hover,
-#wpsl-wrap #wpsl-stores a:not(.wpsl-styled-btn):hover { 
-    color: var(--wpsl-listing-results-link-hover); 
-}
-
 #wpsl-wrap #wpsl-filter-options li.wpsl-has-active-child[aria-selected="true"]:hover, 
 #wpsl-wrap #wpsl-filter-options li.wpsl-has-active-child:hover, 
 #wpsl-wrap #wpsl-filter-options .wpsl-has-active-child:hover label, 
@@ -587,40 +564,10 @@
     color: var(--wpsl-header-dropdown-item-text-hover) !important; 
 }
 
-/* Google Maps Popups */
-#wpsl-wrap .gm-style-iw-d,
-#wpsl-wrap .gm-style .gm-style-iw-c,
-#wpsl-wrap .gm-style .gm-style-iw-t::after,
-#wpsl-wrap .gm-style .gm-style-iw-tc::after,
-#wpsl-wrap .gm-style .gm-style-iw-d::-webkit-scrollbar-track,
-#wpsl-wrap .gm-style .gm-style-iw-d::-webkit-scrollbar-track-piece { 
-    background: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .gm-style-iw-d { 
-    color: var(--wpsl-popup-content-text); 
-}
-
-#wpsl-wrap .gm-style-iw-d a { 
-    color: var(--wpsl-popup-content-link); 
-}
-
-#wpsl-wrap .gm-style-iw-d a:hover { 
-    color: var(--wpsl-popup-content-link-hover); 
-}
-
 /* Override Google Maps default link styles for buttons in info window */
 #wpsl-wrap .gm-style-iw-d .wpsl-primary-btn,
 #wpsl-wrap .gm-style-iw-d .wpsl-secondary-btn {
     opacity: 1 !important;
-}
-
-#wpsl-wrap .gm-ui-hover-effect > span { 
-    background-color: var(--wpsl-popup-content-close); 
-}
-
-#wpsl-wrap .gm-ui-hover-effect:hover > span { 
-    background-color: var(--wpsl-popup-content-close-hover); 
 }
 
 /* Ensure Google Maps info window close button is focusable */
@@ -707,68 +654,6 @@
 #wpsl-wrap .leaflet-control-zoom a:focus:not(:focus-visible),
 #wpsl-wrap .leaflet-control-attribution a:focus:not(:focus-visible) {
     outline: none;
-}
-
-#wpsl-wrap .mapboxgl-popup-content { 
-    background: var(--wpsl-popup-content-background); 
-    color: var(--wpsl-popup-content-text); 
-}
-
-#wpsl-wrap .mapboxgl-popup-anchor-top .mapboxgl-popup-tip { 
-    border-bottom-color: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { 
-    border-top-color: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .mapboxgl-popup-anchor-left .mapboxgl-popup-tip { 
-    border-inline-end-color: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .mapboxgl-popup-anchor-right .mapboxgl-popup-tip { 
-    border-inline-start-color: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .mapboxgl-popup-content a { 
-    color: var(--wpsl-popup-content-link); 
-}
-
-#wpsl-wrap .mapboxgl-popup-content a:hover { 
-    color: var(--wpsl-popup-content-link-hover); 
-}
-
-#wpsl-wrap .mapboxgl-popup-close-button { 
-    color: var(--wpsl-popup-content-close); 
-}
-
-#wpsl-wrap .mapboxgl-popup-close-button:hover { 
-    color: var(--wpsl-popup-content-close-hover); 
-}
-
-#wpsl-wrap .leaflet-popup-content-wrapper, 
-#wpsl-wrap .leaflet-popup-tip { 
-    background: var(--wpsl-popup-content-background); 
-}
-
-#wpsl-wrap .leaflet-popup-content { 
-    color: var(--wpsl-popup-content-text); 
-}
-
-#wpsl-wrap .leaflet-popup-content a { 
-    color: var(--wpsl-popup-content-link); 
-}
-
-#wpsl-wrap .leaflet-popup-content a:hover { 
-    color: var(--wpsl-popup-content-link-hover); 
-}
-
-#wpsl-wrap .leaflet-popup-close-button { 
-    color: var(--wpsl-popup-content-close); 
-}
-
-#wpsl-wrap .leaflet-popup-close-button:hover { 
-    color: var(--wpsl-popup-content-close-hover); 
 }
 
 #wpsl-map [role="region"][aria-label="Map"] > div[style*="border: 2px solid"] {

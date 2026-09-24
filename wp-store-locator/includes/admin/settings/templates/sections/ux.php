@@ -7,10 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 <section id="wpsl-ux" class="postbox">
     <h3><span><?php esc_html_e( 'User Experience', 'wp-store-locator' ); ?></span></h3>
     <div class="inside">
-        <p id="wpsl-listing-below-option" <?php if ( $wpsl_settings->get( 'ux', 'template_id' ) != 'horizontal' ) { echo 'style="display:none;"'; } ?>>
-            <label for="wpsl-more-info-list"><?php esc_html_e( 'Hide the scrollbar?', 'wp-store-locator' ); ?></label>
-            <input type="checkbox" value="" <?php checked( $section_settings['listing_below_no_scroll'], true ); ?> name="wpsl_ux[listing_below_no_scroll]" id="wpsl-listing-below-no-scroll">
-        </p>
         <p>
             <label for="wpsl-new-window"><?php esc_html_e( 'Open links in a new window?', 'wp-store-locator' ); ?></label>
             <input type="checkbox" value="" <?php checked( $section_settings['new_window'], true ); ?> name="wpsl_ux[new_window]" id="wpsl-new-window">

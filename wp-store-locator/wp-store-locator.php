@@ -4,7 +4,7 @@ Plugin Name: WP Store Locator
 Description: WordPress store locator for OpenStreetMap, Stadia Maps, Mapbox and Google Maps, with unlimited locations, custom fields and custom markers. Free on OpenStreetMap, no API key needed.
 Author: Tijmen Smit
 Author URI: https://wpstorelocator.co/
-Version: 3.0.0
+Version: 3.0.1
 Tested up to: 7.1
 Requires at least: 5.7
 Requires PHP: 7.4
@@ -102,7 +102,7 @@ if ( ! class_exists( 'WP_Store_locator' ) ) {
          */
         private function define_constants() {
             if ( ! defined( 'WPSL_VERSION_NUM' ) )
-                define( 'WPSL_VERSION_NUM', '3.0.0' );
+                define( 'WPSL_VERSION_NUM', '3.0.1' );
 
             if ( ! defined( 'WPSL_URL' ) )
                 define( 'WPSL_URL', plugin_dir_url( __FILE__ ) );

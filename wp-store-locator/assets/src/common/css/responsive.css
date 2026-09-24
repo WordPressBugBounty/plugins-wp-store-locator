@@ -37,7 +37,11 @@
 @media (max-width: 675px) {
     #wpsl-search-wrap #wpsl-search-btn {
         float: left;
-        margin: 0 5px 0 0;
+    }
+
+    /* 16px stops iOS Safari from zooming in when the panel's search field gets focus. */
+    :where(#wpsl-panel .wpsl-search-wrap) {
+        font-size: 16px;
     }
 
     #wpsl-panel,
@@ -68,8 +72,8 @@
     }
 
     /* Horizontal template: single column layout for results */
-    #wpsl-stores .wpsl-v3-columns-2,
-    #wpsl-stores .wpsl-v3-columns-3 {
+    :where(#wpsl-stores) .wpsl-v3-columns-2,
+    :where(#wpsl-stores) .wpsl-v3-columns-3 {
         grid-template-columns: 1fr;
     }
 
@@ -138,10 +142,6 @@
 }
 
 @media (max-width: 570px) {
-    #wpsl-search-wrap #wpsl-search-btn {
-        margin-bottom: 5px;
-    }
-
     #wpsl-wrap .wpsl-search,
     .wpsl-v3-css #wpsl-wrap .wpsl-search {
         padding: 4%;
@@ -186,11 +186,7 @@
 
     #wpsl-radius,
     #wpsl-results {
-        width: 50%;
-    }
-
-    #wpsl-radius {
-        margin-right: 4%;
+        width: 100%;
     }
     
     /* Input field: stack label above input */
@@ -223,6 +219,12 @@
         box-sizing: border-box;
     }
 
+    .wpsl-flex #mapbox-autocomplete {
+        flex: 1 1 0%;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
     #wpsl-search-wrap .wpsl-select-wrap {
         display: flex;
         flex-wrap: wrap;
@@ -234,7 +236,8 @@
     #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius,
     #wpsl-search-wrap .wpsl-select-wrap #wpsl-results {
         display: block;
-        flex: 1;
+        flex: 1 1 100%;
+        width: 100%;
         min-width: 0;
         margin: 0;
         height: auto;
@@ -264,7 +267,8 @@
     #wpsl-search-wrap .wpsl-select-wrap #wpsl-radius,
     #wpsl-search-wrap .wpsl-select-wrap #wpsl-results {
         display: block;
-        flex: 1;
+        flex: 1 1 100%;
+        width: 100%;
         min-width: 0;
         margin: 0 !important;
         height: auto;

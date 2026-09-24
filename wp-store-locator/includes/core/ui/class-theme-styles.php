@@ -463,6 +463,15 @@ class Theme_Styles {
                         }
                     }
                 } else {
+                    /*
+                     * The results sit on the theme's background, so without
+                     * overwritten colors their text follows the theme's text
+                     * color as in 2.x, instead of getting a default black.
+                     */
+                    if ( 'listing-results-text' === $css_var_name ) {
+                        continue;
+                    }
+
                     // Use default values only
                     $color_code = isset( $this->defaults[$css_var_name] ) ? $this->defaults[$css_var_name] : '';
                 }

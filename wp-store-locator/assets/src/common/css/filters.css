@@ -60,7 +60,6 @@
     display: flex;
     align-items: center;
     font-weight: 400;
-    color: var( --wpsl-header-dropdown-text-hover, #000 );
 }
 
 .wpsl-filter input[type="checkbox"] {
@@ -288,10 +287,6 @@
     color: inherit;
     font-weight: 400;
     cursor: pointer;
-}
-
-.wpsl-nested-toggle:hover {
-    background-color: var( --wpsl-header-dropdown-background-hover, #f5f5f5 );
 }
 
 .wpsl-nested-options {

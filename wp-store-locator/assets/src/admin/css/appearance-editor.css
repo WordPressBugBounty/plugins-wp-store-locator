@@ -1943,6 +1943,19 @@ Theme styles used on the customization section
     overflow: hidden auto;
 }
 
+/*
+ * The result columns from common.css have no id specificity, so the generic
+ * .wpsl-customize-options list styles around the preview would beat them.
+ */
+#wpsl-appearance-preview #wpsl-stores .wpsl-v3-columns-1 {
+    display: block;
+}
+
+#wpsl-appearance-preview #wpsl-stores .wpsl-v3-columns-2,
+#wpsl-appearance-preview #wpsl-stores .wpsl-v3-columns-3 {
+    display: grid;
+}
+
 #wpsl-appearance-preview #wpsl-mapbox-wrap .mapboxgl-popup {
     width: auto !important;
     max-width: none !important;

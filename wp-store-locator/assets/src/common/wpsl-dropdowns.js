@@ -451,11 +451,7 @@ export const createDropdowns = function( helpers, config ) {
                     return jQuery( this ).text();
                 }).get();
 
-                const maxWidth = Math.max( 0, ...sharedHelpers.measureTextWidths( itemTexts, 'wpsl-selected-item', $this.$dropdownWrap ) );
-
-                const arrowWidth = 30;
-                const totalWidth = maxWidth + arrowWidth;
-                $this.$dropdownWrap.css( 'width', totalWidth + 'px' );
+                $this.$dropdownWrap.css( 'width', fitDropdownWidth( $this.$dropdownWrap, $button, itemTexts ) + 'px' );
 
                 $this.$dropdownWrap.on( 'click', function( e ) {
                     $btn = jQuery( this ).find( 'button' );
@@ -540,12 +536,9 @@ export const createDropdowns = function( helpers, config ) {
                     return jQuery( this ).text();
                 }).get();
 
-                const maxWidth = Math.max( 0, ...sharedHelpers.measureTextWidths( itemTexts, 'wpsl-selected-item', $dropdownWrap ) );
+                const $button = $dropdownWrap.find( '> button.wpsl-selected-item' );
 
-                const arrowWidth = 30;
-                const totalWidth = maxWidth + arrowWidth;
-
-                $dropdownWrap.css( 'width', totalWidth + 'px' );
+                $dropdownWrap.css( 'width', fitDropdownWidth( $dropdownWrap, $button, itemTexts ) + 'px' );
 
                 $dropdownWrap.off( 'click' ).on( 'click', function( e ) {
                     const $btn = jQuery( this ).find( 'button' );
@@ -629,6 +622,48 @@ export const createDropdowns = function( helpers, config ) {
             jQuery( '.wpsl-dropdown div' ).css( 'height', 0 );
         }
     };
+};
+
+/**
+ * Get the width a dropdown needs to show its widest option in full.
+ *
+ * The texts are measured with the `wpsl-selected-item` class so they get the
+ * toggle's font, but that also gives them the class's padding, which isn't
+ * the toggle's own ( and already includes the 35px arrow space ). Adding a
+ * fixed arrow width on top of that counted the arrow twice. An empty sample
+ * measures the probe's padding by itself, so it can be swapped for the padding
+ * and border the toggle really has. The toggle's padding-right leaves room
+ * for the arrow.
+ *
+ * @since   3.0.1
+ * @param   {jQuery}   $dropdownWrap The div.wpsl-dropdown wrapper
+ * @param   {jQuery}   $button       The toggle button inside it
+ * @param   {string[]} texts         The option labels
+ * @returns {number} The width in pixels
+ */
+const fitDropdownWidth = function( $dropdownWrap, $button, texts ) {
+    const widths   = sharedHelpers.measureTextWidths( [ '' ].concat( texts ), 'wpsl-selected-item', $dropdownWrap );
+    const probeBox = widths.shift();
+    const px       = function( style, props ) {
+        return props.reduce( function( sum, prop ) {
+            return sum + ( parseFloat( style[ prop ] ) || 0 );
+        }, 0 );
+    };
+
+    // Without a toggle to read, keep the probe's padding as the box.
+    let box = probeBox;
+
+    if ( $button.length ) {
+        box = px( window.getComputedStyle( $button[0] ), [ 'paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth' ] );
+    }
+
+    const wrapStyle = window.getComputedStyle( $dropdownWrap[0] );
+
+    if ( wrapStyle.boxSizing === 'border-box' ) {
+        box += px( wrapStyle, [ 'paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth' ] );
+    }
+
+    return Math.ceil( Math.max( 0, ...widths ) - probeBox + box );
 };
 
 /**

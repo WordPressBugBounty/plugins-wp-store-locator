@@ -1064,7 +1064,22 @@ function wpsl_validate_migrated_api_keys() {
     }
 
     if ( ! empty( $api['gmaps_server_key'] ) ) {
-        wpsl_get_service( 'validate_keys' )->check( 'gmaps', 'server', $api['gmaps_server_key'], false );
+        $validate = wpsl_get_service( 'validate_keys' );
+
+        $validate->check( 'gmaps', 'server', $api['gmaps_server_key'], false );
+
+        /*
+         * The check above is silent, so a key that fails here would only show
+         * up as an open "Fix your Google Maps API key" step on the Home page,
+         * with no reason given. Keep Google's error for the Alerts class, which
+         * shows it until the key validates or the alert is dismissed. Only the
+         * raw error is stored; the alert formats it when shown.
+         */
+        $error = $validate->get_last_server_error();
+
+        if ( $error ) {
+            update_option( \WPSL\Admin\Core\Alerts::MIGRATED_KEY_OPTION, $error, 'no' );
+        }
     }
 
     if ( ! empty( $api['gmaps_browser_key'] ) ) {

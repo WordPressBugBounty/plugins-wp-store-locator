@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v3.
 msgid ""
 msgstr ""
-"Project-Id-Version: WP Store Locator 3.0.0\n"
+"Project-Id-Version: WP Store Locator 3.0.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wp-store-locator\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-21T13:24:57+00:00\n"
+"POT-Creation-Date: 2026-09-24T08:42:33+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: wp-store-locator\n"
@@ -167,8 +167,8 @@ msgid "There's a problem with the Mapbox Geocode API. It returned: %s. Please tr
 msgstr ""
 
 #: includes/admin/api/class-geocode-mapbox.php:202
-#: includes/admin/settings/class-validate-keys.php:292
-#: includes/admin/settings/class-validate-keys.php:631
+#: includes/admin/settings/class-validate-keys.php:300
+#: includes/admin/settings/class-validate-keys.php:641
 msgid "The Mapbox API has returned the following error for the used API key."
 msgstr ""
 
@@ -239,7 +239,7 @@ msgstr ""
 #: includes/admin/settings/class-field-manager.php:57
 #: includes/admin/settings/class-section-editor.php:158
 #: includes/admin/tools/class-data-management.php:61
-#: includes/admin/tools/class-data-management.php:513
+#: includes/admin/tools/class-data-management.php:514
 #: includes/admin/tools/class-geocode-locations.php:886
 #: includes/admin/tools/class-hours-converter.php:113
 msgid "The security check failed, please reload the page and try again."
@@ -253,50 +253,50 @@ msgstr ""
 msgid "Settings sanitizer not available."
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:158
+#: includes/admin/appearance/class-manager.php:166
 msgid "No appearance data received."
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:166
+#: includes/admin/appearance/class-manager.php:174
 msgid "Settings saved."
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:221
+#: includes/admin/appearance/class-manager.php:229
 msgid "Custom template"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:246
+#: includes/admin/appearance/class-manager.php:254
 msgid "template"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:263
-#: includes/admin/assets/class-manager.php:204
+#: includes/admin/appearance/class-manager.php:271
+#: includes/admin/assets/class-manager.php:207
 #: includes/admin/assets/class-resources.php:205
 msgid "Customize"
 msgstr ""
 
 #. translators: %1$s: line breaks, %2$s: opening link tag to documentation, %3$s: closing link tag
-#: includes/admin/appearance/class-manager.php:297
+#: includes/admin/appearance/class-manager.php:305
 #, php-format
 msgid "This custom template uses v2 code and is running through the backward compatibility layer.%1$sPlease update your template to the v3 structure to ensure full compatibility with all current and future features.%1$s%2$sRead more%3$s"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:314
-#: includes/admin/assets/class-manager.php:536
+#: includes/admin/appearance/class-manager.php:322
+#: includes/admin/assets/class-manager.php:539
 msgid "Background"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:315
+#: includes/admin/appearance/class-manager.php:323
 #: includes/admin/appearance/templates/button-styles.php:70
 msgid "Border"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:316
+#: includes/admin/appearance/class-manager.php:324
 msgid "Hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:317
-#: includes/admin/assets/class-manager.php:513
+#: includes/admin/appearance/class-manager.php:325
+#: includes/admin/assets/class-manager.php:516
 #: includes/admin/marker-studio/templates/marker-studio-page.php:207
 #: includes/admin/marker-studio/templates/marker-studio-page.php:344
 #: includes/admin/settings/templates/fields-manager/field-input.php:17
@@ -307,111 +307,111 @@ msgstr ""
 msgid "Text"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:318
-#: includes/admin/assets/class-manager.php:511
+#: includes/admin/appearance/class-manager.php:326
+#: includes/admin/assets/class-manager.php:514
 #: includes/admin/marker-studio/templates/marker-studio-page.php:51
 #: includes/admin/marker-studio/templates/marker-studio-page.php:204
 #: includes/admin/marker-studio/templates/marker-studio-page.php:301
 msgid "Icon"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:319
+#: includes/admin/appearance/class-manager.php:327
 msgid "Link"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:373
+#: includes/admin/appearance/class-manager.php:381
 #: includes/admin/appearance/templates/button-styles.php:68
 #: includes/admin/appearance/templates/button-styles.php:95
 #: includes/admin/appearance/templates/button-styles.php:120
 msgid "Background start"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:374
+#: includes/admin/appearance/class-manager.php:382
 #: includes/admin/appearance/templates/button-styles.php:69
 #: includes/admin/appearance/templates/button-styles.php:96
 #: includes/admin/appearance/templates/button-styles.php:121
 msgid "Background end"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:377
+#: includes/admin/appearance/class-manager.php:385
 #: includes/admin/appearance/templates/button-styles.php:74
 #: includes/admin/appearance/templates/button-styles.php:101
 #: includes/admin/appearance/templates/button-styles.php:126
 msgid "Background start hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:378
+#: includes/admin/appearance/class-manager.php:386
 #: includes/admin/appearance/templates/button-styles.php:75
 #: includes/admin/appearance/templates/button-styles.php:102
 #: includes/admin/appearance/templates/button-styles.php:127
 msgid "Background end hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:390
+#: includes/admin/appearance/class-manager.php:398
 msgid "Background expanded"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:391
+#: includes/admin/appearance/class-manager.php:399
 msgid "List item text"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:392
+#: includes/admin/appearance/class-manager.php:400
 msgid "List item background hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:393
+#: includes/admin/appearance/class-manager.php:401
 msgid "List item text hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:394
+#: includes/admin/appearance/class-manager.php:402
 msgid "Background selected item "
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:395
+#: includes/admin/appearance/class-manager.php:403
 msgid "Text selected item"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:396
+#: includes/admin/appearance/class-manager.php:404
 msgid "Reset background"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:397
+#: includes/admin/appearance/class-manager.php:405
 msgid "Reset background hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:398
+#: includes/admin/appearance/class-manager.php:406
 msgid "Reset border"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:399
+#: includes/admin/appearance/class-manager.php:407
 msgid "Reset border hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:400
+#: includes/admin/appearance/class-manager.php:408
 msgid "Reset icon"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:401
+#: includes/admin/appearance/class-manager.php:409
 msgid "Reset icon hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:419
+#: includes/admin/appearance/class-manager.php:427
 #: includes/admin/assets/class-resources.php:119
 #: includes/admin/marker-studio/templates/marker-studio-page.php:487
 #: includes/admin/marker-studio/templates/marker-studio-page.php:500
 #: includes/admin/marker-studio/templates/marker-studio-page.php:543
 #: includes/admin/settings/templates/dialog/geocode-locations.php:50
 #: includes/admin/settings/templates/dialog/hours-converter.php:44
-#: includes/admin/settings/templates/home.php:311
+#: includes/admin/settings/templates/home.php:312
 #: includes/frontend/assets/class-resources.php:708
 msgid "Close"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:420
+#: includes/admin/appearance/class-manager.php:428
 msgid "Close hover"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:679
+#: includes/admin/appearance/class-manager.php:693
 #: includes/admin/appearance/templates/button-styles.php:152
 #: includes/admin/appearance/templates/theme-styles.php:131
 #: includes/admin/settings/templates/sections/labels.php:157
@@ -421,7 +421,7 @@ msgstr ""
 msgid "Directions"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:680
+#: includes/admin/appearance/class-manager.php:694
 #: includes/admin/appearance/templates/button-styles.php:147
 #: includes/admin/assets/class-resources.php:245
 #: includes/admin/settings/templates/sections/labels.php:144
@@ -431,7 +431,7 @@ msgstr ""
 msgid "More details"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:681
+#: includes/admin/appearance/class-manager.php:695
 #: includes/admin/appearance/templates/button-styles.php:157
 #: includes/admin/settings/templates/sections/labels.php:176
 #: includes/admin/settings/templates/sections/labels.php:177
@@ -441,7 +441,7 @@ msgstr ""
 msgid "Zoom here"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:721
+#: includes/admin/appearance/class-manager.php:735
 #: includes/admin/appearance/templates/search-results.php:87
 #: includes/admin/settings/templates/sections/labels.php:128
 #: includes/admin/settings/templates/sections/labels.php:129
@@ -450,7 +450,7 @@ msgstr ""
 msgid "Phone"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:732
+#: includes/admin/appearance/class-manager.php:746
 #: includes/admin/appearance/templates/search-results.php:122
 #: includes/admin/settings/templates/fields-manager/field-input.php:19
 #: includes/admin/settings/templates/sections/labels.php:136
@@ -462,42 +462,42 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1140
+#: includes/admin/appearance/class-manager.php:1154
 #: includes/admin/appearance/templates/appearance-page.php:30
 msgid "Theme Style"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1147
+#: includes/admin/appearance/class-manager.php:1161
 #: includes/admin/appearance/templates/appearance-page.php:31
 msgid "Button Styles"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1154
+#: includes/admin/appearance/class-manager.php:1168
 #: includes/admin/appearance/templates/appearance-page.php:32
 msgid "Map Style"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1161
+#: includes/admin/appearance/class-manager.php:1175
 #: includes/admin/appearance/templates/appearance-page.php:33
 msgid "Font Size"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1168
+#: includes/admin/appearance/class-manager.php:1182
 #: includes/admin/appearance/templates/appearance-page.php:34
 msgid "Dimensions"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1175
+#: includes/admin/appearance/class-manager.php:1189
 #: includes/admin/appearance/templates/appearance-page.php:35
 msgid "Search Results"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1182
+#: includes/admin/appearance/class-manager.php:1196
 #: includes/admin/appearance/templates/appearance-page.php:36
 msgid "Accessibility"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1204
+#: includes/admin/appearance/class-manager.php:1218
 #: includes/admin/settings/templates/sections/labels.php:168
 #: includes/admin/settings/templates/sections/labels.php:169
 #: includes/admin/upgrade.php:276
@@ -506,12 +506,12 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1235
+#: includes/admin/appearance/class-manager.php:1249
 #: includes/admin/assets/class-resources.php:248
 msgid "Save Customization"
 msgstr ""
 
-#: includes/admin/appearance/class-manager.php:1236
+#: includes/admin/appearance/class-manager.php:1250
 #: includes/admin/assets/class-resources.php:255
 msgid "Restore Default Colors"
 msgstr ""
@@ -642,21 +642,21 @@ msgstr ""
 
 #: includes/admin/appearance/templates/dimensions.php:25
 #: includes/admin/appearance/templates/dimensions.php:43
-#: includes/admin/appearance/templates/dimensions.php:103
-#: includes/admin/appearance/templates/dimensions.php:121
+#: includes/admin/appearance/templates/dimensions.php:106
+#: includes/admin/appearance/templates/dimensions.php:124
 msgid "Map height"
 msgstr ""
 
 #: includes/admin/appearance/templates/dimensions.php:30
-#: includes/admin/appearance/templates/dimensions.php:108
+#: includes/admin/appearance/templates/dimensions.php:111
 msgid "Default mode sets the map height to 350px."
 msgstr ""
 
 #: includes/admin/appearance/templates/dimensions.php:32
-#: includes/admin/appearance/templates/dimensions.php:58
-#: includes/admin/appearance/templates/dimensions.php:84
-#: includes/admin/appearance/templates/dimensions.php:110
-#: includes/admin/appearance/templates/dimensions.php:132
+#: includes/admin/appearance/templates/dimensions.php:61
+#: includes/admin/appearance/templates/dimensions.php:87
+#: includes/admin/appearance/templates/dimensions.php:113
+#: includes/admin/appearance/templates/dimensions.php:135
 #: includes/admin/settings/class-marker-manager.php:366
 #: includes/admin/settings/class-marker-manager.php:379
 #: includes/admin/settings/class-ui.php:65
@@ -667,36 +667,40 @@ msgid "Default"
 msgstr ""
 
 #: includes/admin/appearance/templates/dimensions.php:33
-#: includes/admin/appearance/templates/dimensions.php:59
-#: includes/admin/appearance/templates/dimensions.php:85
-#: includes/admin/appearance/templates/dimensions.php:111
-#: includes/admin/appearance/templates/dimensions.php:133
-#: includes/admin/assets/class-manager.php:322
+#: includes/admin/appearance/templates/dimensions.php:62
+#: includes/admin/appearance/templates/dimensions.php:88
+#: includes/admin/appearance/templates/dimensions.php:114
+#: includes/admin/appearance/templates/dimensions.php:136
+#: includes/admin/assets/class-manager.php:325
 #: includes/admin/marker-studio/templates/marker-studio-page.php:323
 #: includes/admin/settings/class-ui.php:226
 msgid "Custom"
 msgstr ""
 
-#: includes/admin/appearance/templates/dimensions.php:51
-#: includes/admin/appearance/templates/dimensions.php:69
+#: includes/admin/appearance/templates/dimensions.php:55
+#: includes/admin/appearance/templates/dimensions.php:72
 msgid "Results height"
 msgstr ""
 
-#: includes/admin/appearance/templates/dimensions.php:56
+#: includes/admin/appearance/templates/dimensions.php:59
 msgid "Default mode sets the results height to 350px."
 msgstr ""
 
-#: includes/admin/appearance/templates/dimensions.php:77
-#: includes/admin/appearance/templates/dimensions.php:95
+#: includes/admin/appearance/templates/dimensions.php:63
+msgid "Show all results"
+msgstr ""
+
+#: includes/admin/appearance/templates/dimensions.php:80
+#: includes/admin/appearance/templates/dimensions.php:98
 msgid "Store locator height"
 msgstr ""
 
-#: includes/admin/appearance/templates/dimensions.php:82
+#: includes/admin/appearance/templates/dimensions.php:85
 msgid "Default mode sets the container height to 450px."
 msgstr ""
 
-#: includes/admin/appearance/templates/dimensions.php:130
-#: includes/admin/appearance/templates/dimensions.php:143
+#: includes/admin/appearance/templates/dimensions.php:133
+#: includes/admin/appearance/templates/dimensions.php:146
 msgid "Search field width"
 msgstr ""
 
@@ -950,12 +954,12 @@ msgid "More Details"
 msgstr ""
 
 #: includes/admin/assets/class-manager.php:110
-#: includes/admin/settings/templates/home.php:135
+#: includes/admin/settings/templates/home.php:136
 msgid "Save"
 msgstr ""
 
 #: includes/admin/assets/class-manager.php:111
-#: includes/admin/settings/templates/home.php:137
+#: includes/admin/settings/templates/home.php:138
 msgid "Save and verify"
 msgstr ""
 
@@ -1040,29 +1044,29 @@ msgstr ""
 msgid "What were you trying to do, and what happened instead?"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:203
+#: includes/admin/assets/class-manager.php:206
 #: includes/admin/assets/class-resources.php:206
 #: includes/admin/settings/templates/licenses.php:57
 msgid "Activate"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:205
+#: includes/admin/assets/class-manager.php:208
 msgid "Template activated successfully"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:206
+#: includes/admin/assets/class-manager.php:209
 msgid "Saving settings..."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:207
+#: includes/admin/assets/class-manager.php:210
 msgid "Settings saved successfully!"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:208
+#: includes/admin/assets/class-manager.php:211
 msgid "Error saving settings"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:321
+#: includes/admin/assets/class-manager.php:324
 #: includes/admin/settings/class-marker-manager.php:288
 #: includes/admin/settings/class-marker-manager.php:392
 #: assets/dist/admin/blocks/store-locator/index.js:1
@@ -1070,60 +1074,60 @@ msgstr ""
 msgid "Custom markers"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:323
+#: includes/admin/assets/class-manager.php:326
 #: includes/admin/settings/class-marker-manager.php:284
 msgid "Color"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:324
+#: includes/admin/assets/class-manager.php:327
 msgid "New marker color"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:325
-#: includes/admin/assets/class-manager.php:535
+#: includes/admin/assets/class-manager.php:328
+#: includes/admin/assets/class-manager.php:538
 #: includes/admin/map-shapes/templates/map-shapes-page.php:49
 #: includes/admin/marker-studio/templates/marker-studio-page.php:46
 msgid "Fill"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:326
-#: includes/admin/assets/class-manager.php:512
+#: includes/admin/assets/class-manager.php:329
+#: includes/admin/assets/class-manager.php:515
 #: includes/admin/marker-studio/templates/marker-studio-page.php:343
 msgid "Dot"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:327
+#: includes/admin/assets/class-manager.php:330
 #: includes/admin/marker-studio/templates/marker-studio-page.php:56
 msgid "Outline"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:328
+#: includes/admin/assets/class-manager.php:331
 msgid "Add color"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:329
+#: includes/admin/assets/class-manager.php:332
 #: includes/admin/settings/templates/dialog/delete-confirmation.php:10
 #: includes/admin/settings/templates/dialog/geocode-locations.php:35
-#: includes/admin/settings/templates/home.php:350
+#: includes/admin/settings/templates/home.php:351
 #: includes/admin/tools/class-geocode-locations.php:812
 msgid "Cancel"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:330
-#: includes/admin/assets/class-manager.php:541
+#: includes/admin/assets/class-manager.php:333
+#: includes/admin/assets/class-manager.php:544
 msgid "The marker could not be saved."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:502
+#: includes/admin/assets/class-manager.php:505
 msgid "New marker"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:503
+#: includes/admin/assets/class-manager.php:506
 msgid "Edit marker"
 msgstr ""
 
 #. translators: %d: a number of pixels.
-#: includes/admin/assets/class-manager.php:505
+#: includes/admin/assets/class-manager.php:508
 #: includes/admin/marker-studio/templates/marker-studio-page.php:237
 #: includes/admin/marker-studio/templates/marker-studio-page.php:245
 #, php-format
@@ -1131,216 +1135,216 @@ msgid "%dpx"
 msgstr ""
 
 #. translators: %d: a percentage of the default icon size.
-#: includes/admin/assets/class-manager.php:507
+#: includes/admin/assets/class-manager.php:510
 #, php-format
 msgid "%d%%"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:508
+#: includes/admin/assets/class-manager.php:511
 msgid "No icons match that search."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:515
+#: includes/admin/assets/class-manager.php:518
 #: includes/admin/marker-studio/templates/marker-studio-page.php:216
 msgid "Icon size"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:516
+#: includes/admin/assets/class-manager.php:519
 msgid "Text size"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:523
+#: includes/admin/assets/class-manager.php:526
 #: includes/admin/assets/class-resources.php:257
 msgid "Very low contrast"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:524
+#: includes/admin/assets/class-manager.php:527
 #: includes/admin/assets/class-resources.php:258
 msgid "Low contrast"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:525
+#: includes/admin/assets/class-manager.php:528
 msgid "— the icon will be hard to see on this background."
 msgstr ""
 
 #. translators: 1: opening link tag to the WebAIM contrast article, 2: closing link tag. %s is replaced by the current ratio, e.g. 1.4
-#: includes/admin/assets/class-manager.php:528
+#: includes/admin/assets/class-manager.php:531
 #, php-format
 msgid "Icons need a %1$scontrast ratio%2$s of at least 3:1 to stay visible ( you have %%s:1 )."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:532
+#: includes/admin/assets/class-manager.php:535
 #: includes/admin/assets/class-resources.php:260
 msgid "Auto fix"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:537
+#: includes/admin/assets/class-manager.php:540
 #: includes/admin/marker-studio/templates/marker-studio-page.php:319
 msgid "All categories"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:538
+#: includes/admin/assets/class-manager.php:541
 msgid "This marker uses an icon that is no longer available. Pick another one."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:539
+#: includes/admin/assets/class-manager.php:542
 #: includes/admin/map-shapes/class-manager.php:384
 msgid "Saving…"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:540
+#: includes/admin/assets/class-manager.php:543
 msgid "Marker saved."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:542
+#: includes/admin/assets/class-manager.php:545
 msgid "Something went wrong while saving the marker."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:543
+#: includes/admin/assets/class-manager.php:546
 msgid "Delete this marker permanently?"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:544
+#: includes/admin/assets/class-manager.php:547
 msgid "This can't be undone."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:545
+#: includes/admin/assets/class-manager.php:548
 msgid "Marker deleted."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:546
+#: includes/admin/assets/class-manager.php:549
 msgid "The marker could not be deleted."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:547
+#: includes/admin/assets/class-manager.php:550
 msgid "Something went wrong while deleting the marker."
 msgstr ""
 
 #. translators: %s: the name of the marker being duplicated.
-#: includes/admin/assets/class-manager.php:549
+#: includes/admin/assets/class-manager.php:552
 #, php-format
 msgid "Copy of %s"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:550
+#: includes/admin/assets/class-manager.php:553
 msgid "Shortcode ID copied."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:551
+#: includes/admin/assets/class-manager.php:554
 msgid "Could not copy. The ID is selected — press Ctrl+C ( ⌘C on a Mac )."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:553
+#: includes/admin/assets/class-manager.php:556
 #: includes/admin/marker-studio/templates/marker-studio-page.php:499
 #: includes/admin/marker-studio/templates/marker-studio-page.php:512
 msgid "Shortcode ID"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:554
+#: includes/admin/assets/class-manager.php:557
 #: includes/admin/marker-studio/templates/marker-studio-page.php:410
 msgid "Upload Logo"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:555
+#: includes/admin/assets/class-manager.php:558
 msgid "SVG images are not accepted. Use a PNG or a WebP."
 msgstr ""
 
 #. translators: %s: the largest allowed file size, e.g. "256 KB".
-#: includes/admin/assets/class-manager.php:557
+#: includes/admin/assets/class-manager.php:560
 #, php-format
 msgid "That image is larger than the %s limit. Pick a smaller one."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:558
+#: includes/admin/assets/class-manager.php:561
 #: includes/admin/marker-studio/templates/marker-studio-page.php:330
 msgid "Replace"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:559
+#: includes/admin/assets/class-manager.php:562
 #: includes/admin/marker-studio/templates/marker-studio-page.php:333
 msgid "Remove"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:560
+#: includes/admin/assets/class-manager.php:563
 #: includes/admin/marker-studio/templates/marker-studio-page.php:338
 msgid "This logo is no longer in your Media Library."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:561
+#: includes/admin/assets/class-manager.php:564
 #: includes/admin/marker-studio/templates/marker-studio-page.php:364
 msgid "Remove from marker logos"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:562
+#: includes/admin/assets/class-manager.php:565
 msgid "The logo could not be removed. Please try again."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:563
+#: includes/admin/assets/class-manager.php:566
 msgid "Removed from your marker logos. The image is still in your Media Library."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:564
+#: includes/admin/assets/class-manager.php:567
 #: includes/admin/map-shapes/templates/map-shapes-page.php:173
 msgid "Undo"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:565
+#: includes/admin/assets/class-manager.php:568
 msgid "That logo could not be put back. Pick it from your Media Library again."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:566
+#: includes/admin/assets/class-manager.php:569
 #: includes/core/markers/class-custom-markers.php:507
 msgid "Pick an image for the marker first."
 msgstr ""
 
 #. translators: %s: the name of the marker with unsaved changes.
-#: includes/admin/assets/class-manager.php:570
+#: includes/admin/assets/class-manager.php:573
 #, php-format
 msgid "You have unsaved changes to '%s'. Discard them?"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:573
+#: includes/admin/assets/class-manager.php:576
 #: includes/admin/marker-studio/templates/marker-studio-page.php:293
 #: includes/core/markers/class-custom-markers.php:1177
 msgid "Untitled marker"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:574
+#: includes/admin/assets/class-manager.php:577
 msgid "No markers yet. Design one on the right and save it."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:575
+#: includes/admin/assets/class-manager.php:578
 msgid "No markers match that search."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:576
+#: includes/admin/assets/class-manager.php:579
 msgid "Previous page"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:577
+#: includes/admin/assets/class-manager.php:580
 msgid "Next page"
 msgstr ""
 
 #. translators: %d: a page number.
-#: includes/admin/assets/class-manager.php:579
+#: includes/admin/assets/class-manager.php:582
 #, php-format
 msgid "Go to page %d"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:595
+#: includes/admin/assets/class-manager.php:598
 msgid "This is your default store marker. Stores using it will fall back to the standard pin."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:596
+#: includes/admin/assets/class-manager.php:599
 msgid "This is your start point marker. The search start point will fall back to the standard pin."
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:597
+#: includes/admin/assets/class-manager.php:600
 msgid "This is your active store marker. Highlighted stores will fall back to the standard pin."
 msgstr ""
 
 #. translators: %d: the number of store categories using this marker.
-#: includes/admin/assets/class-manager.php:628
+#: includes/admin/assets/class-manager.php:631
 #, php-format
 msgid "%d store category uses it and will fall back to the default marker."
 msgid_plural "%d store categories use it and will fall back to the default marker."
@@ -1348,19 +1352,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: the number of locations using this marker.
-#: includes/admin/assets/class-manager.php:641
+#: includes/admin/assets/class-manager.php:644
 #, php-format
 msgid "%d location uses it and will fall back to the default marker."
 msgid_plural "%d locations use it and will fall back to the default marker."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/assets/class-manager.php:770
+#: includes/admin/assets/class-manager.php:773
 #: includes/admin/onboarding/templates/map-service.php:8
 msgid "Welcome to WP Store Locator"
 msgstr ""
 
-#: includes/admin/assets/class-manager.php:771
+#: includes/admin/assets/class-manager.php:774
 msgid "Sign up for the latest plugin updates and announcements."
 msgstr ""
 
@@ -1549,12 +1553,12 @@ msgstr ""
 
 #: includes/admin/assets/class-resources.php:103
 #: includes/admin/onboarding/class-manager.php:686
-#: includes/admin/settings/class-validate-keys.php:632
+#: includes/admin/settings/class-validate-keys.php:642
 msgid "No problems found with the Mapbox API key."
 msgstr ""
 
 #: includes/admin/assets/class-resources.php:104
-#: includes/admin/home/class-home.php:857
+#: includes/admin/home/class-home.php:885
 #: includes/admin/onboarding/class-manager.php:882
 #: includes/admin/settings/templates/sections/api.php:122
 msgid "Server key"
@@ -1567,7 +1571,7 @@ msgid "No %1$sserver key%2$s found!"
 msgstr ""
 
 #: includes/admin/assets/class-resources.php:107
-#: includes/admin/home/class-home.php:856
+#: includes/admin/home/class-home.php:884
 #: includes/admin/onboarding/class-manager.php:875
 #: includes/admin/settings/templates/sections/api.php:119
 msgid "Browser key"
@@ -1881,15 +1885,15 @@ msgstr ""
 #: includes/admin/marker-studio/templates/marker-studio-page.php:513
 #: includes/admin/settings/templates/dialog/insert-field-editor.php:62
 #: includes/admin/settings/templates/home.php:68
-#: includes/admin/settings/templates/home.php:245
-#: includes/admin/settings/templates/home.php:251
+#: includes/admin/settings/templates/home.php:246
+#: includes/admin/settings/templates/home.php:252
 msgid "Copy"
 msgstr ""
 
 #: includes/admin/assets/class-resources.php:198
 #: includes/admin/settings/templates/home.php:68
-#: includes/admin/settings/templates/home.php:245
-#: includes/admin/settings/templates/home.php:251
+#: includes/admin/settings/templates/home.php:246
+#: includes/admin/settings/templates/home.php:252
 msgid "Copied"
 msgstr ""
 
@@ -2169,14 +2173,14 @@ msgstr ""
 #: includes/admin/home/class-home.php:392
 #: includes/admin/home/class-home.php:415
 #: includes/admin/home/class-home.php:537
-#: includes/admin/home/class-home.php:1014
+#: includes/admin/home/class-home.php:1045
 #: includes/admin/home/class-simple-mode.php:270
 msgid "Security check failed. Please reload the page and try again."
 msgstr ""
 
 #: includes/admin/class-controller.php:569
 #: includes/admin/settings/templates/exit-survey.php:21
-#: includes/admin/settings/templates/home.php:265
+#: includes/admin/settings/templates/home.php:266
 msgid "Documentation"
 msgstr ""
 
@@ -2200,57 +2204,57 @@ msgid "All Stores"
 msgstr ""
 
 #: includes/admin/core/class-admin-bar-menu.php:192
-#: includes/admin/settings/templates/home.php:274
+#: includes/admin/settings/templates/home.php:275
 msgid "Support"
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:103
+#: includes/admin/core/class-alerts.php:120
 msgid "The Agile Store Locator plugin is active. If you experience problems with the WP Store Locator map, go to <a href=\"#\" class=\"wpsl-trigger-nav\" data-item=\"tools\">Tools</a> and enable compatibility mode."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:107
+#: includes/admin/core/class-alerts.php:124
 msgid "WP Go Maps is active. If you experience problems with the WP Store Locator map, go to <a href=\"#\" class=\"wpsl-trigger-nav\" data-item=\"tools\">Tools</a> and enable compatibility mode."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:111
+#: includes/admin/core/class-alerts.php:128
 msgid "WP Maps is active. If you experience problems with the WP Store Locator map, go to <a href=\"#\" class=\"wpsl-trigger-nav\" data-item=\"tools\">Tools</a> and enable compatibility mode."
 msgstr ""
 
 #. translators: %s: link to the GDPR documentation, with the text "additional configuration"
-#: includes/admin/core/class-alerts.php:116
+#: includes/admin/core/class-alerts.php:133
 #, php-format
 msgid "Borlabs Cookie requires %s to work with WP Store Locator."
 msgstr ""
 
 #. translators: %s: link to the GDPR documentation, with the text "additional configuration"
-#: includes/admin/core/class-alerts.php:116
+#: includes/admin/core/class-alerts.php:133
 msgid "additional configuration"
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:120
+#: includes/admin/core/class-alerts.php:137
 msgid "Complianz is active. To let it decide when the map may load, go to <a href=\"#\" class=\"wpsl-trigger-nav\" data-item=\"gdpr\">GDPR</a> and set the consent handler to Complianz."
 msgstr ""
 
 #. translators: 1: consent plugin name, 2: link to the GDPR settings tab
-#: includes/admin/core/class-alerts.php:178
+#: includes/admin/core/class-alerts.php:195
 #, php-format
 msgid "The consent handler is set to %1$s, but the %1$s plugin is not active, so the map now loads without asking for consent. Either activate %1$s again, or go to %2$s and switch the handler to WP Store Locator to use its own checkpoint - or to None if the map may load straight away."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:180
+#: includes/admin/core/class-alerts.php:197
 #: includes/admin/settings/class-settings-service.php:151
 #: includes/admin/settings/templates/sections/gdpr.php:10
 msgid "GDPR"
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:225
+#: includes/admin/core/class-alerts.php:242
 #: includes/admin/map-shapes/templates/map-shapes-page.php:97
 #: includes/core/post-types/class-register.php:218
 msgid "Coordinates"
 msgstr ""
 
 #. translators: %d: number of locations without usable coordinates
-#: includes/admin/core/class-alerts.php:229
+#: includes/admin/core/class-alerts.php:246
 #, php-format
 msgid "%d location has no usable coordinates, so it is never returned by a search."
 msgid_plural "%d locations have no usable coordinates, so they are never returned by a search."
@@ -2258,91 +2262,102 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: opening link tag to the filtered store list, 2: closing link tag
-#: includes/admin/core/class-alerts.php:238
+#: includes/admin/core/class-alerts.php:255
 #, php-format
 msgid "%1$sReview and geocode them%2$s."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:283
+#: includes/admin/core/class-alerts.php:300
 msgid "Routes API"
 msgstr ""
 
 #. translators: 1: opening link tag to the Routes API page in the Google Cloud console, 2: closing link tag
-#: includes/admin/core/class-alerts.php:287
+#: includes/admin/core/class-alerts.php:304
 #, php-format
 msgid "Directions now go through the Google Routes API, which your Google Cloud project may not have enabled yet. %1$sEnable the Routes API%2$s, otherwise the Directions button on the map keeps failing."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:307
+#: includes/admin/core/class-alerts.php:345
+msgid "Google Maps server key"
+msgstr ""
+
+#. translators: 1: opening link tag to the API settings, 2: closing link tag
+#: includes/admin/core/class-alerts.php:349
+#, php-format
+msgid "Your Google Maps server key was carried over from the previous version, but Google rejected it. New and edited locations cannot be geocoded until it is fixed. See the details below, then %1$ssave and verify the key%2$s again."
+msgstr ""
+
+#: includes/admin/core/class-alerts.php:370
 msgid "Why this changed"
 msgstr ""
 
 #. translators: 1: opening link tag to the Directions API documentation, 2: closing link tag
-#: includes/admin/core/class-alerts.php:310
+#: includes/admin/core/class-alerts.php:373
 #, php-format
 msgid "Version 2 requested directions through the Directions service of the Maps JavaScript API, which runs on the legacy %1$sDirections API%2$s. Google no longer offers that API to new projects and is retiring it, so version 3 switched to its replacement, the Routes API. It is a separate product in Google Cloud: enabling the Maps JavaScript API does not enable it, and an existing browser key does not get access to it on its own."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:315
+#: includes/admin/core/class-alerts.php:378
 msgid "What happens until it is enabled"
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:316
+#: includes/admin/core/class-alerts.php:379
 msgid "The map, the search and the store list keep working. Clicking Directions shows a notice that the Routes API has to be enabled instead of the route."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:318
+#: includes/admin/core/class-alerts.php:381
 msgid "What to do"
 msgstr ""
 
 #. translators: 1: opening link tag to the Routes API page in the Google Cloud console, 2: closing link tag
-#: includes/admin/core/class-alerts.php:322
+#: includes/admin/core/class-alerts.php:385
 #, php-format
 msgid "Open the %1$sRoutes API%2$s page in the Google Cloud console and select the project that holds your Google Maps API keys."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:326
+#: includes/admin/core/class-alerts.php:389
 msgid "Click Enable. The Routes API is billed through the same billing account as the Maps JavaScript API, so no new account is needed."
 msgstr ""
 
 #. translators: 1: opening link tag to the Credentials page in the Google Cloud console, 2: closing link tag
-#: includes/admin/core/class-alerts.php:329
+#: includes/admin/core/class-alerts.php:392
 #, php-format
 msgid "If the browser key has API restrictions, open %1$sCredentials%2$s, edit the key and add the Routes API to the allowed APIs."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:333
+#: includes/admin/core/class-alerts.php:396
 msgid "Request directions for a store on your site to confirm the route renders, then dismiss this alert."
 msgstr ""
 
 #. translators: 1: add-on name, 2: installed version, 3: latest available version
-#: includes/admin/core/class-alerts.php:366
+#: includes/admin/core/class-alerts.php:429
 #, php-format
 msgid "You are running %1$s %2$s. The latest version is %3$s."
 msgstr ""
 
 #. translators: 1: opening link tag to the Plugins screen, 2: closing link tag, 3: opening link tag to the wpstorelocator.co account page, 4: closing link tag
-#: includes/admin/core/class-alerts.php:372
+#: includes/admin/core/class-alerts.php:435
 #, php-format
 msgid "%1$sNo update showing%2$s? Download it from your %3$saccount page%4$s."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:609
+#: includes/admin/core/class-alerts.php:673
 #: includes/core/class-legacy-addons.php:483
 msgid "Permission denied."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:615
+#: includes/admin/core/class-alerts.php:679
 msgid "Invalid plugin."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:637
-#: includes/admin/core/class-alerts.php:655
-#: includes/admin/core/class-alerts.php:694
+#: includes/admin/core/class-alerts.php:701
+#: includes/admin/core/class-alerts.php:719
+#: includes/admin/core/class-alerts.php:729
+#: includes/admin/core/class-alerts.php:768
 msgid "Alert dismissed."
 msgstr ""
 
-#: includes/admin/core/class-alerts.php:663
+#: includes/admin/core/class-alerts.php:737
 msgid "Alert not found."
 msgstr ""
 
@@ -2608,14 +2623,14 @@ msgstr ""
 
 #: includes/admin/home/class-home.php:237
 #: includes/admin/home/class-home.php:396
-#: includes/admin/home/class-home.php:1018
+#: includes/admin/home/class-home.php:1049
 #: includes/admin/home/class-simple-mode.php:274
 #: includes/admin/settings/class-field-manager.php:61
 #: includes/admin/settings/class-section-editor.php:162
-#: includes/admin/settings/class-validate-keys.php:63
-#: includes/admin/settings/class-validate-keys.php:582
+#: includes/admin/settings/class-validate-keys.php:74
+#: includes/admin/settings/class-validate-keys.php:592
 #: includes/admin/tools/class-data-management.php:65
-#: includes/admin/tools/class-data-management.php:517
+#: includes/admin/tools/class-data-management.php:518
 #: includes/admin/tools/class-geocode-locations.php:890
 #: includes/admin/tools/class-hours-converter.php:117
 msgid "You do not have permission to perform this action."
@@ -2651,19 +2666,30 @@ msgstr ""
 msgid "Store Locator"
 msgstr ""
 
-#: includes/admin/home/class-home.php:623
+#. translators: %s: the map service name, e.g. Google Maps
+#: includes/admin/home/class-home.php:624
+#, php-format
+msgid "Fix your %s API key"
+msgstr ""
+
+#. translators: %s: the map service name, e.g. Google Maps
+#: includes/admin/home/class-home.php:624
 msgid "Choose a map service"
 msgstr ""
 
-#: includes/admin/home/class-home.php:630
+#: includes/admin/home/class-home.php:629
+msgid "An invalid API key was detected. Open this step and press \"Save and verify\" to see what is wrong with it."
+msgstr ""
+
+#: includes/admin/home/class-home.php:633
 msgid "Add your first location"
 msgstr ""
 
-#: includes/admin/home/class-home.php:644
+#: includes/admin/home/class-home.php:648
 msgid "Add the store locator to a page"
 msgstr ""
 
-#: includes/admin/home/class-home.php:682
+#: includes/admin/home/class-home.php:686
 #: includes/core/functions/functions-settings.php:224
 #: includes/core/store/class-fields-manager.php:55
 #: includes/core/store/class-fields-manager.php:117
@@ -2672,15 +2698,15 @@ msgid_plural "Locations"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/home/class-home.php:686
+#: includes/admin/home/class-home.php:690
 msgid "draft"
 msgstr ""
 
-#: includes/admin/home/class-home.php:691
+#: includes/admin/home/class-home.php:695
 msgid "pending"
 msgstr ""
 
-#: includes/admin/home/class-home.php:699
+#: includes/admin/home/class-home.php:703
 #: includes/admin/settings/templates/sections/labels.php:83
 #: includes/core/settings/class-manager.php:730
 #: includes/core/templates/class-filters.php:202
@@ -2689,29 +2715,35 @@ msgid_plural "Categories"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/home/class-home.php:705
+#: includes/admin/home/class-home.php:709
 msgid "Custom marker"
 msgid_plural "Custom markers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/home/class-home.php:713
+#: includes/admin/home/class-home.php:717
 msgid "Add your first"
 msgstr ""
 
-#: includes/admin/home/class-home.php:818
-#: includes/admin/home/class-home.php:822
+#: includes/admin/home/class-home.php:825
+#: includes/admin/home/class-home.php:829
 msgid "Choose a map service before you add locations."
 msgstr ""
 
 #. translators: %s: the map service name, e.g. Mapbox
-#: includes/admin/home/class-home.php:834
+#: includes/admin/home/class-home.php:857
+#, php-format
+msgid "Fix your %s API key in the step above first. Locations cannot be added until it works."
+msgstr ""
+
+#. translators: %s: the map service name, e.g. Mapbox
+#: includes/admin/home/class-home.php:860
 #, php-format
 msgid "%s needs a valid API key before you can add locations."
 msgstr ""
 
-#: includes/admin/home/class-home.php:858
-#: includes/admin/home/class-home.php:859
+#: includes/admin/home/class-home.php:886
+#: includes/admin/home/class-home.php:887
 #: includes/admin/onboarding/class-manager.php:905
 #: includes/admin/onboarding/class-manager.php:926
 #: includes/admin/settings/templates/sections/api.php:30
@@ -2719,23 +2751,23 @@ msgstr ""
 msgid "API key"
 msgstr ""
 
-#: includes/admin/home/class-home.php:864
+#: includes/admin/home/class-home.php:892
 msgid "How to create the Google Maps API keys"
 msgstr ""
 
-#: includes/admin/home/class-home.php:865
+#: includes/admin/home/class-home.php:893
 msgid "How to create a Mapbox API key"
 msgstr ""
 
-#: includes/admin/home/class-home.php:866
+#: includes/admin/home/class-home.php:894
 msgid "How to create a Stadia Maps API key"
 msgstr ""
 
-#: includes/admin/home/class-home.php:939
+#: includes/admin/home/class-home.php:970
 msgid "Choose a map service first."
 msgstr ""
 
-#: includes/admin/home/class-home.php:978
+#: includes/admin/home/class-home.php:1009
 msgid "The browser key is missing."
 msgstr ""
 
@@ -4079,47 +4111,47 @@ msgstr ""
 msgid "The autocomplete results are automatically restricted to the selected countries in the %1$sAPI section%2$s."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:58
-#: includes/admin/settings/class-validate-keys.php:576
+#: includes/admin/settings/class-validate-keys.php:69
+#: includes/admin/settings/class-validate-keys.php:586
 msgid "Security check failed."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:344
-#: includes/admin/settings/class-validate-keys.php:364
-#: includes/admin/settings/class-validate-keys.php:625
+#: includes/admin/settings/class-validate-keys.php:354
+#: includes/admin/settings/class-validate-keys.php:374
+#: includes/admin/settings/class-validate-keys.php:635
 msgid "The Google Geocode API returned the following error for the server key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:374
-#: includes/admin/settings/class-validate-keys.php:626
+#: includes/admin/settings/class-validate-keys.php:384
+#: includes/admin/settings/class-validate-keys.php:636
 msgid "No problems found with the server key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:400
-#: includes/admin/settings/class-validate-keys.php:637
+#: includes/admin/settings/class-validate-keys.php:410
+#: includes/admin/settings/class-validate-keys.php:647
 msgid "The Stadia Maps API has returned the following error for the used API key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:454
-#: includes/admin/settings/class-validate-keys.php:638
+#: includes/admin/settings/class-validate-keys.php:464
+#: includes/admin/settings/class-validate-keys.php:648
 msgid "No problems found with the Stadia Maps API key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:463
+#: includes/admin/settings/class-validate-keys.php:473
 msgid "The Stadia Maps API key is valid, but it has no access to the reverse geocoding endpoint."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:465
+#: includes/admin/settings/class-validate-keys.php:475
 msgid "Searching works normally. The \"Attempt to auto-locate the user\" option will still find and search on the visitor location, but cannot fill their address into the search field."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:468
+#: includes/admin/settings/class-validate-keys.php:478
 #: includes/frontend/assets/class-resources.php:791
 msgid "Please upgrade your account"
 msgstr ""
 
 #. translators: 1: HTTP status code, 2: error reason from the API
-#: includes/admin/settings/class-validate-keys.php:499
+#: includes/admin/settings/class-validate-keys.php:509
 #: includes/core/functions/functions-api-keys.php:125
 #: includes/core/functions/functions-api-keys.php:173
 #: includes/core/functions/functions-api-keys.php:229
@@ -4128,7 +4160,7 @@ msgid "Error code: %1$s"
 msgstr ""
 
 #. translators: 1: HTTP status code, 2: error reason from the API
-#: includes/admin/settings/class-validate-keys.php:499
+#: includes/admin/settings/class-validate-keys.php:509
 #: includes/core/functions/functions-api-keys.php:125
 #: includes/core/functions/functions-api-keys.php:173
 #: includes/core/functions/functions-api-keys.php:229
@@ -4137,33 +4169,33 @@ msgid "Reason: %1$s"
 msgstr ""
 
 #. translators: 1: opening link tag to the Openrouteservice account page, 2: closing link tag
-#: includes/admin/settings/class-validate-keys.php:502
+#: includes/admin/settings/class-validate-keys.php:512
 #, php-format
 msgid "Double-check the key in your %1$sOpenrouteservice account%2$s."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:507
-#: includes/admin/settings/class-validate-keys.php:545
+#: includes/admin/settings/class-validate-keys.php:517
+#: includes/admin/settings/class-validate-keys.php:555
 msgid "The Openrouteservice API has returned the following error for the used API key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:529
+#: includes/admin/settings/class-validate-keys.php:539
 msgid "No problems found with the Openrouteservice API key."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:594
+#: includes/admin/settings/class-validate-keys.php:604
 msgid "Invalid key type."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:627
+#: includes/admin/settings/class-validate-keys.php:637
 msgid "The server key is missing."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:633
+#: includes/admin/settings/class-validate-keys.php:643
 msgid "The Mapbox API key is missing."
 msgstr ""
 
-#: includes/admin/settings/class-validate-keys.php:639
+#: includes/admin/settings/class-validate-keys.php:649
 msgid "The Stadia Maps API key is missing."
 msgstr ""
 
@@ -4515,7 +4547,7 @@ msgid "What does it offer that WP Store Locator doesn't?"
 msgstr ""
 
 #: includes/admin/settings/templates/exit-survey.php:42
-#: includes/admin/settings/templates/home.php:321
+#: includes/admin/settings/templates/home.php:322
 msgid "Missing feature"
 msgstr ""
 
@@ -4558,7 +4590,7 @@ msgstr ""
 #: includes/admin/settings/templates/fields-manager/field-input.php:8
 #: includes/admin/settings/templates/fields-manager/field-input.php:12
 #: includes/admin/settings/templates/fields-manager/field-input.php:32
-#: includes/admin/settings/templates/home.php:122
+#: includes/admin/settings/templates/home.php:123
 #: includes/admin/settings/templates/sections/api.php:31
 #: includes/admin/settings/templates/sections/api.php:53
 #: includes/admin/settings/templates/sections/api.php:120
@@ -4630,7 +4662,7 @@ msgid "Paste this where the locator should appear."
 msgstr ""
 
 #: includes/admin/settings/templates/home.php:66
-#: includes/admin/settings/templates/home.php:243
+#: includes/admin/settings/templates/home.php:244
 msgid "Store locator shortcode"
 msgstr ""
 
@@ -4666,103 +4698,103 @@ msgstr ""
 msgid "Tick this when the locator is somewhere we cannot see it: a draft, a template, a widget or a page builder. It only ticks the step off this list."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:106
+#: includes/admin/settings/templates/home.php:107
 #: includes/admin/settings/templates/sections/api.php:25
 msgid "Map service"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:159
+#: includes/admin/settings/templates/home.php:160
 msgid "Nothing to set up yet."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:227
+#: includes/admin/settings/templates/home.php:228
 msgid "Alerts"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:239
+#: includes/admin/settings/templates/home.php:240
 msgid "Shortcode"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:241
+#: includes/admin/settings/templates/home.php:242
 msgid "Paste this on the page where the store locator should appear."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:247
+#: includes/admin/settings/templates/home.php:248
 msgid "Only the map, without the search form and the results list. Add id=\"123\" to show a single store."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:249
+#: includes/admin/settings/templates/home.php:250
 msgid "Store map shortcode"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:253
+#: includes/admin/settings/templates/home.php:254
 msgid "Need category filters or a different map size? The shortcode generator in the post editor builds one with those options."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:254
+#: includes/admin/settings/templates/home.php:255
 msgid "All shortcode options"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:258
+#: includes/admin/settings/templates/home.php:259
 msgid "Help & Resources"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:266
+#: includes/admin/settings/templates/home.php:267
 msgid "Guides for every screen, setting and shortcode."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:275
+#: includes/admin/settings/templates/home.php:276
 msgid "Stuck on something? Open a support ticket."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:300
-#: includes/admin/settings/templates/home.php:310
+#: includes/admin/settings/templates/home.php:301
+#: includes/admin/settings/templates/home.php:311
 msgid "Send feedback"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:317
+#: includes/admin/settings/templates/home.php:318
 msgid "Tell us what's missing, broken, or could be better."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:319
+#: includes/admin/settings/templates/home.php:320
 msgid "What kind of feedback do you have?"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:322
+#: includes/admin/settings/templates/home.php:323
 msgid "General feedback"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:323
+#: includes/admin/settings/templates/home.php:324
 msgid "Report an issue"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:327
+#: includes/admin/settings/templates/home.php:328
 msgid "Your feedback"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:328
+#: includes/admin/settings/templates/home.php:329
 msgid "What would you like to tell us?"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:332
+#: includes/admin/settings/templates/home.php:333
 msgid "Include site info so we can reproduce it"
 msgstr ""
 
 #. translators: %s: line breaks
-#: includes/admin/settings/templates/home.php:335
+#: includes/admin/settings/templates/home.php:336
 #, php-format
 msgid "Sent with your message: %1$s WordPress, PHP and server versions %1$s Your store and category counts %1$s This plugin's settings %1$s The active theme and the active plugins %1$s No store data, and no personal details beyond the email address you choose to add."
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:339
+#: includes/admin/settings/templates/home.php:340
 msgid "Include my email address so we can respond"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:342
+#: includes/admin/settings/templates/home.php:343
 msgid "Email address"
 msgstr ""
 
-#: includes/admin/settings/templates/home.php:348
+#: includes/admin/settings/templates/home.php:349
 msgid "Send"
 msgstr ""
 
@@ -4842,7 +4874,7 @@ msgstr ""
 #: includes/admin/settings/templates/sections/markers.php:142
 #: includes/admin/settings/templates/sections/search.php:205
 #: includes/admin/settings/templates/sections/tools.php:117
-#: includes/admin/settings/templates/sections/ux.php:107
+#: includes/admin/settings/templates/sections/ux.php:103
 msgid "Save Changes"
 msgstr ""
 
@@ -5912,131 +5944,127 @@ msgid "Run again"
 msgstr ""
 
 #: includes/admin/settings/templates/sections/ux.php:11
-msgid "Hide the scrollbar?"
-msgstr ""
-
-#: includes/admin/settings/templates/sections/ux.php:15
 msgid "Open links in a new window?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:19
+#: includes/admin/settings/templates/sections/ux.php:15
 msgid "Show a reset map button?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:23
+#: includes/admin/settings/templates/sections/ux.php:19
 msgid "Show the route on an external website?"
 msgstr ""
 
 #. translators: %s: line breaks
-#: includes/admin/settings/templates/sections/ux.php:23
+#: includes/admin/settings/templates/sections/ux.php:19
 #, php-format
 msgid "When enabled, clicking the directions link opens the route on an external website in a new window. %sWhen disabled, the route is drawn directly on the map embedded in your page."
 msgstr ""
 
 #. translators: %1$s: line breaks, %2$s: opening link tag to the API section, %3$s: closing link tag
-#: includes/admin/settings/templates/sections/ux.php:23
+#: includes/admin/settings/templates/sections/ux.php:19
 #, php-format
 msgid "Rendering directions on the embedded OpenStreetMap requires a valid Openrouteservice API key. %1$s You can add one in the %2$sAPI section%3$s."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:44
+#: includes/admin/settings/templates/sections/ux.php:40
 msgid "Make the contact details always clickable?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:51
+#: includes/admin/settings/templates/sections/ux.php:47
 msgid "Hide days marked as closed in the opening hours?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:55
+#: includes/admin/settings/templates/sections/ux.php:51
 msgid "Show the current open / closed status?"
 msgstr ""
 
 #. translators: %s: line breaks
-#: includes/admin/settings/templates/sections/ux.php:55
+#: includes/admin/settings/templates/sections/ux.php:51
 #, php-format
 msgid "When this option is enabled, the results that are loaded automatically on page load are no longer cached. %s The open / closed status is part of the results, and serving it from a cache could show an outdated status."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:60
+#: includes/admin/settings/templates/sections/ux.php:56
 msgid "Make the current opening status expandable in the search results?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:66
+#: includes/admin/settings/templates/sections/ux.php:62
 msgid "Make the store name clickable if a store URL exists?"
 msgstr ""
 
 #. translators: %1$s: opening link tag to permalink settings, %2$s: closing link tag
-#: includes/admin/settings/templates/sections/ux.php:66
+#: includes/admin/settings/templates/sections/ux.php:62
 #, php-format
 msgid "This only applies when %1$spermalinks%2$s are disabled. With permalinks enabled, the store name always links to its store page instead of the store URL."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:70
+#: includes/admin/settings/templates/sections/ux.php:66
 msgid "Make the phone number clickable on mobile devices?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:74
+#: includes/admin/settings/templates/sections/ux.php:70
 msgid "Show a \"Street view\" link in the info window when available for the location?"
 msgstr ""
 
 #. translators: %s: line breaks
-#: includes/admin/settings/templates/sections/ux.php:74
+#: includes/admin/settings/templates/sections/ux.php:70
 #, php-format
 msgid "Enabling this option can sometimes result in a small delay in the opening of the info window. %s This happens because an API request is made to Google Maps to check if street view is available for the current location."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:78
+#: includes/admin/settings/templates/sections/ux.php:74
 msgid "Show a \"Zoom here\" link in the info window?"
 msgstr ""
 
 #. translators: %1$s: opening link tag to zoom level setting, %2$s: closing link tag
-#: includes/admin/settings/templates/sections/ux.php:78
+#: includes/admin/settings/templates/sections/ux.php:74
 #, php-format
 msgid "Clicking this link will make the map zoom in to the %1$s max auto zoom level %2$s."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:82
+#: includes/admin/settings/templates/sections/ux.php:78
 msgid "On page load move the mouse cursor to the search field?"
 msgstr ""
 
 #. translators: %1$s: line breaks, %2$s: opening em tag, %3$s: closing em tag
-#: includes/admin/settings/templates/sections/ux.php:82
+#: includes/admin/settings/templates/sections/ux.php:78
 #, php-format
 msgid "If the store locator is not placed at the top of the page, enabling this feature can result in the page scrolling down. %1$s %2$sThis option is disabled on mobile devices.%3$s"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:86
+#: includes/admin/settings/templates/sections/ux.php:82
 msgid "Hide the country in the results?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:90
+#: includes/admin/settings/templates/sections/ux.php:86
 msgid "Hide the distance in the results?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:94
+#: includes/admin/settings/templates/sections/ux.php:90
 msgid "When hovering over a search result, the matching marker"
 msgstr ""
 
 #. translators: %1$s: line breaks, %2$s: line breaks
-#: includes/admin/settings/templates/sections/ux.php:94
+#: includes/admin/settings/templates/sections/ux.php:90
 #, php-format
 msgid "If marker clusters are enabled, this option will not work as expected while the markers are clustered. %1$s The bouncing of the marker won't be visible at all, unless a user zooms in far enough for the marker cluster to change back to individual markers. %2$s The info window will open as expected, but it won't be clear to which marker it belongs to. "
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:98
+#: includes/admin/settings/templates/sections/ux.php:94
 msgid "Clicking on the address details opens the info window on the map?"
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:98
+#: includes/admin/settings/templates/sections/ux.php:94
 msgid "Currently not supported when marker clusters are used."
 msgstr ""
 
-#: includes/admin/settings/templates/sections/ux.php:102
+#: includes/admin/settings/templates/sections/ux.php:98
 msgid "Address format"
 msgstr ""
 
 #. translators: %1$s: opening link tag to documentation, %2$s: closing link tag
-#: includes/admin/settings/templates/sections/ux.php:102
+#: includes/admin/settings/templates/sections/ux.php:98
 #, php-format
 msgid "You can add custom address formats with the %1$swpsl_address_formats%2$s filter."
 msgstr ""
@@ -6191,18 +6219,18 @@ msgstr ""
 msgid "Unknown action: %s"
 msgstr ""
 
-#: includes/admin/tools/class-data-management.php:218
+#: includes/admin/tools/class-data-management.php:219
 msgid "No stores to delete."
 msgstr ""
 
 #. translators: %1$d: number of stores deleted before the failure, %2$s: the database error, may be empty
-#: includes/admin/tools/class-data-management.php:378
+#: includes/admin/tools/class-data-management.php:379
 #, php-format
 msgid "The locations could not be deleted, nothing in the last batch was removed. %1$d locations were deleted before that. %2$s"
 msgstr ""
 
 #. translators: %1$d: number of processed stores, %2$d: total number of stores, %3$s: percentage
-#: includes/admin/tools/class-data-management.php:413
+#: includes/admin/tools/class-data-management.php:414
 #, php-format
 msgid "Processed %1$d of %2$d stores (%3$s%%)..."
 msgstr ""
@@ -6599,21 +6627,21 @@ msgid "Migration failed again. Check the PHP error log for details."
 msgstr ""
 
 #. translators: %1$s: opening span tag with remaining count, %2$s: opening link tag, %3$s: closing link tag
-#: includes/admin/upgrade.php:1097
+#: includes/admin/upgrade.php:1112
 #, php-format
 msgid "Because you updated WP Store Locator from version 1.x, the %1$s current store locations need to be %2$sconverted%3$s to custom post types."
 msgstr ""
 
-#: includes/admin/upgrade.php:1166
+#: includes/admin/upgrade.php:1181
 msgid "Store locations to convert:"
 msgstr ""
 
-#: includes/admin/upgrade.php:1168
+#: includes/admin/upgrade.php:1183
 msgid "Start Converting"
 msgstr ""
 
 #. translators: %1$s: line breaks, %2$s: opening link tag to All Stores page, %3$s: closing link tag
-#: includes/admin/upgrade.php:1289
+#: includes/admin/upgrade.php:1304
 #, php-format
 msgid "All the store locations are now converted to custom post types. %1$s You can view them on the %2$sAll Stores%3$s page."
 msgstr ""
@@ -6854,164 +6882,196 @@ msgid "Copy your token from the %1$sMapbox console%2$s, or %3$screate a new one%
 msgstr ""
 
 #. translators: 1: opening link tag to Google Cloud credentials, 2: closing link tag, 3: opening link tag to create-key documentation, 4: closing link tag
-#: includes/core/functions/functions-api-keys.php:506
+#: includes/core/functions/functions-api-keys.php:574
 #, php-format
 msgid "Check your existing keys in %1$sGoogle Cloud Console%2$s or %3$screate a key%4$s."
 msgstr ""
 
-#. translators: 1: originating IP address, 2: opening link tag, 3: closing link tag
-#: includes/core/functions/functions-api-keys.php:521
+#. translators: %s: this server's IP address
+#: includes/core/functions/functions-api-keys.php:596
 #, php-format
-msgid "You have restricted this API key to an IP address that differs from where the API call originated (%1$s). If you %2$schange the IP restriction%3$s to %1$s, the error should be resolved."
+msgid "Google blocked this request because it came from %s, the IP address of your server, and that address is not on the list of IP addresses this key allows."
+msgstr ""
+
+#. translators: 1: this server's IP address, 2: opening link tag to Google Cloud credentials, 3: closing link tag
+#: includes/core/functions/functions-api-keys.php:602
+#, php-format
+msgid "%2$sEdit the key in Google Cloud Console%3$s and add %1$s to its IP address restrictions. It can take up to five minutes before the change applies."
+msgstr ""
+
+#: includes/core/functions/functions-api-keys.php:608
+#: includes/core/functions/functions-api-keys.php:626
+#: includes/core/functions/functions-api-keys.php:644
+msgid "How to fix this"
+msgstr ""
+
+#: includes/core/functions/functions-api-keys.php:617
+msgid "The API restrictions of this key do not include the Geocoding API, which the server key needs to look up the coordinates of your locations."
+msgstr ""
+
+#. translators: 1: opening link tag to Google Cloud credentials, 2: closing link tag
+#: includes/core/functions/functions-api-keys.php:621
+#, php-format
+msgid "%1$sEdit the key in Google Cloud Console%2$s and add the Geocoding API to its API restrictions. It can take up to five minutes before the change applies."
+msgstr ""
+
+#: includes/core/functions/functions-api-keys.php:635
+msgid "The Geocoding API is not enabled in the Google Cloud project of this key."
+msgstr ""
+
+#. translators: 1: opening link tag to the Geocoding API page in Google Cloud, 2: closing link tag
+#: includes/core/functions/functions-api-keys.php:639
+#, php-format
+msgid "%1$sEnable the Geocoding API%2$s in the same project as the key, then try again. It can take up to five minutes before the change applies."
 msgstr ""
 
 #. translators: 1: server IP address, 2: opening link tag, 3: closing link tag
-#: includes/core/functions/functions-api-keys.php:537
+#: includes/core/functions/functions-api-keys.php:654
 #, php-format
 msgid "This usually means the server key is restricted to an HTTP referrer (a domain), but a server key should be %2$srestricted to your server's IP address%3$s instead. Try restricting it to %1$s."
 msgstr ""
 
 #. translators: 1: opening link tag, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:545
+#: includes/core/functions/functions-api-keys.php:662
 #, php-format
 msgid "This usually means the server key is restricted to an HTTP referrer (a domain), but a server key should be %1$srestricted to your server's IP address%2$s instead."
 msgstr ""
 
 #. translators: 1: opening Stadia Maps dashboard link tag, 2: closing link tag, 3: opening create-key guide link tag, 4: closing link tag
-#: includes/core/functions/functions-api-keys.php:585
+#: includes/core/functions/functions-api-keys.php:702
 #, php-format
 msgid "Open the %1$sStadia Maps dashboard%2$s, click \"Manage Properties\", and copy the API key shown under Authentication Configuration, or %3$slearn how to create a new key%4$s."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:611
-#: includes/core/functions/functions-api-keys.php:660
+#: includes/core/functions/functions-api-keys.php:728
+#: includes/core/functions/functions-api-keys.php:777
 msgid "Error code:"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:612
-#: includes/core/functions/functions-api-keys.php:661
+#: includes/core/functions/functions-api-keys.php:729
+#: includes/core/functions/functions-api-keys.php:778
 msgid "Reason:"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:629
+#: includes/core/functions/functions-api-keys.php:746
 #: includes/frontend/assets/class-resources.php:821
 msgid "The application does not have permission to use the Geolocation API."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:630
+#: includes/core/functions/functions-api-keys.php:747
 #: includes/frontend/assets/class-resources.php:822
 msgid "Location information is unavailable."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:631
+#: includes/core/functions/functions-api-keys.php:748
 #: includes/frontend/assets/class-resources.php:823
 msgid "The geolocation request has timed out."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:632
+#: includes/core/functions/functions-api-keys.php:749
 #: includes/frontend/assets/class-resources.php:824
 msgid "An unknown error has occurred."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:635
+#: includes/core/functions/functions-api-keys.php:752
 msgid "view Google Maps documentation"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:636
+#: includes/core/functions/functions-api-keys.php:753
 msgid "The Google JavaScript API has returned the following error."
 msgstr ""
 
 #. translators: %s: the word "documentation", linked to the WPSL document explaining how to create the API keys
-#: includes/core/functions/functions-api-keys.php:638
+#: includes/core/functions/functions-api-keys.php:755
 #, php-format
 msgid "Make sure the API keys are set up as described in the %s."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:639
+#: includes/core/functions/functions-api-keys.php:756
 msgid "documentation"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:640
+#: includes/core/functions/functions-api-keys.php:757
 msgid "You must enable billing for your Google Cloud Project"
 msgstr ""
 
 #. translators: 1: line breaks, 2: opening link tag, 3: closing link tag
-#: includes/core/functions/functions-api-keys.php:642
+#: includes/core/functions/functions-api-keys.php:759
 #, php-format
 msgid "Another plugin has already loaded Google Maps breaking the store locator. Please enable compatibility mode in the WP Store Locator Tools settings.%1$s%2$sRead more.%3$s"
 msgstr ""
 
 #. translators: 1: opening link tag for API keys, 2: closing link tag, 3: opening link tag for troubleshooting, 4: closing link tag
-#: includes/core/functions/functions-api-keys.php:644
+#: includes/core/functions/functions-api-keys.php:761
 #, php-format
 msgid "%1$sConfigure API keys%2$s | %3$sTroubleshooting%4$s"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:647
+#: includes/core/functions/functions-api-keys.php:764
 msgid "The Openrouteservice API has returned the following error."
 msgstr ""
 
 #. translators: 1: opening link tag, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:651
+#: includes/core/functions/functions-api-keys.php:768
 #, php-format
 msgid "An API key is required before you can use %1$sOpenrouteservice%2$s."
 msgstr ""
 
 #. translators: 1: line break, 2: opening link tag, 3: closing link tag
-#: includes/core/functions/functions-api-keys.php:655
+#: includes/core/functions/functions-api-keys.php:772
 #, php-format
 msgid "OpenStreetMap has failed to return valid data, please try again later.%1$s If you keep seeing this error, please %2$scontact support%3$s."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:656
+#: includes/core/functions/functions-api-keys.php:773
 msgid "No problems found with OpenStreetMaps."
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:659
+#: includes/core/functions/functions-api-keys.php:776
 msgid "The Mapbox API has returned the following error."
 msgstr ""
 
 #. translators: 1: opening Mapbox console link tag, 2: closing link tag, 3: opening Mapbox support link tag, 4: closing link tag
-#: includes/core/functions/functions-api-keys.php:663
+#: includes/core/functions/functions-api-keys.php:780
 #, php-format
 msgid "%1$sThis usually means the access token is restricted to a URL that differs from the one it's being used on. Double-check the token's URL restrictions in the %2$sMapbox console%3$s. If that doesn't resolve it, contact %4$sMapbox Support%5$s.%6$s"
 msgstr ""
 
 #. translators: 1: opening link tag for API keys, 2: closing link tag, 3: opening link tag for geocoding errors, 4: closing link tag
-#: includes/core/functions/functions-api-keys.php:665
+#: includes/core/functions/functions-api-keys.php:782
 #, php-format
 msgid "%1$sConfigure API keys%2$s | %3$sGeocoding API errors%4$s"
 msgstr ""
 
 #. translators: 1: opening link tag, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:667
+#: includes/core/functions/functions-api-keys.php:784
 #, php-format
 msgid "%1$sRead more%2$s"
 msgstr ""
 
 #. translators: 1: opening link tag to the create-a-key documentation, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:669
+#: includes/core/functions/functions-api-keys.php:786
 #, php-format
 msgid "A valid Mapbox %1$sAPI key%2$s is required to load the map!"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:672
+#: includes/core/functions/functions-api-keys.php:789
 msgid "The Stadia Maps API has returned the following error."
 msgstr ""
 
 #. translators: 1: opening link tag, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:674
+#: includes/core/functions/functions-api-keys.php:791
 #, php-format
 msgid "An API key is required before you can use %1$sStadia Maps%2$s."
 msgstr ""
 
 #. translators: 1: opening link tag to the create-a-key documentation, 2: closing link tag
-#: includes/core/functions/functions-api-keys.php:676
+#: includes/core/functions/functions-api-keys.php:793
 #, php-format
 msgid "A valid Stadia Maps %1$sAPI key%2$s is required to load the map!"
 msgstr ""
 
-#: includes/core/functions/functions-api-keys.php:677
+#: includes/core/functions/functions-api-keys.php:794
 msgid "No problems found with Stadia Maps."
 msgstr ""
 

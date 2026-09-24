@@ -142,6 +142,33 @@ function wpsl_build_v2_settings() {
     $tools       = $handler->get_group( 'tools' );
     $labels      = $handler->get_group( 'labels' );
 
+    /*
+     * v2 had one height. Take it from the active template's saved height
+     * via wpsl_dimension_heights() instead of reading dimensions['sl_height']
+     * directly - that flat key only ever holds the unmigrated default (450),
+     * never the value the user actually saved.
+     */
+    $template = in_array( $appearance['template_id'], [ 'horizontal', 'vertical' ], true ) ? $appearance['template_id'] : 'default';
+
+    // A custom template with a panel is sized like the vertical one, as on the frontend.
+    if ( $template === 'default' ) {
+        $active_template = wpsl_get_active_template();
+
+        if ( is_array( $active_template ) && ! empty( $active_template['has_panel'] ) ) {
+            $template = 'vertical';
+        }
+    }
+
+    $heights  = wpsl_dimension_heights( $appearance['dimensions'], $template );
+
+    if ( $template === 'vertical' ) {
+        $height = $heights['sl_height'];
+    } elseif ( $template === 'horizontal' ) {
+        $height = $heights['map_height'];
+    } else {
+        $height = $heights['combined_height'] ? $heights['combined_height'] : 350;
+    }
+
     return [
         // API
         'api_browser_key'           => $api['gmaps_browser_key'],
@@ -187,7 +214,7 @@ function wpsl_build_v2_settings() {
         'clickable_contact_details' => $ux['clickable_contact_details'],
         'new_window'                => $ux['new_window'],
         'reset_map'                 => $ux['reset_map'],
-        'listing_below_no_scroll'   => $ux['listing_below_no_scroll'],
+        'listing_below_no_scroll'   => wpsl_show_all_results( $appearance['dimensions'] ) ? 1 : 0, // now the "Show all results" results height mode
         'direction_redirect'        => $ux['direction_redirect'],
         // commented out in v3 defaults — read from DB if migrated, fall back to v2 default
         'more_info'                 => isset( $ux['more_info'] ) ? $ux['more_info'] : 0,
@@ -215,7 +242,7 @@ function wpsl_build_v2_settings() {
 
         // Appearance
         'template_id'               => $appearance['template_id'],
-        'height'                    => $appearance['dimensions']['sl_height'],
+        'height'                    => $height,
         'search_width'              => $appearance['dimensions']['search_width'],
         'label_width'               => $appearance['dimensions']['label_width'],
         'map_style'                 => $appearance['map_style']['gmaps']['json'],

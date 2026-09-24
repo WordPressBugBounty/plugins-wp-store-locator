@@ -5,7 +5,7 @@ Tags: store locator, google maps, openstreetmap, store finder, dealer locator
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -215,10 +215,19 @@ Please report security bugs found in the source code of the WP Store Locator plu
 
 == Screenshots ==
 
-1. Front-end of the plugin
-2. The driving directions from the user location to the selected store
-3. The 'Store Details' section
-4. The plugin settings
+1. Pick the default, horizontal or vertical layout
+2. The API settings, run the map on OpenStreetMap, Mapbox, Stadia Maps or Google Maps
+3. The Fields Manager, add your own fields to the stores
+4. The Local Pages settings for the store landing pages and their permalinks
+5. The GDPR settings, ask visitors for consent before the map loads
+6. The Section Editor, change the template that renders the store listings
+7. The customizer, with a live preview of the store locator
+8. The map style settings, with a dark Mapbox style applied
+9. Restyle the search form
+10. Restyle the buttons
+11. Restyle the search results
+12. The Marker Studio, design your own markers from 586 icons
+13. Map Shapes, draw circles, rectangles and polygons on the map
 
 == Upgrade Notice ==
 
@@ -227,7 +236,28 @@ Major rewrite. Update the CSV Manager, Statistics, and Search Widget add-ons to 
 
 == Changelog ==
 
-= 3.0 2026 =
+= 3.0.1 2026-09-24 =
+Fixed
+* Prevent a fatal error by checking that `is_plugin_active` is available before calling it.
+* `wpsl_create_meta_filter()` now calls the correct service.
+* The Dimensions tab now shows the height fields of the active template.
+* Results list no longer overflows its container with a custom height, plus other styling fixes.
+* Custom CSS for the v2 dropdowns and search button overrides the v3 styles again.
+* The radius and results dropdowns no longer disappear when "Only show the category filter?" was saved after the category filter was disabled.
+* Custom v2 code reading the height from `$wpsl_settings` now gets the active template's height, instead of always 450.
+* After upgrading from v2, an alert explains why the Google Maps server key check failed, and the Home step reads "Fix your Google Maps API key".
+* Clearer instructions when Google blocks the server key due to IP/API restrictions or a disabled Geocoding API.
+* The v2 "Hide the scrollbar?" option is back as "Show all results" in the horizontal template's Results height setting (Appearance → Dimensions).
+* Theme CSS for multi-column search results works again; a single column renders as a normal list, as in v2.
+* The Appearance preview now resizes the category dropdown to match search field width changes.
+
+Changed
+* Optimized the responsive CSS.
+* The vertical template's search field and filters use the search results' font size instead of the theme's body size (theme CSS can still override it).
+* With "Overwrite theme styles" off, theme colors take priority over plugin defaults again, as in 2.x.
+* With 2-3 result columns, the column count now follows the results list width, staying at least 260px wide per column.
+
+= 3.0 2026-09-21 =
 New
 * Added support for Mapbox, Stadia and OpenStreetMap (Leaflet)
 * A new modern theme
@@ -266,7 +296,7 @@ New
 * New shortcode options for [wpsl_map]: 'map_id', 'store_marker', 'active_marker', 'marker_clusters', 'shapes', 'city', 'state' and 'country'
 * New 'current_status' and 'expand_status' attributes for the [wpsl_hours] shortcode, so the open / closed status and its expandable week can be set per shortcode instead of only globally
 * New 'contact_details' attribute for the [wpsl_address] shortcode. Shows or hides the Phone/Fax/Email/Url block in one go, so a single shortcode can disagree with the contact details location setting without needing four attributes. The individual 'phone', 'fax', 'email' and 'url' attributes still win where they are named.
-* New 'bold_contact_details' attribute for the [wpsl_address] shortcode. Wraps the Phone/Fax/Email/Url labels in <strong> (default true) so single store pages match the search results list. Set to false to restore the v2 unbolded output, or override via the 'wpsl_address_shortcode_defaults' filter.
+* New 'bold_contact_details' attribute for the [wpsl_address] shortcode. Wraps the Phone/Fax/Email/Url labels in `<strong>` (default true) so single store pages match the search results list. Set to false to restore the v2 unbolded output, or override via the 'wpsl_address_shortcode_defaults' filter.
 * Added per-label show/hide toggles for the search-bar labels, so you can hide a label on the front-end without losing its text or the field itself.
 * A wpsl_create_meta_filter() function allowing developers to create custom dropdowns / checkbox lists based on the passed custom meta key.
 * A 'wpsl_sortable_columns' filter to make custom columns sortable in the admin area

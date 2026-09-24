@@ -58,6 +58,18 @@ for (const relSourceDir of SOURCE_DIRS) {
 
     fs.writeFileSync(distPath, output.styles);
     console.log(`${path.relative(ROOT, sourcePath)} -> ${path.relative(ROOT, distPath)} (${output.styles.length} bytes)`);
+
+    /*
+     * The theme colors also ship inside a cascade layer. That copy loads when
+     * "Overwrite theme styles" is off: any color the theme sets then wins over
+     * these, whatever its specificity. See Frontend Assets Manager::enqueue_styles().
+     */
+    if (file === 'colors.css') {
+      const layeredPath = path.join(distDir, 'colors-layered.min.css');
+
+      fs.writeFileSync(layeredPath, `@layer wpsl{${output.styles}}`);
+      console.log(`${path.relative(ROOT, sourcePath)} -> ${path.relative(ROOT, layeredPath)} (layered)`);
+    }
   }
 }
 

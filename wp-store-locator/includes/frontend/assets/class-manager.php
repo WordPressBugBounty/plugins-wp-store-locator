@@ -180,6 +180,18 @@ class Manager {
         wp_enqueue_style( 'wpsl-styles', WPSL_URL . $css_base . 'frontend/css/styles' . $css_ext, '', WPSL_VERSION_NUM );
         wp_enqueue_style( 'wpsl-common', WPSL_URL . $css_base . 'common/css/common' . $css_ext, '', WPSL_VERSION_NUM );
         wp_enqueue_style( 'wpsl-filters', WPSL_URL . $css_base . 'common/css/filters' . $css_ext, '', WPSL_VERSION_NUM );
+
+        /*
+         * The theme colors. With "Overwrite theme styles" on they load as a normal
+         * stylesheet and win. With it off they load inside a cascade layer, so any
+         * color the theme sets wins, whatever its specificity, and these only
+         * color what the theme leaves alone. The layered copy only exists in dist.
+         */
+        if ( ! empty( $wpsl_settings['appearance']['overwrite_theme_styles'] ) ) {
+            wp_enqueue_style( 'wpsl-colors', WPSL_URL . $css_base . 'common/css/colors' . $css_ext, [ 'wpsl-common' ], WPSL_VERSION_NUM );
+        } else {
+            wp_enqueue_style( 'wpsl-colors', WPSL_URL . 'assets/dist/common/css/colors-layered.min.css', [ 'wpsl-common' ], WPSL_VERSION_NUM );
+        }
         wp_enqueue_style( 'wpsl-responsive', WPSL_URL . $css_base . 'common/css/responsive' . $css_ext, '', WPSL_VERSION_NUM );
 
         if ( in_array( $wpsl_settings['api']['active_map_service'], [ 'osm', 'stadia' ], true ) ) {
@@ -366,7 +378,6 @@ class Manager {
      */
     public function get_custom_css( $shortcode_atts = [] ) {
         $thumb_size = $this->store_data->get_store_thumb_size();
-        $ux         = $this->settings->get_group( 'ux' );
         $appearance = $this->settings->get_group( 'appearance' );
         $dimensions = $this->settings->get( 'appearance', 'dimensions' );
         $search     = $this->settings->get_group( 'search' );
@@ -418,7 +429,7 @@ class Manager {
                 $css .= $this->get_search_input_css( $dimensions, $cat_elem );
                 $css .= "\t" . "#wpsl-map {height:" . esc_attr( $heights['map_height'] ) . "px !important;}" . "\r\n";
 
-                if ( $ux['listing_below_no_scroll'] ) {
+                if ( $heights['show_all_results'] ) {
                     $css .= "\t" . "#wpsl-stores, #wpsl-direction-details { height:auto !important; }" . "\r\n";
                 } else {
                     $css .= "\t" . "#wpsl-stores, #wpsl-direction-details { height:" . esc_attr( $heights['results_height'] ) . "px !important; }" . "\r\n";
@@ -527,8 +538,17 @@ class Manager {
      */
     private function get_panel_height_css( $dimensions ) {
         $heights = wpsl_dimension_heights( $dimensions, 'vertical' );
+        $css     = "\t" . ".wpsl-flex #wpsl-panel, .wpsl-flex #wpsl-stores, .wpsl-flex #wpsl-map { height:" . esc_attr( $heights['sl_height'] ) . "px !important; }" . "\r\n";
 
-        return "\t" . ".wpsl-flex #wpsl-panel, .wpsl-flex #wpsl-stores, .wpsl-flex #wpsl-map { height:" . esc_attr( $heights['sl_height'] ) . "px !important; }" . "\r\n";
+        /*
+         * Up to 675px the panel sits above the map ( see responsive.css ), so a
+         * fixed height leaves a large gap under a short results list. Let it
+         * follow its content instead, capped at the saved height so a long list
+         * still scrolls inside the panel.
+         */
+        $css .= "\t" . "@media (max-width: 675px) { #wpsl-wrap.wpsl-flex:not(.wpsl-full-page-template) #wpsl-panel { height:auto !important; max-height:" . esc_attr( $heights['sl_height'] ) . "px; } }" . "\r\n";
+
+        return $css;
     }
 
     /**
@@ -548,10 +568,14 @@ class Manager {
             $css .= "\t" . ".wpsl-input label, #wpsl-radius label, #wpsl-category label { width:" . esc_attr( $dimensions['label_width'] ) . "px; }" . "\r\n";
         }
 
-        // Search input width (only if custom mode)
-        if ( $search_width_mode !== 'default' ) {
-            $css .= "\t" . "#wpsl-search-input" . $cat_elem . " { width:" . esc_attr( $dimensions['search_width'] ) . "px; }" . "\r\n";
-        }
+        /*
+         * 'Default' is the v2 width ( 179px ), the same one a site gets that
+         * never saved the mode. It used to print nothing, which left the field
+         * on the browser's own input width.
+         */
+        $search_width = ( $search_width_mode === 'default' ) ? 179 : $dimensions['search_width'];
+
+        $css .= "\t" . "#wpsl-search-input" . $cat_elem . " { width:" . esc_attr( $search_width ) . "px; }" . "\r\n";
 
         return $css;
     }
@@ -571,9 +595,11 @@ class Manager {
         }
 
         $search_width_mode = isset( $dimensions['search_width_mode'] ) ? $dimensions['search_width_mode'] : 'custom';
-        $width             = ( $search_width_mode === 'custom' ) ? absint( $dimensions['search_width'] ) . 'px' : 'auto';
+        $width             = ( ( $search_width_mode === 'default' ) ? 179 : absint( $dimensions['search_width'] ) ) . 'px';
 
-        return "\t" . "#mapbox-autocomplete, #mapbox-autocomplete .mapboxgl-ctrl-geocoder--input, #mapbox-autocomplete .mapboxgl-ctrl-geocoder, #mapbox-autocomplete input[type=text] { width:" . esc_attr( $width ) . " !important; min-width:" . esc_attr( $width ) . " !important; max-width:" . esc_attr( $width ) . " !important; }" . "\r\n";
+        // Above the 570px breakpoint only, so it doesn't beat the full-width
+        // rule responsive.css gives the geocoder on small screens.
+        return "\t" . "@media (min-width: 571px) { #mapbox-autocomplete, #mapbox-autocomplete .mapboxgl-ctrl-geocoder--input, #mapbox-autocomplete .mapboxgl-ctrl-geocoder, #mapbox-autocomplete input[type=text] { width:" . esc_attr( $width ) . " !important; min-width:" . esc_attr( $width ) . " !important; max-width:" . esc_attr( $width ) . " !important; } }" . "\r\n";
     }
 
     /**

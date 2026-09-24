@@ -1,4 +1,5 @@
 import { state } from '../wpsl-shared.js';
+import { alignSearchColumns } from '../../../../common/wpsl-dropdowns.js';
 
 /**
  * Event handlers for the appearance section.
@@ -1386,9 +1387,14 @@ export const eventHandlers = {
 
             const mode = jQuery( '#wpsl-search-width-mode' ).val();
             const customWidth = jQuery( '#wpsl-search-width' ).val();
-            const value = mode === 'default' ? 'auto' : ( customWidth ? customWidth + 'px' : '179px' );
+            // 'Default' is the v2 width, the same the frontend prints for it.
+            const value = mode === 'default' ? '179px' : ( customWidth ? customWidth + 'px' : '179px' );
 
             wpslWrap.style.setProperty( '--wpsl-search-input-width', value );
+
+            // The category dropdown is sized to the search field, so re-measure
+            // it against the new width ( and let it shrink back on 'Default' ).
+            alignSearchColumns();
         };
 
         // Update map height (default template only)
@@ -1475,6 +1481,13 @@ export const eventHandlers = {
                 return;
             } else {
                 jQuery( '.wpsl-results-height-auto-info-horizontal' ).hide();
+            }
+
+            // Show all results: no max height, the list grows with its content.
+            if ( mode === 'all' ) {
+                wpslWrap.style.setProperty( '--wpsl-results-height', 'none' );
+
+                return;
             }
             
             let height = parseInt( jQuery( '#wpsl-results-height' ).val() );

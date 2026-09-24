@@ -56,6 +56,7 @@ function wpsl_uninstall() {
         'wpsl_version',
         'wpsl_valid_gmaps_browser_key',
         'wpsl_valid_gmaps_server_key',
+        'wpsl_migrated_server_key_error',
         'wpsl_valid_mapbox_key',
         'wpsl_valid_openrouteservice_key',
         'wpsl_valid_stadia_key',

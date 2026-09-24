@@ -47,21 +47,24 @@ $default_dims = isset( $dimensions['default'] ) ? $dimensions['default'] : [];
         </span>
     </p>
 </div>
+<?php
+// The 2.x "Hide the scrollbar?" checkbox is shown here as the "Show all results" mode.
+$results_height_mode_h = wpsl_show_all_results( $dimensions ) ? 'all' : ( isset( $horizontal_dims['results_height_mode'] ) ? $horizontal_dims['results_height_mode'] : 'custom' );
+?>
 <p class="wpsl-horizontal-dimensions" <?php if ( $template_id !== 'horizontal' ) { echo 'style="display:none;"'; } ?>>
-    <label for="wpsl-results-height-mode-horizontal"><?php esc_html_e( 'Results height', 'wp-store-locator' ); ?><span class="wpsl-info wpsl-results-height-auto-info-horizontal" <?php 
-        $results_height_mode_h = isset( $horizontal_dims['results_height_mode'] ) ? $horizontal_dims['results_height_mode'] : 'custom';
-        if ( $results_height_mode_h !== 'default' ) { 
-            echo 'style="display:none;"'; 
-        } 
+    <label for="wpsl-results-height-mode-horizontal"><?php esc_html_e( 'Results height', 'wp-store-locator' ); ?><span class="wpsl-info wpsl-results-height-auto-info-horizontal" <?php
+        if ( $results_height_mode_h !== 'default' ) {
+            echo 'style="display:none;"';
+        }
     ?>><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Default mode sets the results height to 350px.', 'wp-store-locator' ); ?></span></span></label>
     <select id="wpsl-results-height-mode-horizontal" name="wpsl_appearance[dimensions][horizontal][results_height_mode]" class="wpsl-has-conditional-option">
-        <option value="default" <?php selected( isset( $horizontal_dims['results_height_mode'] ) ? $horizontal_dims['results_height_mode'] : 'custom', 'default' ); ?>><?php esc_html_e( 'Default', 'wp-store-locator' ); ?></option>
-        <option value="custom" <?php selected( isset( $horizontal_dims['results_height_mode'] ) ? $horizontal_dims['results_height_mode'] : 'custom', 'custom' ); ?>><?php esc_html_e( 'Custom', 'wp-store-locator' ); ?></option>
+        <option value="default" <?php selected( $results_height_mode_h, 'default' ); ?>><?php esc_html_e( 'Default', 'wp-store-locator' ); ?></option>
+        <option value="custom" <?php selected( $results_height_mode_h, 'custom' ); ?>><?php esc_html_e( 'Custom', 'wp-store-locator' ); ?></option>
+        <option value="all" <?php selected( $results_height_mode_h, 'all' ); ?>><?php esc_html_e( 'Show all results', 'wp-store-locator' ); ?></option>
     </select>
 </p>
-<div class="wpsl-conditional-option wpsl-horizontal-dimensions" <?php 
-    $results_height_mode_h = isset( $horizontal_dims['results_height_mode'] ) ? $horizontal_dims['results_height_mode'] : 'custom';
-    if ( $template_id !== 'horizontal' || $results_height_mode_h === 'default' ) { 
+<div class="wpsl-conditional-option wpsl-horizontal-dimensions" <?php
+    if ( $template_id !== 'horizontal' || $results_height_mode_h !== 'custom' ) {
         echo 'style="display:none;"'; 
     } 
 ?>>

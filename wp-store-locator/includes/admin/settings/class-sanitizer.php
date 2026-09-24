@@ -91,9 +91,11 @@ class Sanitizer {
         
         foreach ( $fields as $field => $default ) {
             if ( strpos( $field, '_mode' ) !== false ) {
-                // Mode field (default/custom)
-                $output[$field] = isset( $input['dimensions'][$template][$field] ) && 
-                                in_array( $input['dimensions'][$template][$field], [ 'default', 'custom' ] )
+                // Mode field (default/custom, and "Show all results" for the horizontal results)
+                $modes = ( $template === 'horizontal' && $field === 'results_height_mode' ) ? [ 'default', 'custom', 'all' ] : [ 'default', 'custom' ];
+
+                $output[$field] = isset( $input['dimensions'][$template][$field] ) &&
+                                in_array( $input['dimensions'][$template][$field], $modes, true )
                     ? sanitize_text_field( $input['dimensions'][$template][$field] )
                     : 'custom';
             } else {
@@ -454,7 +456,6 @@ class Sanitizer {
         $ux_checkboxes = [
             'new_window',
             'reset_map',
-            'listing_below_no_scroll',
             'direction_redirect',
             //'more_info',
             'store_url',
@@ -476,8 +477,11 @@ class Sanitizer {
         
         // Check if the ux checkboxes are checked.
         foreach ( $ux_checkboxes as $ux_key ) {
-            $output[$ux_key] = isset( $input[$ux_key] ) ? 1 : 0; 
+            $output[$ux_key] = isset( $input[$ux_key] ) ? 1 : 0;
         }
+
+        // No longer on this form, it's the "Show all results" mode on the Appearance page now. See wpsl_show_all_results().
+        $output['listing_below_no_scroll'] = $this->settings->get( 'ux', 'listing_below_no_scroll' ) ? 1 : 0;
 
         // Check the locations for the multiselect options.
         $multiselect_locations = wpsl_get_multiselect_ux_locations();

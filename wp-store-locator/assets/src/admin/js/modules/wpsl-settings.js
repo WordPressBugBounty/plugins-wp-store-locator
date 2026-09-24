@@ -642,18 +642,6 @@ export const settings = {
             }
         });
 
-        // Store template dropdown: if the list is shown under the map, show
-        // the option to hide the scrollbar.
-        jQuery( '#wpsl-store-template' ).on( 'change', function() {
-            const $scrollOption = jQuery( '#wpsl-listing-below-option' );
-
-            if ( jQuery( this ).val() === 'horizontal' ) {
-                $scrollOption.show();
-            } else {
-                $scrollOption.hide();
-            }
-        });
-
         // Conditional options -- delegated for dynamically added elements.
         jQuery( document ).on( 'change', '.wpsl-has-conditional-option', function() {
             if ( helpers.dom.shouldToggle( jQuery( this ) ) ) {

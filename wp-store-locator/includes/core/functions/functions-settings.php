@@ -261,7 +261,7 @@ function wpsl_get_location_status_options() {
  * @example echo wpsl_create_meta_filter( [ 'meta_key' => 'wpsl_brand', 'type' => 'dropdown' ] );
  */
 function wpsl_create_meta_filter( $args ) {
-    $filters = wpsl_get_service( 'frontend_search_filters' );
+    $filters = wpsl_get_service( 'search_filters' );
 
     return $filters->create_meta_filter( $args );
 }
@@ -285,6 +285,8 @@ function wpsl_create_meta_filter( $args ) {
  *
  *     @type int      $map_height      Horizontal only.
  *     @type int      $results_height  Horizontal only.
+ *     @type bool     $show_all_results Horizontal only. The results list grows
+ *                                     to fit every result instead of scrolling.
  *     @type int      $sl_height       Vertical only.
  *     @type int|null $combined_height Default only. Map and results share one
  *                                     height there, as they did in 2.x. Null
@@ -299,8 +301,9 @@ function wpsl_dimension_heights( $dimensions, $template ) {
 
     if ( $template === 'horizontal' ) {
         return [
-            'map_height'     => wpsl_resolve_dimension( $dimensions, 'horizontal', 'map_height', 350 ),
-            'results_height' => wpsl_resolve_dimension( $dimensions, 'horizontal', 'results_height', 350 ),
+            'map_height'       => wpsl_resolve_dimension( $dimensions, 'horizontal', 'map_height', 350 ),
+            'results_height'   => wpsl_resolve_dimension( $dimensions, 'horizontal', 'results_height', 350 ),
+            'show_all_results' => wpsl_show_all_results( $dimensions ),
         ];
     }
 
@@ -350,6 +353,26 @@ function wpsl_resolve_dimension( $dimensions, $template, $key, $stock ) {
     $value = isset( $values[ $key ] ) ? absint( $values[ $key ] ) : 0;
 
     return $value ? $value : $stock;
+}
+
+/**
+ * Check if the horizontal template shows every result without a scrollbar.
+ *
+ * Set with the "Show all results" results height mode. Before 3.0.1 this was
+ * the "Hide the scrollbar?" checkbox ( ux.listing_below_no_scroll ), which v3
+ * never showed, so sites that ticked it in 2.x still have it stored there.
+ * Saving the Appearance page clears that flag, the mode then decides.
+ *
+ * @since  3.0.1
+ * @param  array $dimensions The appearance dimensions.
+ * @return bool
+ */
+function wpsl_show_all_results( $dimensions ) {
+    if ( isset( $dimensions['horizontal']['results_height_mode'] ) && $dimensions['horizontal']['results_height_mode'] === 'all' ) {
+        return true;
+    }
+
+    return (bool) wpsl_get_service( 'wpsl_settings' )->get( 'ux', 'listing_below_no_scroll' );
 }
 
 /**
