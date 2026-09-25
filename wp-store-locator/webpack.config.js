@@ -36,7 +36,12 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'assets/dist'),
     filename: '[name].min.js',
-    chunkFilename: '[name].min.js',
+
+    // Lazy-loaded chunks are requested by the webpack runtime, not through
+    // wp_enqueue_script(), so they never get WordPress's ?ver=. The content
+    // hash busts stale browser/CDN copies whose module ids no longer match
+    // the main bundle. The query string is left off the file written to disk.
+    chunkFilename: '[name].min.js?ver=[contenthash:8]',
 
     // Prune stale bundles, but never the .min.css from tools/build-css.js,
     // the block bundles register_block_type() reads from admin/blocks/, or

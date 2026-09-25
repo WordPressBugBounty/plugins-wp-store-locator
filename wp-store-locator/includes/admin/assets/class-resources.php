@@ -360,6 +360,7 @@ class Resources {
             'ajaxurl'                     => wpsl_get_ajax_url(),
             'url'                         => WPSL_URL,
             'scriptDebug'                 => ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ),
+            'version'                     => WPSL_VERSION_NUM,
             'language'                    => get_bloginfo( 'language' ),
             'hourFormat'                  => $this->settings->get( 'editor', 'hour_format' ),
             'defaultLatLng'               => $this->get_default_lat_lng(),

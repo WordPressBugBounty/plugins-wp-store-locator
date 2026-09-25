@@ -1145,7 +1145,13 @@ export const importModule = function( moduleName, args = {} ) {
         ? `${baseUrl}${basePath}admin/js/modules/wpsl-${moduleName}.js`
         : `${baseUrl}${basePath}frontend/js/modules/wpsl-${moduleName}.js`;
 
-    const path = args.path || defaultPath;
+    let path = args.path || defaultPath;
+
+    // Native imports bypass wp_enqueue_script(), so add the ?ver= it would.
+    // Only this file gets it, its own static imports resolve without it.
+    if ( wpslSettings.version ) {
+        path += ( path.includes( '?' ) ? '&' : '?' ) + 'ver=' + encodeURIComponent( wpslSettings.version );
+    }
 
     return import( /* webpackIgnore: true */ path ).then( module => {
         if ( ! module[ moduleName ] ) {
