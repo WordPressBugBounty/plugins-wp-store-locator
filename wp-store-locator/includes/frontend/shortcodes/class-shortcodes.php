@@ -184,6 +184,7 @@ class Shortcodes {
             'template'             => $wpsl_settings['template_id'],
             'start_location'       => '',
             'auto_locate'          => '',
+            'auto_locate_trigger'  => '', // See wpsl_get_auto_locate_triggers()
             'category'             => '',
             'exclude_category'     => '',
             'category_selection'   => '',
@@ -193,6 +194,8 @@ class Shortcodes {
             'category_filter'      => '', // true / false, see Filters::is_category_enabled()
             'radius_filter'        => '', // true / false, see Filters::is_radius_enabled()
             'results_filter'       => '', // true / false, see Filters::is_results_enabled()
+            'results_list'         => '', // true / false, see Filters::is_results_list_hidden()
+            'directions'           => '', // true / false, false hides the directions link
             'map_type'             => '',
             'map_style'            => '',
             'map_id'               => '',
@@ -223,7 +226,13 @@ class Shortcodes {
          */
         $this->state->increment_map_count();
 
-        $template_details = $this->template_loader()->get_details( $atts['template'] );
+        /*
+         * Use the template id that check_sl_shortcode_atts() validated, the same one
+         * the #wpsl-wrap classes are built from. The raw attribute can be an unknown
+         * id, which loads the default template's markup under the settings template's classes.
+         */
+        $template_id      = ! empty( $this->atts['template'] ) ? $this->atts['template'] : $atts['template'];
+        $template_details = $this->template_loader()->get_details( $template_id );
 
         // Create an array of commonly used services for templates
         $template_services = [
@@ -237,7 +246,7 @@ class Shortcodes {
         ];
 
         // Only include panel_filters for templates that use panel-style filters (v3 templates with #wpsl-panel)
-        if ( ! in_array( $atts['template'], [ 'default', 'horizontal' ] ) ) {
+        if ( ! in_array( $template_id, [ 'default', 'horizontal' ] ) ) {
             $template_services['panel_filters'] = wpsl_get_service( 'panel_filters' );
         }
 
@@ -556,12 +565,23 @@ class Shortcodes {
             /**
              * When the ids came from the shortcode attribute, make sure they point
              * to a published store before rendering, so we don't leak meta of drafts,
-             * private posts, or non-store post types.
+             * private posts, or non-store post types. The current post may skip the
+             * publish check so a draft store can preview its own map, but it must
+             * still be a store.
              */
-            if ( $validate_store_ids && $store_id != get_the_ID() ) {
-                if ( get_post_type( $store_id ) !== 'wpsl_stores' || get_post_status( $store_id ) !== 'publish' ) {
+            if ( $validate_store_ids ) {
+                if ( get_post_type( $store_id ) !== 'wpsl_stores' ) {
                     continue;
                 }
+
+                if ( $store_id != get_the_ID() && get_post_status( $store_id ) !== 'publish' ) {
+                    continue;
+                }
+            }
+
+            // A password-protected store stays off the map until the visitor entered the password.
+            if ( post_password_required( $store_id ) ) {
+                continue;
             }
 
             $lat = get_post_meta( $store_id, 'wpsl_lat', true );
@@ -582,9 +602,9 @@ class Shortcodes {
                 // Grab the permalink / url if necessary.
                 if ( $incl_url ) {
                     if ( $wpsl_settings['local_pages']['permalinks'] ) {
-                        $store_meta[$i]['permalink'] = get_permalink( $store_id );
+                        $store_meta[$i]['permalink'] = esc_url( get_permalink( $store_id ) );
                     } else {
-                        $store_meta[$i]['url'] = get_post_meta( $store_id, 'wpsl_url', true );
+                        $store_meta[$i]['url'] = esc_url( get_post_meta( $store_id, 'wpsl_url', true ) );
                     }
                 }
 
@@ -802,6 +822,11 @@ class Shortcodes {
             }
         }
 
+        // A password-protected store keeps its details hidden until the visitor entered the password.
+        if ( post_password_required( $atts['id'] ) ) {
+            return;
+        }
+
         $output .= '<div class="wpsl-locations-details">';
 
         if ( $atts['name'] && $name = get_the_title( $atts['id'] ) ) {
@@ -866,7 +891,8 @@ class Shortcodes {
             if ( $atts['clickable_contact_details'] ) {
                 $contact_details = [
                     'phone' => '<a href="tel:' . esc_attr( $phone ) . '">' . esc_html( $phone ) . '</a>',
-                    'fax'   => '<a href="tel:' . esc_attr( $fax ) . '">' . esc_html( $fax ) . '</a>',
+                    // A fax number can't be dialed like a phone, so it's never a tel: link ( same as the store locator ).
+                    'fax'   => esc_html( $fax ),
                     'email' => '<a href="mailto:' . esc_attr( $email ) . '">' . esc_attr( $email ) . '</a>'
                 ];
             } else {
@@ -881,23 +907,30 @@ class Shortcodes {
             $label_open  = $atts['bold_contact_details'] ? '<strong>' : '';
             $label_close = $atts['bold_contact_details'] ? '</strong>' : '';
 
+            // The label and its colon, or nothing when the label was emptied on the settings page.
+            $contact_label = function ( $name, $default ) use ( $label_open, $label_close ) {
+                $label = $this->i18n->get_translation( $name, $default );
+
+                return ( '' !== $label ) ? $label_open . esc_html( $label ) . $label_close . ': ' : '';
+            };
+
             $output .= '<div class="wpsl-contact-details">';
 
             if ( $atts['phone'] && $phone ) {
-                $output .= $label_open . esc_html( $this->i18n->get_translation( 'phone_label', esc_html__( 'Phone', 'wp-store-locator' ) ) ) . $label_close . ': <span>' . $contact_details['phone'] . '</span><br/>';
+                $output .= $contact_label( 'phone_label', esc_html__( 'Phone', 'wp-store-locator' ) ) . '<span>' . $contact_details['phone'] . '</span><br/>';
             }
 
             if ( $atts['fax'] && $fax ) {
-                $output .= $label_open . esc_html( $this->i18n->get_translation( 'fax_label', esc_html__( 'Fax', 'wp-store-locator' ) ) ) . $label_close . ': <span>' . $contact_details['fax'] . '</span><br/>';
+                $output .= $contact_label( 'fax_label', esc_html__( 'Fax', 'wp-store-locator' ) ) . '<span>' . $contact_details['fax'] . '</span><br/>';
             }
 
             if ( $atts['email'] && $email ) {
-                $output .= $label_open . esc_html( $this->i18n->get_translation( 'email_label', esc_html__( 'Email', 'wp-store-locator' ) ) ) . $label_close . ': <span>' . $contact_details['email'] . '</span><br/>';
+                $output .= $contact_label( 'email_label', esc_html__( 'Email', 'wp-store-locator' ) ) . '<span>' . $contact_details['email'] . '</span><br/>';
             }
 
             if ( $atts['url'] && $store_url = get_post_meta( $atts['id'], 'wpsl_url', true ) ) {
                 $new_window = ( $wpsl_settings['ux']['new_window'] ) ? 'target="_blank"' : '' ;
-                $output .= $label_open . esc_html( $this->i18n->get_translation( 'url_label', esc_html__( 'Url', 'wp-store-locator' ) ) ) . $label_close . ': <a ' . $new_window . ' href="' . esc_url( $store_url ) . '">' . esc_url( $store_url ) . '</a><br/>';
+                $output .= $contact_label( 'url_label', esc_html__( 'Url', 'wp-store-locator' ) ) . '<a ' . $new_window . ' href="' . esc_url( $store_url ) . '">' . esc_url( $store_url ) . '</a><br/>';
             }
 
             $output .= '</div>';
@@ -915,9 +948,22 @@ class Shortcodes {
 
             $output .= '<div class="wpsl-location-directions">';
 
-            $city        = get_post_meta( $atts['id'], 'wpsl_city', true );
-            $country     = get_post_meta( $atts['id'], 'wpsl_country', true );
-            $destination = $directions_address . ',' . $city . ',' . $country;
+            $city    = get_post_meta( $atts['id'], 'wpsl_city', true );
+            $zip     = get_post_meta( $atts['id'], 'wpsl_zip', true );
+            $country = get_post_meta( $atts['id'], 'wpsl_country', true );
+
+            // Only join the parts that have a value, so an empty city or country doesn't leave ', ,' behind.
+            $destination = implode( ', ', array_filter( [ $directions_address, $city, $zip, $country ] ) );
+
+            // Same behavior as the store locator, where this filter switches the destination to coordinates.
+            if ( apply_filters( 'wpsl_force_direction_coordinates', false ) ) {
+                $lat = get_post_meta( $atts['id'], 'wpsl_lat', true );
+                $lng = get_post_meta( $atts['id'], 'wpsl_lng', true );
+
+                if ( $lat !== '' && $lng !== '' ) {
+                    $destination = $lat . ',' . $lng;
+                }
+            }
 
             $map_service = wpsl_get_active_map_service();
 
@@ -1040,8 +1086,17 @@ class Shortcodes {
          * leaves off ( there are no coordinates to search on, and a pageload
          * geolocation search defeats the input_only option ).
          */
-        if ( isset( $atts['auto_locate'] ) && $atts['auto_locate'] && $this->settings->get( 'search', 'search_method' ) !== 'name' ) {
-            $this->atts['js']['search']['autoLocate']['enabled'] = $this->atts_boolean( $atts['auto_locate'] );
+        if ( $this->settings->get( 'search', 'search_method' ) !== 'name' ) {
+
+            // A trigger asks for auto-locate on this page, unless auto_locate="false" comes with it.
+            if ( isset( $atts['auto_locate_trigger'] ) && in_array( $atts['auto_locate_trigger'], wpsl_get_auto_locate_triggers(), true ) ) {
+                $this->atts['js']['search']['autoLocate']['enabled'] = 1;
+                $this->atts['js']['search']['autoLocate']['trigger'] = $atts['auto_locate_trigger'];
+            }
+
+            if ( isset( $atts['auto_locate'] ) && $atts['auto_locate'] ) {
+                $this->atts['js']['search']['autoLocate']['enabled'] = $this->atts_boolean( $atts['auto_locate'] );
+            }
         }
 
         // Change the category slugs into category ids.
@@ -1167,6 +1222,17 @@ class Shortcodes {
             }
         }
 
+        /**
+         * Hide the directions link in the search results and the marker popup.
+         * There is no option for it on the settings page, so only an explicit
+         * "false" changes anything.
+         *
+         * @since 3.1.0
+         */
+        if ( isset( $atts['directions'] ) && $atts['directions'] !== '' && ! filter_var( $atts['directions'], FILTER_VALIDATE_BOOLEAN ) ) {
+            $this->atts['js']['ux']['hideDirections'] = 1;
+        }
+
         if ( isset( $atts['distance_unit'] ) && in_array( $atts['distance_unit'], [ 'km', 'mi' ] ) ) {
             $this->atts['distance_unit'] = $atts['distance_unit'];
         }
@@ -1176,7 +1242,24 @@ class Shortcodes {
         }
 
         if ( isset( $atts['template'] ) && $atts['template'] ) {
-            $this->atts['template'] = $atts['template'];
+            $requested_template = $atts['template'];
+
+            // Map legacy template ids ( below_map -> horizontal ) before validating.
+            $legacy_template_map = [ 'below_map' => 'horizontal' ];
+            if ( isset( $legacy_template_map[ $requested_template ] ) ) {
+                $requested_template = $legacy_template_map[ $requested_template ];
+            }
+
+            /**
+             * Only accept a registered template id, so an arbitrary value can
+             * never reach the #wpsl-wrap class attribute. Anything else falls
+             * back to the template set on the settings page.
+             */
+            if ( in_array( $requested_template, array_column( wpsl_get_templates(), 'id' ), true ) ) {
+                $this->atts['template'] = $requested_template;
+            } else {
+                $this->atts['template'] = $this->settings->get( 'appearance', 'template_id' );
+            }
         }
 
         /**
@@ -1187,6 +1270,21 @@ class Shortcodes {
             if ( isset( $atts[$restriction] ) && $atts[$restriction] ) {
                 $this->atts['js']['search']['restrictions'][$restriction] = $atts[$restriction];
             }
+        }
+
+        /**
+         * A start location or city / state / country restriction fixes where the
+         * locator starts, so auto-locate is turned off unless the shortcode asks
+         * for it.
+         *
+         * @since 3.1.0
+         */
+        $has_restriction     = isset( $this->atts['js']['search']['restrictions'] );
+        $has_start_location  = isset( $atts['start_location'] ) && $atts['start_location'];
+        $auto_locate_request = isset( $this->atts['js']['search']['autoLocate']['enabled'] ) && $this->atts['js']['search']['autoLocate']['enabled'];
+
+        if ( $has_restriction || ( $has_start_location && ! $auto_locate_request ) ) {
+            $this->atts['js']['search']['autoLocate']['enabled'] = 0;
         }
 
         /**

@@ -82,6 +82,17 @@ div[class^="wpsl-canvas-"] .gmnoprint button {
     border-bottom: none !important;
 }
 
+#wpsl-wrap.wpsl-hide-list #wpsl-result-list,
+#wpsl-wrap.wpsl-hide-list .wpsl-skip-to-results {
+    display: none !important;
+}
+
+/* The map takes the width the list used. */
+#wpsl-wrap.wpsl-hide-list #wpsl-map {
+    float: none;
+    width: 100%;
+}
+
 #wpsl-wrap.wpsl-gdpr-checkpoint #wpsl-map {
     position: relative;
 }
@@ -452,7 +463,8 @@ breaking the Mapbox attribution element.
    ========================================================================== */
 .wpsl-v3-css #wpsl-search-wrap .wpsl-input,
 .wpsl-v3-css #wpsl-search-wrap .wpsl-select-wrap,
-.wpsl-v3-css #wpsl-search-wrap #wpsl-category {
+.wpsl-v3-css #wpsl-search-wrap #wpsl-category,
+.wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter {
     display: flex;
     align-items: center;
 }
@@ -808,6 +820,10 @@ breaking the Mapbox attribution element.
     margin-top: 10px;
 }
 
+.wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter {
+    margin-top: 10px;
+}
+
 @media (min-width: 826px) {
     .wpsl-v3-css #wpsl-wrap:not( .wpsl-has-panel ):not( .wpsl-vertical-template ) .wpsl-input,
     .wpsl-v3-css #wpsl-wrap:not( .wpsl-has-panel ):not( .wpsl-vertical-template ) .wpsl-select-wrap,
@@ -816,6 +832,10 @@ breaking the Mapbox attribution element.
     .wpsl-v3-css #wpsl-wrap:not( .wpsl-has-panel ):not( .wpsl-vertical-template ) .wpsl-search-btn-wrap {
         margin-top: 0;
         margin-bottom: 10px;
+    }
+
+    .wpsl-v3-css #wpsl-wrap:not( .wpsl-has-panel ):not( .wpsl-vertical-template ) .wpsl-custom-filter {
+        margin-top: 0;
     }
 
     .wpsl-v3-css #wpsl-wrap:not( .wpsl-has-panel ):not( .wpsl-vertical-template ) .wpsl-search {
@@ -1167,6 +1187,11 @@ breaking the Mapbox attribution element.
     padding: 10px 10px 10px 0;
 }
 
+/* A featured location has a background ( colors.css ), so its text needs room from the edge. */
+#wpsl-wrap.wpsl-store-below #wpsl-result-list li.wpsl-featured {
+    padding-inline-start: 10px;
+}
+
 #wpsl-result-list li p {
     padding-inline-start: 0;
     margin: 0 0 20px 0;
@@ -1197,12 +1222,30 @@ breaking the Mapbox attribution element.
     padding-inline-end: 20px;
 }
 
-#wpsl-stores .wpsl-store-thumb {
+#wpsl-stores .wpsl-store-thumb,
+.wpsl-info-window .wpsl-store-thumb {
     float: inline-end;
     border-radius: 3px;
     margin: 7px 0 0 10px;
     padding: 0;
     border: none;
+}
+
+.wpsl-info-window p:not( .wpsl-icon-address ):has( > .wpsl-store-thumb ) {
+    display: grid;
+    grid-template-columns: minmax( 0, 1fr ) auto;
+    column-gap: 10px;
+    align-items: start;
+}
+
+.wpsl-info-window p:not( .wpsl-icon-address ) > .wpsl-store-thumb {
+    grid-column: 2;
+    grid-row: 1 / span 10;
+    margin: 0;
+}
+
+.wpsl-info-window p:not( .wpsl-icon-address ):has( > .wpsl-store-thumb ) > :not( .wpsl-store-thumb ) {
+    grid-column: 1;
 }
 
 .wpsl-more-info-listings {
@@ -1214,13 +1257,20 @@ breaking the Mapbox attribution element.
     display: block;
 }
 
-.wpsl-number-results {
+.wpsl-number-results,
+.wpsl-approximate-location {
     font-weight: bold;
     padding: 10px;
 }
 
-.wpsl-flex .wpsl-number-results {
+.wpsl-flex .wpsl-number-results,
+.wpsl-flex .wpsl-approximate-location {
     padding: 15px;
+}
+
+/* One block with the number of results that follows it. */
+.wpsl-approximate-location + .wpsl-number-results {
+    padding-top: 0;
 }
 
 #wpsl-wrap #wpsl-result-list .wpsl-preloader {
@@ -1435,6 +1485,11 @@ breaking the Mapbox attribution element.
     padding-inline-end: 20px;
 }
 
+/* .wpsl-opens-next already reserves the room for the triangle, so the link doesn't have to. */
+.wpsl-opening-hours-status a:has(.wpsl-opens-next) {
+    padding-inline-end: 0;
+}
+
 /* Triangle only after the final time element */
 .wpsl-opening-hours-status a .wpsl-opens-time time:after,
 .wpsl-store-location a.wpsl-store-listing:before {
@@ -1562,7 +1617,7 @@ breaking the Mapbox attribution element.
 .wpsl-info-window .wpsl-opening-hours-status .wpsl-currently-open::after,
 .wpsl-info-window .wpsl-opening-hours-status .wpsl-closing-soon::after {
     margin-inline-end: -4px;
-    content: " · ";
+    content: '\0020\00B7\0020';
     white-space: pre;
 }
 
@@ -1580,7 +1635,6 @@ breaking the Mapbox attribution element.
 }
 
 .wpsl-has-icons #wpsl-result-list li .wpsl-more-info,
-.wpsl-has-icons:not( .wpsl-cta-details) .wpsl-directions,
 .wpsl-has-icons:not( .wpsl-static-hours) .wpsl-flex-opening-hours,
 .wpsl-has-icons .wpsl-opening-hours.wpsl-legacy-hours {
     margin-inline-start: 28px;
@@ -1717,11 +1771,6 @@ table.wpsl-opening-hours .wpsl-time-range:not( :last-child ) {
     padding-inline-start: 0;
 }
 
-#wpsl-result-list table:not(.wpsl-legacy-hours),
-.wpsl_stores table.wpsl-opening-hours:not(.wpsl-legacy-hours) {
-    display: none;
-}
-
 /* ==========================================================================
    12. Info Windows & Popups
    ========================================================================== */
@@ -1752,6 +1801,14 @@ div[class^="wpsl-canvas-"] .wpsl-info-window {
     margin: 0 0 10px 0;
 }
 
+div[id^="wpsl-base-"] .wpsl-info-window p {
+    margin: 0 0 10px 0;
+}
+
+div[id^="wpsl-base-"] .wpsl-info-window > :last-child {
+    margin-bottom: 0;
+}
+
 #wpsl-map .wpsl-info-actions {
     display: flex;
     flex-wrap: nowrap;
@@ -1769,8 +1826,9 @@ div[class^="wpsl-canvas-"] .wpsl-info-window {
     display: none;
 }
 
+/* !important to win over the styled CTA buttons' display: flex !important above: the route already shows. */
 #wpsl-map.wpsl-directions-active .wpsl-info-actions {
-    display: none;
+    display: none !important;
 }
 
 .wpsl-info-actions a {
@@ -1913,6 +1971,35 @@ div[class^="wpsl-canvas-"] .wpsl-info-window {
 
 #wpsl-map .wpsl-api-message p {
     margin: 5px 0;
+}
+
+/* Messages that replace the hidden result list, styled like .wpsl-geolocation-overlay-box plus a border. */
+#wpsl-map .wpsl-api-message.wpsl-map-notice {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-sizing: border-box;
+    left: 50%;
+    right: auto;
+    max-width: 90%;
+    padding: 12px 14px;
+    transform: translateX(-50%);
+    border: 1px solid #000;
+    border-radius: 3px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    color: #333;
+}
+
+#wpsl-map .wpsl-map-notice-text p:first-child {
+    margin-top: 0;
+}
+
+#wpsl-map .wpsl-map-notice-text p:last-child {
+    margin-bottom: 0;
+}
+
+#wpsl-map .wpsl-map-notice #wpsl-close-api-notice {
+    flex-shrink: 0;
 }
 
 .wpsl-api-message #wpsl-close-api-notice {

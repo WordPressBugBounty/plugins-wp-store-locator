@@ -660,7 +660,7 @@ class Section_Analyzer {
          * Resolve anchors against the current code, then apply insertions
          * bottom-up so earlier splices don't shift later line numbers.
          */
-        $order   = [ 'description' => 1, 'hours' => 2, 'contact_details' => 3, 'more_info' => 4, 'cta_section' => 5 ];
+        $order   = [ 'categories' => 0, 'description' => 1, 'hours' => 2, 'contact_details' => 3, 'more_info' => 4, 'cta_section' => 5 ];
         $current = implode( "\n", $lines );
         $scoped  = $this->code_outside_more_info( $lines );
         $inserts = [];
@@ -752,7 +752,7 @@ class Section_Analyzer {
         $ux         = $this->settings['ux'];
 
         $cta_enabled = ! empty( $appearance['cta']['enabled'] );
-        $cta_details = ! empty( $appearance['cta']['details'] );
+        $cta_details = ! empty( $appearance['cta']['details'] ) && ! $this->is_emptied_label( 'more_details_label' );
 
         // Name search has no route, so the CTA section holds the details link alone
         // there. Without that link Sections::listing() writes no wrapper at all, and
@@ -806,6 +806,17 @@ class Section_Analyzer {
         ];
 
         if ( $section === 'listing' ) {
+            $features[] = [
+                'id'             => 'categories',
+                'label'          => __( 'categories', 'wp-store-locator' ),
+                'enabled'        => ! empty( $appearance['categories']['enabled'] ),
+                'marker'         => '/<%=\s*categories\s*%>/',
+                'scoped'         => true,
+                // Directly below the address, as in Sections::listing().
+                'anchor'         => 'after_address',
+                'report_reverse' => true,
+            ];
+
             $features[] = [
                 'id'      => 'store_id',
                 'label'   => __( 'store id attribute', 'wp-store-locator' ),
@@ -878,6 +889,17 @@ class Section_Analyzer {
     }
 
     /**
+     * Whether a label that may be left out was emptied, see Translations::is_emptied_label().
+     *
+     * @since  3.1.0
+     * @param  string $name The label name, e.g. more_label
+     * @return bool
+     */
+    private function is_emptied_label( $name ) {
+        return $this->i18n && $this->i18n->is_emptied_label( $name );
+    }
+
+    /**
      * Is the "More info" block enabled? Mirrors Sections::has_more_info_enabled().
      *
      * @since  3.0.0
@@ -885,6 +907,11 @@ class Section_Analyzer {
      */
     private function has_more_info_enabled() {
         $ux = $this->settings['ux'];
+
+        // An emptied "More info" label leaves the block out, see Sections::more_info_template().
+        if ( $this->is_emptied_label( 'more_label' ) ) {
+            return false;
+        }
 
         return in_array( 'more_info', (array) $ux['contact_details'], true )
             || in_array( 'more_info', (array) $ux['hours'], true )
@@ -1230,14 +1257,16 @@ class Section_Analyzer {
                     ? '<div class="wpsl-icon-hours"><%= hours %></div>'
                     : '<%= hours %>';
 
-                return '<% if ( typeof hours !== "undefined" && hours ) { %>' . "\n" . $hours . "\n" . '<% } %>';
+                return '<% if ( obj.hours ) { %>' . "\n" . $hours . "\n" . '<% } %>';
             case 'contact_details':
                 return $this->normalize_snippet( $this->sections->contact_details() );
+            case 'categories':
+                return $this->normalize_snippet( $this->sections->categories() );
             case 'more_info':
                 return $this->normalize_snippet( $this->sections->more_info_template() );
             case 'cta_section':
                 $include_directions = ( strpos( $code, 'createDirectionUrl()' ) === false ) && ! $this->sections->is_name_search();
-                $include_details    = ! empty( $this->settings['appearance']['cta']['details'] ) && strpos( $code, 'wpsl-details' ) === false;
+                $include_details    = ! empty( $this->settings['appearance']['cta']['details'] ) && ! $this->is_emptied_label( 'more_details_label' ) && strpos( $code, 'wpsl-details' ) === false;
 
                 if ( ! $include_directions && ! $include_details ) {
                     return '';
@@ -1319,7 +1348,7 @@ class Section_Analyzer {
         // 2. Contact spans: swap the <strong>Label</strong>: prefix for the icon class.
         $contact_rules = [
             'contact_phone' => [ '/<span[^>]*><strong>[^<]*<\/strong>:?\s*(<%=\s*formatPhoneNumber\(\s*phone\s*\)\s*%>)\s*<\/span>/', 'wpsl-icon-' . $phone ],
-            'contact_fax'   => [ '/<span[^>]*><strong>[^<]*<\/strong>:?\s*(<%=\s*formatPhoneNumber\(\s*fax\s*\)\s*%>)\s*<\/span>/', 'wpsl-icon-fax' ],
+            'contact_fax'   => [ '/<span[^>]*><strong>[^<]*<\/strong>:?\s*(<%=\s*(?:formatPhoneNumber\(\s*fax\s*\)|fax)\s*%>)\s*<\/span>/', 'wpsl-icon-fax' ],
             'contact_email' => [ '/<span[^>]*><strong>[^<]*<\/strong>:?\s*(<%=\s*formatEmail\(\s*email\s*\)\s*%>)\s*<\/span>/', 'wpsl-icon-' . $email ],
         ];
 

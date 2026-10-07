@@ -64,6 +64,7 @@ function wpsl_uninstall() {
         'wpsl_settings',
         'wpsl_notices',
         'wpsl_alerts',
+        'wpsl_geolocation_policy',
         'wpsl_addon_notice_dismissed',
         'wpsl_plugins_checked',
         'wpsl_legacy_support',

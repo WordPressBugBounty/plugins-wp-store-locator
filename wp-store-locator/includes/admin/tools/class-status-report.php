@@ -78,11 +78,13 @@ class Status_Report {
      * WPSL settings and the active plugins.
      *
      * @since  3.0.0
-     * @param  array|null $blocks Optional subset of self::OPTIONAL_BLOCKS, null for the full report
-     * @return string             The formatted report
+     * @since  3.1.0 The $anonymous parameter.
+     * @param  array|null $blocks    Optional subset of self::OPTIONAL_BLOCKS, null for the full report
+     * @param  bool       $anonymous Leave out the site address and the start location
+     * @return string                The formatted report
      */
-    public function get_report( $blocks = null ) {
-        return implode( "\n", $this->get_report_blocks( $blocks ) );
+    public function get_report( $blocks = null, $anonymous = false ) {
+        return implode( "\n", $this->get_report_blocks( $blocks, $anonymous ) );
     }
 
     /**
@@ -92,15 +94,17 @@ class Status_Report {
      * or drop them one by one, and only joined afterwards.
      *
      * @since  3.0.0
-     * @param  array|null $blocks Optional subset of self::OPTIONAL_BLOCKS, null for all of them
-     * @return array              Block name => formatted text
+     * @since  3.1.0 The $anonymous parameter.
+     * @param  array|null $blocks    Optional subset of self::OPTIONAL_BLOCKS, null for all of them
+     * @param  bool       $anonymous Leave out the site address and the start location
+     * @return array                 Block name => formatted text
      */
-    public function get_report_blocks( $blocks = null ) {
+    public function get_report_blocks( $blocks = null, $anonymous = false ) {
         $optional = ( null === $blocks ) ? self::OPTIONAL_BLOCKS : array_intersect( self::OPTIONAL_BLOCKS, (array) $blocks );
-        $report   = [ 'environment' => $this->get_environment_block() ];
+        $report   = [ 'environment' => $this->get_environment_block( $anonymous ) ];
 
         if ( in_array( 'wpsl', $optional, true ) ) {
-            $report['wpsl'] = $this->get_wpsl_block();
+            $report['wpsl'] = $this->get_wpsl_block( $anonymous );
         }
 
         if ( in_array( 'theme', $optional, true ) ) {
@@ -120,15 +124,16 @@ class Status_Report {
      * The WordPress and server environment.
      *
      * @since  3.0.0
+     * @param  bool $anonymous Leave the site address out of the header
      * @return string
      */
-    protected function get_environment_block() {
+    protected function get_environment_block( $anonymous = false ) {
         global $wpdb;
 
         $locale     = get_locale();
         $permalinks = get_option( 'permalink_structure' );
 
-        $return  = '### Generated at ' . gmdate( 'Y-m-d H:i:s' ) . ' on ' . site_url() . ' ###' .  "\n\n";
+        $return  = '### Generated at ' . gmdate( 'Y-m-d H:i:s' ) . ( $anonymous ? '' : ' on ' . site_url() ) . ' ###' .  "\n\n";
 
         $return .= '-- WordPress Environment' . "\n\n";
         $return .= 'WP Store Locator: ' . WPSL_VERSION_NUM . "\n";
@@ -159,9 +164,10 @@ class Status_Report {
      * The WP Store Locator configuration.
      *
      * @since  3.0.0
+     * @param  bool $anonymous Leave the start location out
      * @return string
      */
-    protected function get_wpsl_block() {
+    protected function get_wpsl_block( $anonymous = false ) {
         $return = '-- WP Store Locator Configuration' . "\n\n";
 
         $active_map_service = $this->settings->get( 'api', 'active_map_service', 'gmaps' );
@@ -175,10 +181,13 @@ class Status_Report {
             }
         }
 
+        $return .= $this->get_key_details( $active_map_service );
+
         $return .= 'Region handling: ' . $this->settings->get( 'api', 'region_restriction_type' ) . "\n";
         $return .= 'Map region (bias): ' . $this->settings->get( 'api', 'gmaps_region' ) . "\n";
         $country_restrictions = $this->settings->get( 'api', 'multiple_regions' );
         $return .= 'Country restrictions: ' . ( ! empty( $country_restrictions ) && is_array( $country_restrictions ) ? implode( ',', $country_restrictions ) : 'none' ) . "\n";
+        $return .= 'Search method: ' . $this->settings->get( 'search', 'search_method', 'geocode' ) . "\n";
         $return .= 'Zip only search: ' . $this->check_settings_status( 'search', 'force_postalcode' ) . "\n";
         $return .= 'Max results: ' . $this->settings->get( 'search', 'max_results', '25' ) . "\n";
         $return .= 'Search radius: ' . $this->settings->get( 'search', 'radius', '10' ) . "\n";
@@ -192,16 +201,96 @@ class Status_Report {
             $return .= 'Autoload limit: ' . $this->settings->get( 'map', 'autoload_limit', '50' ) . "\n";
         }
 
-        $return .= 'Start location coordinates: ' . $this->settings->get( 'map', 'start_latlng' ) . "\n";
+        // Usually the address of the business itself.
+        if ( ! $anonymous ) {
+            $return .= 'Start location coordinates: ' . $this->settings->get( 'map', 'start_latlng' ) . "\n";
+        }
+
         $return .= 'Run fitbounds: ' . $this->check_settings_status( 'map', 'run_fitbounds' ) . "\n";
         $return .= 'Template: ' . $this->settings->get( 'appearance', 'template_id' ) . "\n";
         $return .= $this->get_template_details();
         $return .= 'Start marker: ' . $this->settings->get( 'markers', 'start_marker' ) . "\n";
+        $return .= 'Hide start marker: ' . $this->check_settings_status( 'markers', 'hide_start_marker' ) . "\n";
         $return .= 'Store marker: ' . $this->settings->get( 'markers', 'store_marker' ) . "\n";
         $return .= 'Active store marker: ' . $this->settings->get( 'markers', 'active_marker' ) . "\n";
         $return .= 'Marker clusters: ' . $this->check_settings_status( 'markers', 'marker_clusters' ) . "\n";
         $return .= 'Debug: ' . $this->check_settings_status( 'tools', 'debug' ) . "\n";
+        $return .= $this->get_alert_details();
         $return .= $this->get_upgrade_details();
+
+        return $return;
+    }
+
+    /**
+     * Whether the keys of the active map provider are saved and validated.
+     *
+     * Read from the result stored when a key was last checked, so no request
+     * is made. The keys themselves never appear in the report.
+     *
+     * @since  3.1.0
+     * @param  string $provider The active map service
+     * @return string
+     */
+    protected function get_key_details( $provider ) {
+        $keys = [
+            'gmaps'  => [ 'gmaps_browser_key' => 'wpsl_valid_gmaps_browser_key', 'gmaps_server_key' => 'wpsl_valid_gmaps_server_key' ],
+            'mapbox' => [ 'mapbox_key' => 'wpsl_valid_mapbox_key' ],
+            'stadia' => [ 'stadia_key' => 'wpsl_valid_stadia_key' ],
+            'osm'    => [ 'openrouteservice_key' => 'wpsl_valid_openrouteservice_key' ],
+        ];
+
+        if ( ! isset( $keys[ $provider ] ) ) {
+            return '';
+        }
+
+        $api    = $this->settings->get_group( 'api' );
+        $return = '';
+
+        foreach ( $keys[ $provider ] as $setting => $valid_option ) {
+            if ( empty( $api[ $setting ] ) ) {
+                $status = 'not saved';
+            } else {
+                $status = ( '1' == get_option( $valid_option ) ) ? 'saved, valid' : 'saved, not valid';
+            }
+
+            $return .= 'Key ' . $setting . ': ' . $status . "\n";
+        }
+
+        return $return;
+    }
+
+    /**
+     * The ids of the alerts that are showing, for example a conflicting plugin,
+     * and whether a header on the site blocks geolocation.
+     *
+     * @since  3.1.0
+     * @return string
+     */
+    protected function get_alert_details() {
+        $alerts = [];
+
+        if ( function_exists( 'wpsl_container' ) && wpsl_container()->has( 'plugin_alerts' ) ) {
+            $alerts = array_map( 'strval', array_keys( (array) wpsl_get_service( 'plugin_alerts' )->get_active_alerts() ) );
+        }
+
+        $return = 'Active alerts: ' . ( $alerts ? implode( ', ', $alerts ) : 'none' ) . "\n";
+
+        // The last check the Home page ran, see Geolocation_Policy.
+        $policy = \WPSL\Admin\Core\Geolocation_Policy::get_result();
+
+        if ( ! $policy ) {
+            $status = 'not checked';
+        } elseif ( ! empty( $policy['blocked'] ) ) {
+            $status = 'blocked by ' . $policy['header'] . ': ' . $policy['directive'];
+        } else {
+            $status = 'not blocked';
+        }
+
+        if ( $policy && ! empty( $policy['checked'] ) ) {
+            $status .= ' ( ' . gmdate( 'Y-m-d', (int) $policy['checked'] ) . ' )';
+        }
+
+        $return .= 'Geolocation header: ' . $status . "\n";
 
         return $return;
     }

@@ -150,8 +150,13 @@ class Data {
                     /**
                      * If we need to hide the opening hours,
                      * and the current meta type is set to hours we skip it.
+                     *
+                     * The key still has to exist. The Underscore templates render
+                     * inside with( obj ), so a missing key falls through to any
+                     * global of the same name, like a countdown script's window.hours.
                      */
                     if ( $wpsl_settings['editor']['hide_hours'] && $meta_type == 'hours' ) {
+                        $store_meta[ $meta_value['name'] ] = '';
                         continue;
                     }
 
@@ -167,6 +172,7 @@ class Data {
                             $meta_data = esc_attr( $custom_fields[$meta_key][0] );
                             break;
                         case 'phone':
+                        case 'tel': // The type of a Fields Manager phone field, see Fields_Manager.
                             // Rendered inside href="tel:..." by formatPhoneNumber() through the raw <%= %> tag, so escape for the attribute context.
                             $meta_data = esc_attr( sanitize_text_field( stripslashes( $custom_fields[$meta_key][0] ) ) );
                             break;
@@ -221,7 +227,7 @@ class Data {
             }
 
             if ( $wpsl_settings['local_pages']['permalinks'] ) {
-                $store_meta['permalink'] = get_permalink( $store->ID );
+                $store_meta['permalink'] = esc_url( get_permalink( $store->ID ) );
             }
 
             /**
@@ -235,6 +241,14 @@ class Data {
             }
 
             $store_meta['thumb'] = $this->get_store_thumb( $store->ID, $store_meta['store'] );
+
+            // Featured locations are shown first, and get their own class in the results.
+            $store_meta['featured'] = ! empty( $custom_fields['wpsl_featured'][0] ) ? 1 : 0;
+
+            // The category names, when they are shown in the search results.
+            if ( ! empty( $wpsl_settings['appearance']['categories']['enabled'] ) ) {
+                $store_meta['categories'] = wpsl_store_categories_html( $store->ID );
+            }
 
             if ( $has_category_images ) {
                 $category_markers = $this->get_category_image( $store->ID );
@@ -287,8 +301,57 @@ class Data {
         }
 
         $all_stores = $this->sort_search_results( $all_stores );
+        $all_stores = $this->sort_featured_first( $all_stores );
 
         return $all_stores;
+    }
+
+    /**
+     * Move the featured locations to the top of the search results.
+     *
+     * The ones with a position come first, lowest position on top. The other
+     * featured locations follow in the order they arrive in, which is by
+     * distance unless the settings page sorts the results differently. The
+     * rest of the results keep their order as well.
+     *
+     * @since  3.1.0
+     * @param  array $stores The sorted search results
+     * @return array $stores The search results with the featured locations first
+     */
+    public function sort_featured_first( $stores ) {
+        $positioned = [];
+        $positions  = [];
+        $featured   = [];
+        $regular    = [];
+
+        foreach ( $stores as $store ) {
+            if ( empty( $store['featured'] ) || empty( $store['id'] ) ) {
+                $regular[] = $store;
+                continue;
+            }
+
+            $position = (int) get_post_meta( $store['id'], 'wpsl_featured_position', true );
+
+            if ( $position >= 1 ) {
+                $positioned[] = $store;
+                $positions[]  = $position;
+            } else {
+                $featured[] = $store;
+            }
+        }
+
+        if ( ! $positioned && ! $featured ) {
+            return $stores;
+        }
+
+        if ( $positioned ) {
+            // The index keeps locations that share a position in the order they arrived in.
+            $index = array_keys( $positioned );
+
+            array_multisort( $positions, SORT_ASC, SORT_NUMERIC, $index, SORT_ASC, SORT_NUMERIC, $positioned );
+        }
+
+        return array_merge( $positioned, $featured, $regular );
     }
 
     /**
@@ -367,7 +430,7 @@ class Data {
             $extras['phone'] = esc_attr( sanitize_text_field( get_post_meta( $store_id, 'wpsl_phone', true ) ) );
             $extras['fax']   = esc_attr( sanitize_text_field( get_post_meta( $store_id, 'wpsl_fax', true ) ) );
             $extras['email'] = sanitize_email( get_post_meta( $store_id, 'wpsl_email', true ) );
-            $extras['url']   = esc_url_raw( get_post_meta( $store_id, 'wpsl_url', true ) );
+            $extras['url']   = esc_url( get_post_meta( $store_id, 'wpsl_url', true ) );
         }
 
         // Post content / description.

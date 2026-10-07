@@ -66,19 +66,24 @@ export const confirmationDialog = {
      * @returns {void}
      */
     updateContent: function( label ) {
+        const $target = jQuery( '#wpsl-delete-confirmation p:first-child span' );
         let labelText = '';
 
+        // A group or field name typed by the user, so it goes in as text.
         if ( label ) {
-            labelText = '"' + label.trim() + '"';
-        } else {
-            if ( jQuery( '.wpsl-fields-manager-wrap' ).is( ':visible' ) ) {
-                labelText = wpslL10n.thisField;
-            } else if ( jQuery( '.wpsl-groups-manager-wrap' ).is( ':visible' ) ) {
-                labelText = wpslL10n.thisGroup;
-            }
+            $target.text( '"' + label.trim() + '"' );
+
+            return;
         }
 
-        jQuery( '#wpsl-delete-confirmation p:first-child span' ).html( labelText );
+        if ( jQuery( '.wpsl-fields-manager-wrap' ).is( ':visible' ) ) {
+            labelText = wpslL10n.thisField;
+        } else if ( jQuery( '.wpsl-groups-manager-wrap' ).is( ':visible' ) ) {
+            labelText = wpslL10n.thisGroup;
+        }
+
+        // The fallbacks are escaped by esc_html__() on the server.
+        $target.html( labelText );
     },
     
     /**

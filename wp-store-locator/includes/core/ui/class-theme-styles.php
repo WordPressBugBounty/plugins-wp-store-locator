@@ -85,6 +85,8 @@ class Theme_Styles {
             'header_reset_button_icon' => $prefix . '#wpsl-clear-search-input svg',
             'listing' => $prefix . '#wpsl-result-list',
             'listing_link' => $prefix . '#wpsl-stores a',
+            'listing_featured' => $prefix . '#wpsl-result-list li.wpsl-featured',
+            'listing_featured_link' => $prefix . '#wpsl-stores li.wpsl-featured a',
         ];
 
         $this->properties_map = [
@@ -214,8 +216,19 @@ class Theme_Styles {
                 'color' => 'listing_results_link',
                 'color_hover' => 'listing_results_link_hover',
             ],
+            'listing_featured' => [
+                'background' => 'listing_featured_background',
+                'color' => 'listing_featured_text',
+            ],
+            'listing_featured_link' => [
+                'color' => 'listing_featured_link',
+                'color_hover' => 'listing_featured_link_hover',
+            ],
             'listing_icons' => [
                 'color' => 'listing_icons_color',
+            ],
+            'listing_featured_icons' => [
+                'color' => 'listing_featured_icon',
             ],
             'listing_cta_more_details' => [
                 'background_start' => 'listing_cta_more_details_background_start',
@@ -324,6 +337,16 @@ class Theme_Styles {
             'listing-results-text' => '#000',
             'listing-results-link' => '#0066cc',
             'listing-results-link-hover' => '#003366',
+            /*
+             * Empty, so nothing is written for them: featured locations then
+             * get the translucent tint from the stylesheet ( which works on a
+             * dark theme too ) and the colors of the other results.
+             */
+            'listing-featured-background' => '',
+            'listing-featured-text' => '',
+            'listing-featured-link' => '',
+            'listing-featured-link-hover' => '',
+            'listing-featured-icon' => '',
             'listing-icons-color' => '#000',
             'listing-cta-more-details-background-start' => '#ccc',
             'listing-cta-more-details-background-end' => '#bbb',
@@ -530,6 +553,38 @@ class Theme_Styles {
             }
         }
 
+        /**
+         * The category names in the search results. Only the choices that
+         * differ from the stylesheet are written: the default background, a
+         * tint of the category's own color, is built there from the
+         * --wpsl-cat-color each category carries.
+         */
+        $categories = isset( $appearance_settings['categories'] ) ? (array) $appearance_settings['categories'] : [];
+
+        // The dot is also in the category filter, so its shape doesn't wait for the option below.
+        if ( isset( $categories['shape'] ) && 'square' === $categories['shape'] ) {
+            $css_vars[] = '--wpsl-category-dot-radius: 3px;';
+        }
+
+        if ( ! empty( $categories['enabled'] ) ) {
+            $category_radius     = isset( $categories['border_radius'] ) ? min( absint( $categories['border_radius'] ), 50 ) : 20;
+            $category_background = isset( $categories['background'] ) ? $categories['background'] : 'tint';
+
+            $css_vars[] = '--wpsl-category-radius: ' . $category_radius . 'px;';
+
+            if ( 'custom' === $category_background ) {
+                $category_color = isset( $categories['custom_color'] ) ? sanitize_hex_color( $categories['custom_color'] ) : '';
+
+                $css_vars[] = '--wpsl-category-bg: ' . ( $category_color ? $category_color : '#f0f0f1' ) . ';';
+            } elseif ( 'none' === $category_background ) {
+                // Without a background the padding has no edge to keep the text
+                // away from, so it goes and the names get more room between them.
+                $css_vars[] = '--wpsl-category-bg: transparent;';
+                $css_vars[] = '--wpsl-category-padding: 0;';
+                $css_vars[] = '--wpsl-category-gap: 14px;';
+            }
+        }
+
         if ( ! empty( $css_vars ) ) {
             $this->css_styles .= ':root {' . "\r\n";
             $this->css_styles .= '    ' . implode( "\r\n    ", $css_vars ) . "\r\n";
@@ -658,6 +713,40 @@ class Theme_Styles {
 
         // Return the default value if it exists, otherwise empty string
         return isset( $this->defaults[$default_key] ) ? $this->defaults[$default_key] : '';
+    }
+
+    /**
+     * The colors a featured location falls back to when its own are empty.
+     *
+     * Text and links follow the search results, the icon their icon color;
+     * the background the translucent default tint ( colors.css ) on white.
+     *
+     * @since  3.1.0
+     * @param  array|null $theme_colors Theme colors to read the results colors from ( a missing one is read from the saved settings ), or null for the saved ones
+     * @return array      The fallback hex color per featured field: background, text, link, link_hover and icon
+     */
+    public function featured_fallbacks( $theme_colors = null ) {
+        $fallbacks = [ 'background' => '#fafafa' ];
+
+        $sources = [
+            'text'       => 'listing_results_text',
+            'link'       => 'listing_results_link',
+            'link_hover' => 'listing_results_link_hover',
+            'icon'       => 'listing_icons_color',
+        ];
+
+        foreach ( $sources as $field => $results_field ) {
+
+            if ( null === $theme_colors || ! isset( $theme_colors[ $results_field ] ) ) {
+                $color = $this->get_color_value( $results_field );
+            } else {
+                $color = isset( $theme_colors[ $results_field ] ) ? sanitize_hex_color( $theme_colors[ $results_field ] ) : '';
+            }
+
+            $fallbacks[ $field ] = $color ? $color : $this->defaults[ str_replace( '_', '-', $results_field ) ];
+        }
+
+        return $fallbacks;
     }
 
     /**

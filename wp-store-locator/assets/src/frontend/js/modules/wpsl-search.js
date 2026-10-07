@@ -104,7 +104,7 @@ export const search = {
 
         wp.hooks.doAction( 'wpslPrepareSearch', args );
 
-        if ( helpers.search.maybeReverseGeocode() ) {
+        if ( helpers.search.maybeReverseGeocode( args ) ) {
             slData.provider.api.geocoding.reverse( args, search.current( function() {
                 search.run( args );
             }) );
@@ -215,6 +215,11 @@ export const search = {
 
         // A geolocated page load isn't cached: hardly two visitors share a
         // start point, so each would only add a transient nobody reads again.
+        // The approximate location of a visitor is searched with a minimum radius.
+        if ( args.approximate ) {
+            ajaxData.approximate = 1;
+        }
+
         if ( args.autoLoad ) {
             if ( slData.geolocation.active ) {
                 ajaxData.skip_cache = 1;
@@ -407,11 +412,24 @@ export const search = {
                     // instead of once per returned store.
                     const listingTemplate = typeof slData.templates.listing !== 'undefined' ? _.template( slData.templates.listing ) : undefined;
                     const onlineTemplate  = typeof slData.templates.online !== 'undefined' ? _.template( slData.templates.online ) : undefined;
+                    const featuredIds     = [];
 
                     jQuery.each( response, function( index ) {
                         const locationDetails = typeof geoJSON === 'object' ? response[index].properties : response[index];
 
                         _.extend( locationDetails, helpers.template );
+
+                        if ( Number( locationDetails.featured ) === 1 ) {
+                            featuredIds.push( locationDetails.id );
+                        }
+
+                        // GeoJSON ( Mapbox ) keeps the coordinates in the geometry, the directions link needs them.
+                        const geometry = typeof geoJSON === 'object' ? response[index].geometry : undefined;
+
+                        if ( geometry && Array.isArray( geometry.coordinates ) && typeof locationDetails.lat === 'undefined' ) {
+                            locationDetails.lng = geometry.coordinates[0];
+                            locationDetails.lat = geometry.coordinates[1];
+                        }
 
                         // Fall back to the configured distance unit.
                         if ( typeof locationDetails.distance !== 'undefined' && typeof locationDetails.distance_unit === 'undefined' ) {
@@ -445,8 +463,15 @@ export const search = {
                     helpers.search.closeFiltersOnResults();
                     slData.$storeList.append( storeData );
 
+                    // Added here instead of in the listing template, so a
+                    // customized template gets the class as well.
+                    featuredIds.forEach( function( id ) {
+                        slData.$storeList.children( 'li[data-store-id="' + id + '"]' ).addClass( 'wpsl-featured' );
+                    });
+
                     // Adjust column class if result count is less than configured columns
                     helpers.search.adjustColumnClass( response );
+                    helpers.search.approximateLocation( searchArgs );
                     helpers.search.numberResults( response );
 
                     if ( helpers.results.maybeUseBasicMode() ) {
@@ -527,7 +552,11 @@ export const search = {
                 message = sharedHelpers.escapeHtml( jqXHR.responseJSON.data ).replace( /\n/g, '<br><br>' );
             }
 
-            jQuery( '#wpsl-stores' ).html( '<ul><li class="wpsl-no-results-msg">' + message + '</li></ul>' );
+            if ( helpers.results.isListHidden() ) {
+                helpers.createMapNotice( message );
+            } else {
+                jQuery( '#wpsl-stores' ).html( '<ul><li class="wpsl-no-results-msg">' + message + '</li></ul>' );
+            }
         }).always( function() {
             // The newer request owns the preloader now.
             if ( ! isCurrent() ) {
@@ -600,13 +629,19 @@ export const search = {
     getNoResultsMsg: function( args ) {
         let noResults;
 
+        /*
+         * Only a radius search can be retried without its radius — other
+         * search types already return every match, so "nearest" adds nothing.
+         */
+        const radiusSearch = typeof args.types === 'undefined' || args.types === 'location';
+
         if ( typeof config.search.noResults !== 'undefined' && config.search.noResults ) {
             noResults = config.search.noResults;
         } else if ( typeof slData.nearestCoords !== 'undefined' && args.lat + ',' + args.lng == slData.nearestCoords ) {
             noResults = wpslLabels.noNearbyLocations;
 
             delete slData.nearestCoords;
-        } else if ( typeof wpslLabels.findNearestLocations === 'string' && wpslLabels.findNearestLocations ) {
+        } else if ( radiusSearch && typeof wpslLabels.findNearestLocations === 'string' && wpslLabels.findNearestLocations ) {
             noResults = wpslLabels.findNearestLocations;
 
             // Track the coordinates, so a second 'nearest search' that also
@@ -630,7 +665,7 @@ export const search = {
     reset: function() {
         jQuery( '#wpsl-result-list ul' ).empty();
         jQuery( '#wpsl-stores' ).show();
-        jQuery( '.wpsl-direction-before, .wpsl-direction-after, .wpsl-number-results, #wpsl-pagination' ).remove();
+        jQuery( '.wpsl-direction-before, .wpsl-direction-after, .wpsl-number-results, .wpsl-approximate-location, #wpsl-pagination' ).remove();
         jQuery( '#wpsl-direction-details, #wpsl-pagination' ).hide();
 
         if ( helpers.flexboxAvailable() ) {

@@ -1,6 +1,7 @@
 import { importedLibraries } from '../../../../../common/wpsl-core.js';
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
+import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { api } from './wpsl-api.js';
@@ -507,14 +508,19 @@ export const markers = {
             wrapper.style.setProperty( 'line-height', '0',      'important' );
 
             const inject = ( markup ) => {
-                wrapper.innerHTML = markup;
-                const svg = wrapper.querySelector( 'svg' );
+                // Not innerHTML: parsed as SVG with anything that can run code removed.
+                const svg = sharedHelpers.parseSvgMarkup( markup );
 
-                if ( svg ) {
-                    svg.setAttribute( 'width',  w );
-                    svg.setAttribute( 'height', h );
-                    svg.style.setProperty( 'display', 'block', 'important' );
+                // Not SVG after all: the <img> stand-in stays.
+                if ( ! svg ) {
+                    return;
                 }
+
+                svg.setAttribute( 'width',  w );
+                svg.setAttribute( 'height', h );
+                svg.style.setProperty( 'display', 'block', 'important' );
+
+                wrapper.replaceChildren( svg );
             };
 
             if ( wpslSvgMarkupCache[ markerUrl ] ) {
@@ -1196,6 +1202,10 @@ export const markers = {
             marker.storeId = directionStops[index].id;
             marker.type = directionStops[index];
 
+            // What setActive() and restoreActiveMarkers() read from a result marker.
+            marker._iconUrl = markerData.markerUrl;
+            marker._wpslMapIndex = RESULTS_MAP_INDEX;
+
             /*
              * AdvancedMarkerElement fires 'gmp-click' instead of 'click'; using
              * 'click' on it logs a deprecation warning. Legacy markers still use 'click'.
@@ -1212,13 +1222,23 @@ export const markers = {
                 let infoWindowData;
 
                 if ( marker.storeId === 0 ) {
-                    infoWindowData = ( stopDetails && stopDetails.startAddress ) || ( source && source.title ) || marker.title;
+                    infoWindowData = ( stopDetails && stopDetails.startAddress && sharedHelpers.escapeHtml( stopDetails.startAddress ) ) || ( source && source.title ) || marker.title;
                 } else {
-                    infoWindowData = ( source && source._wpslMarkerData ) || ( stopDetails && stopDetails.endAddress );
+                    infoWindowData = ( source && source._wpslMarkerData ) || ( stopDetails && stopDetails.endAddress && sharedHelpers.escapeHtml( stopDetails.endAddress ) );
                 }
 
                 if ( ! infoWindowData ) {
                     return;
+                }
+
+                // The destination wears the active marker while its window is
+                // open, the same as the result marker it stands in for.
+                const activeData = source ? source._wpslMarkerData : null;
+
+                this.restoreActiveMarkers( RESULTS_MAP_INDEX );
+
+                if ( helpers.markers.maybeSetActivemarker( marker.storeId, !! ( activeData && ( activeData.locationMarkerUrlActive || activeData.categoryMarkerUrlActive ) ) ) ) {
+                    this.setActive( marker, activeData );
                 }
 
                 infoWindow.setContent( marker, infoWindowData, slData.maps[0] );

@@ -41,6 +41,7 @@ export const settings = {
 
         this.checkStartPoint();
         this.bindHandlers();
+        this.setLabelPlaceholders();
 
         multiselect.init();
         hours.init();
@@ -222,6 +223,27 @@ export const settings = {
         if ( jQuery( '#wpsl-latlng' ).length && ! jQuery( '#wpsl-latlng' ).val() ) {
             jQuery( '#wpsl-latlng' ).siblings( 'label' ).find( '.wpsl-info' ).addClass( 'wpsl-required-setting' );
         }
+    },
+
+    /**
+     * Show what an emptied label does, as the placeholder of its field: the
+     * default text it falls back to, or that it's hidden on the front end.
+     *
+     * @since   3.1.0
+     * @returns {void}
+     */
+    setLabelPlaceholders: function() {
+        let placeholders;
+
+        try {
+            placeholders = JSON.parse( jQuery( '#wpsl-labels' ).attr( 'data-placeholders' ) || '{}' );
+        } catch ( e ) {
+            return;
+        }
+
+        jQuery.each( placeholders, function( name, text ) {
+            jQuery( '#wpsl-labels input[name="wpsl_labels[' + name + ']"]' ).attr( 'placeholder', text );
+        });
     },
 
     /**

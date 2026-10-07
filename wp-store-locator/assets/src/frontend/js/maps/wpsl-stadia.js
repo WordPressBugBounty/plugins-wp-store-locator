@@ -668,7 +668,7 @@ const api = {
 
             let lat, lng;
 
-            if ( typeof args.latLng === 'object' && typeof args.latLng.lat === 'function' ) {
+            if ( args.latLng && typeof args.latLng === 'object' && typeof args.latLng.lat === 'function' ) {
                 lat = args.latLng.lat();
                 lng = args.latLng.lng();
             } else {

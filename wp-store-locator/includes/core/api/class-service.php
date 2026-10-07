@@ -150,7 +150,7 @@ class Service {
             $response = $this->geocode_service->geocode_location( $args, $post_id, true );
 
             if ( isset( $response['status'] ) && $response['status'] !== 'OK' ) {
-                return json_encode( [ 'geocode_status' => $response['status'], 'error' => $response['error_message'] ] );
+                return json_encode( [ 'geocode_status' => $response['status'], 'error' => isset( $response['message'] ) ? $response['message'] : '' ] );
             } else if ( isset( $response['message'] ) ) {
                 return json_encode( [ 'geocode_status' => $response['message'] ] );
             } else {
@@ -400,6 +400,47 @@ class Service {
          * open
          */
         $this->location_status->process( $args, $post_id );
+
+        $this->set_featured( $post_id, $args );
+    }
+
+    /**
+     * Save the featured state and its position among the featured locations.
+     *
+     * A partial API / import request without the 
+     * field leaves the stored value alone.
+     *
+     * @since  3.1.0
+     * @param  int   $post_id Post id
+     * @param  array $args
+     * @return void
+     */
+    private function set_featured( $post_id, $args ) {
+        if ( ! isset( $args['featured'] ) ) {
+            return;
+        }
+
+        if ( ! filter_var( $args['featured'], FILTER_VALIDATE_BOOLEAN ) ) {
+            delete_post_meta( $post_id, 'wpsl_featured' );
+            delete_post_meta( $post_id, 'wpsl_featured_position' );
+
+            return;
+        }
+
+        update_post_meta( $post_id, 'wpsl_featured', 1 );
+
+        if ( ! isset( $args['featured_position'] ) ) {
+            return;
+        }
+
+        // The position is optional, and counts from 1.
+        $position = is_numeric( $args['featured_position'] ) ? (int) $args['featured_position'] : 0;
+
+        if ( $position >= 1 ) {
+            update_post_meta( $post_id, 'wpsl_featured_position', $position );
+        } else {
+            delete_post_meta( $post_id, 'wpsl_featured_position' );
+        }
     }
 
     /**

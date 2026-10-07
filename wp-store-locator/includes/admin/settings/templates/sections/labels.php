@@ -5,9 +5,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $i18n             = wpsl_get_service( 'i18n' );
 $label_visibility = $wpsl_settings->get( 'labels', 'visibility' );
+
+/*
+ * What an empty field shows, see Translations::is_emptied_label(): an
+ * optional label is left out on the front end, any other label falls back
+ * to its default text. Set as placeholders by wpsl-settings.js.
+ */
+$label_defaults     = $wpsl_settings->defaults( 'labels' );
+$label_placeholders = [];
+
+foreach ( wpsl_labels() as $label_name ) {
+    $label_key = $label_name . '_label';
+
+    // "Please adjust your search" isn't in the list, but stays empty as well, see get_adjust_search_label().
+    if ( 'adjust_search' === $label_name || in_array( $label_key, $i18n->optional_labels(), true ) ) {
+        $label_placeholders[ $label_name ] = __( 'Hidden on the front end', 'wp-store-locator' );
+    } elseif ( isset( $label_defaults[ $label_key ] ) && is_string( $label_defaults[ $label_key ] ) ) {
+        $label_placeholders[ $label_name ] = html_entity_decode( $label_defaults[ $label_key ], ENT_QUOTES );
+    }
+}
 ?>
 
-<section id="wpsl-labels" class="postbox">
+<section id="wpsl-labels" class="postbox" data-placeholders="<?php echo esc_attr( wp_json_encode( $label_placeholders ) ); ?>">
     <h3><span><?php esc_html_e( 'Labels', 'wp-store-locator' ); ?></span></h3>
     <div class="inside">
         <?php
@@ -115,6 +134,10 @@ $label_visibility = $wpsl_settings->get( 'labels', 'visibility' );
         <p>
             <label for="wpsl-no-results"><?php esc_html_e( 'No results found', 'wp-store-locator' ); ?></label>
             <input type="text" value="<?php echo esc_attr( $i18n->get_translation( 'no_results_label', __( 'No results found.', 'wp-store-locator' ) ) ); ?>" name="wpsl_labels[no_results]" id="wpsl-no-results">
+        </p>
+        <p>
+            <label for="wpsl-adjust-search"><?php esc_html_e( 'Please adjust your search', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'The second sentence of the "No results found" and "No route found" messages. Leave it empty to only show the first sentence.', 'wp-store-locator' ); ?></span></span></label>
+            <input type="text" value="<?php echo esc_attr( $i18n->get_adjust_search_label() ); ?>" name="wpsl_labels[adjust_search]" id="wpsl-adjust-search">
         </p>
         <p>
             <label for="wpsl-preloader"><?php esc_html_e( 'Searching (preloader text)', 'wp-store-locator' ); ?></label>

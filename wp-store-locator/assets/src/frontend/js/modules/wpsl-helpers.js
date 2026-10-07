@@ -16,6 +16,7 @@ const optionalPlaceholders = {
     hours_status:    '',
     hours:           '',
     thumb:           '',
+    categories:      '',
     permalink:       '',
     email:           '',
     url:             '',
@@ -407,21 +408,22 @@ export const helpers = {
 
             if ( $mapElem.length ) {
                 // Add More Details link if CTA details is enabled
-                if ( config.ux.ctaDetailsButton ) {
+                // An emptied "More details" label leaves the link out.
+                if ( config.ux.ctaDetailsButton && wpslLabels.moreDetails ) {
                     let storeUrl = url || permalink;
                     if ( storeUrl ) {
-                        moreDetails = `<a class="wpsl-details${config.ux.ctaDetailsClass}" target="_blank" href="${storeUrl}">${wpslLabels.moreDetails}</a>`;
+                        moreDetails = `<a class="wpsl-details${config.ux.ctaDetailsClass}" target="_blank" href="${storeUrl}">${sharedHelpers.escapeHtml( wpslLabels.moreDetails )}</a>`;
                     }
                 }
 
                 if ( $mapElem.hasClass( 'wpsl-canvas-gmaps' ) ) {
                     if ( config.map.streetViewAvailable ) {
-                        streetView = `<a class="wpsl-streetview${config.ux.ctaStreetViewClass}" href="#">${wpslLabels.streetView}</a>`;
+                        streetView = `<a class="wpsl-streetview${config.ux.ctaStreetViewClass}" href="#">${sharedHelpers.escapeHtml( wpslLabels.streetView )}</a>`;
                     }
                 }
 
                 if ( config.ux.markerZoomTo ) {
-                    zoomTo = `<a class="wpsl-zoom-here${config.ux.ctaZoomClass}" href="#">${wpslLabels.zoomHere}</a>`;
+                    zoomTo = `<a class="wpsl-zoom-here${config.ux.ctaZoomClass}" href="#">${sharedHelpers.escapeHtml( wpslLabels.zoomHere )}</a>`;
                 }
 
                 const ctaSectionClass = ( config.ux.ctaButtons || config.ux.ctaDetailsButton ) ? ' wpsl-cta-section' : '';
@@ -443,6 +445,11 @@ export const helpers = {
         createDirectionUrl: function( id ) {
             let url = {};
 
+            // Turned off with [wpsl directions="false"].
+            if ( config.ux.hideDirections ) {
+                return '';
+            }
+
             const skipStart = helpers.markers.maybeSkipStartMarker();
             if ( skipStart ) {
                 return '';
@@ -460,13 +467,22 @@ export const helpers = {
                 return '';
             }
 
-            if ( config.api.provider !== 'mapbox' && ( config.search.directionRedirect || helpers.results.maybeUseBasicMode() || ( ( config.api.provider === 'osm' || config.api.provider === 'stadia' ) && ! config.api.hasValidRouteKey ) ) ) {
-                url.target = 'target="_blank"';
+            // A hidden results list has nowhere to show the route, so the link goes to the map provider
+            // ( Mapbox included ) and opens in the same tab.
+            const listHidden = helpers.results.isListHidden();
+
+            if ( ( config.api.provider !== 'mapbox' || listHidden ) && ( config.search.directionRedirect || helpers.results.maybeUseBasicMode() || ( ( config.api.provider === 'osm' || config.api.provider === 'stadia' ) && ! config.api.hasValidRouteKey ) ) ) {
+                url.target = listHidden ? '' : 'target="_blank"';
 
                 // An id means a marker click, so reuse the url from the search
                 // results. Without one we generate it for the map provider.
                 if ( typeof id !== 'undefined' ) {
                     url.src = jQuery( '[data-store-id="' + id + '"] .wpsl-directions' ).attr( 'href' );
+
+                    // A '#' is a link that shows the route in the results list, not a url to go to.
+                    if ( listHidden && url.src === '#' ) {
+                        url.src = undefined;
+                    }
                 }
 
                 if ( typeof url.src === 'undefined' ) {
@@ -475,6 +491,13 @@ export const helpers = {
                         url.src = slData.provider.templateHelpers.createDirectionsUrl( this );
                     } else {
                         console.warn( 'WPSL Invalid coordinates detected:', this.lat, this.lng );
+
+                        // A hidden results list has no other way to show the route,
+                        // so without a valid url there is no directions link at all.
+                        if ( listHidden ) {
+                            return '';
+                        }
+
                         url.src = '#';
                     }
                 }
@@ -485,7 +508,7 @@ export const helpers = {
                 };
             }
 
-            const directionUrl = `<a class="wpsl-directions${config.ux.ctaDirectionsClass}" ${url.target} href="${url.src}">${wpslLabels.directions}</a>`;
+            const directionUrl = `<a class="wpsl-directions${config.ux.ctaDirectionsClass}" ${url.target} href="${url.src}">${sharedHelpers.escapeHtml( wpslLabels.directions )}</a>`;
 
             return wp.hooks.applyFilters( 'wpslCreateDirectionUrl', directionUrl );
         },
@@ -683,6 +706,19 @@ export const helpers = {
         },
 
         /**
+         * The search value passed through a link like /store-locator/?wpsl_address=Amsterdam.
+         *
+         * @since   3.1.0
+         * @returns {string} The text for the search field, or '' when the link has none
+         */
+        getUrlSearchValue: function() {
+            const params = new URLSearchParams( window.location.search );
+            const value  = ( config.search.namesEnabled ? params.get( 'wpsl_name' ) : null ) || params.get( 'wpsl_address' ) || '';
+
+            return value.trim().substring( 0, 200 );
+        },
+
+        /**
          * Check if the user submitted a search through a search widget.
          *
          * @since	2.1.0
@@ -813,12 +849,14 @@ export const helpers = {
          * Check if we need to reverse geocode the coordinates.
          *
          * @since   3.0.0
+         * @param   {object} [args] The search arguments
          * @returns {bool} status Whether or not reverse geocode the input.
          */
-        maybeReverseGeocode: function() {
+        maybeReverseGeocode: function( args = {} ) {
             let status = false;
 
-            if ( ! slData.skipReverseGeocode ) {
+            // The approximate location of a visitor already comes with the details the response would add.
+            if ( ! slData.skipReverseGeocode && ! args.approximate ) {
                 if ( config.search.directionRedirect || config.search.restrictions.borders || typeof config.collectStatistics !== 'undefined' || slData.geolocation.active ) {
                     status = true;
                 }
@@ -968,6 +1006,27 @@ export const helpers = {
                 jQuery( '#wpsl-stores ul' ).before( _.template( slData.templates.numberResults )( message ) );
             }
         },
+
+        /**
+         * Tell the visitor which place the results are for when the search
+         * started from their approximate location ( not picked, possibly another city ).
+         *
+         * @since   3.1.0
+         * @param   {object} searchArgs The arguments the search was made with
+         * @returns {void}
+         */
+        approximateLocation: function( searchArgs ) {
+            jQuery( '.wpsl-approximate-location' ).remove();
+
+            if ( ! searchArgs.approximate || ! searchArgs.approximate.city || typeof wpslLabels.approximateLocation !== 'string' ) {
+                return;
+            }
+
+            // The city comes from a request header, the label from the settings.
+            const text = sharedHelpers.escapeHtml( wpslLabels.approximateLocation ).replace( '{location}', sharedHelpers.escapeHtml( searchArgs.approximate.city ) );
+
+            jQuery( '#wpsl-stores ul' ).before( '<div class="wpsl-approximate-location">' + text + '</div>' );
+        },
     },
 
     /**
@@ -1053,6 +1112,16 @@ export const helpers = {
             } else {
                 $zoomButton.show();
             }
+        },
+
+        /**
+         * Check if the search results list is hidden, so only the search bar and the map are shown.
+         *
+         * @since   3.1.0
+         * @returns {boolean} True when the results list is hidden
+         */
+        isListHidden: function() {
+            return jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-hide-list' );
         },
 
         /**
@@ -1373,7 +1442,7 @@ export const helpers = {
             if ( typeof markerData.id === 'undefined' || markerData.id == 0 ) {
                 markerData.draggable = true;
                 markerData.id 	     = 0;
-                markerData.store     = wpslLabels.startPoint;
+                markerData.store     = sharedHelpers.escapeHtml( wpslLabels.startPoint );
             }
 
             markerData = helpers.markers.setMarkerUrl( markerData );
@@ -1573,7 +1642,9 @@ export const helpers = {
                 return false;
             }
 
-            return ! slData.directions.active && markerId !== 0;
+            // Also while a route is shown: the destination marker opens the
+            // same popup, so it gets the same active marker.
+            return markerId !== 0;
         },
     },
 
@@ -1804,7 +1875,7 @@ export const helpers = {
      */
     formatDirectionsHeader: function( totalDistance, totalDuration ) {
         const separatorClass = ( totalDistance && totalDistance !== '0 mi' && totalDistance !== '0 km' && totalDistance !== '0 ft' && totalDistance !== '0 m' ) ? '' : ' wpsl-hidden';
-        return '<div class="wpsl-direction-before"><a class="wpsl-back" id="wpsl-direction-start" href="#">' + wpslLabels.back + '</a><div><span class="wpsl-total-distance">' + totalDistance + '</span><span class="wpsl-direction-separator' + separatorClass + '"> - </span><span class="wpsl-total-durations">' + totalDuration + '</span></div></div>';
+        return '<div class="wpsl-direction-before"><a class="wpsl-back" id="wpsl-direction-start" href="#">' + sharedHelpers.escapeHtml( wpslLabels.back ) + '</a><div><span class="wpsl-total-distance">' + totalDistance + '</span><span class="wpsl-direction-separator' + separatorClass + '"> - </span><span class="wpsl-total-durations">' + totalDuration + '</span></div></div>';
     },
 
     /**
@@ -1812,17 +1883,23 @@ export const helpers = {
      * API request returns an error code we notify the user.
      *
      * @since   3.0.0
-     * @param   {string} notice The message to show
+     * @param   {string} notice The message to show, as HTML
      * @param   {string} type   The notice context ( 'geocode' or 'directions' )
      * @returns {void}
      */
     createUserNotice: function( notice, type ) {
         if ( type == 'geocode' ) {
             jQuery( '#wpsl-wrap' ).addClass( 'wpsl-no-results' );
-            jQuery( '#wpsl-stores ul' ).html( '<li class="wpsl-no-results-msg">' + notice + '</li>' );
 
-            if ( helpers.flexboxAvailable() ) {
-                jQuery( '#wpsl-result-list' ).show();
+            if ( helpers.results.isListHidden() ) {
+                // There is no list to show it in, so it goes in the same overlay as the API notices.
+                helpers.createMapNotice( notice );
+            } else {
+                jQuery( '#wpsl-stores ul' ).html( '<li class="wpsl-no-results-msg">' + notice + '</li>' );
+
+                if ( helpers.flexboxAvailable() ) {
+                    jQuery( '#wpsl-result-list' ).show();
+                }
             }
         } else if ( type == 'directions' ) {
             const message = '<p>' + notice + '</p>';
@@ -1839,6 +1916,22 @@ export const helpers = {
         }
 
         jQuery( '#wpsl-search-btn' ).attr( 'disabled', false );
+    },
+
+    /**
+     * Show a message in the overlay on the map, the one used for the API notices.
+     * The wpsl-map-notice class drops the red error look for the box used by
+     * the "Determining your location" overlay, since this is not an API error.
+     *
+     * @since   3.1.0
+     * @param   {string} message The message, as HTML
+     * @returns {void}
+     */
+    createMapNotice: function( message ) {
+        jQuery( '.wpsl-api-message' ).remove();
+        jQuery( '#wpsl-map' ).append( '<div class="wpsl-api-message wpsl-map-notice" role="status"><div class="wpsl-map-notice-text">' + message + '</div><a id="wpsl-close-api-notice" href="#">' + wpslLabels.close + '</a></div>' );
+
+        responseHandlers.directions.bindApiNotice();
     },
 
     /**

@@ -1122,12 +1122,21 @@ export const markers = {
         const iconSize    = iconOptions.iconSize;
         const baseLatLng  = target.getLatLng();
 
+        // Build the bounce image as a DOM node and let the browser serialize it,
+        // so an attacker-controlled marker URL can never break out of the src
+        // attribute ( defense in depth alongside the wpsl_marker_src() allowlist ).
+        const bounceImg = document.createElement( 'img' );
+
+        bounceImg.src          = iconOptions.iconUrl;
+        bounceImg.alt          = '';
+        bounceImg.style.width  = iconSize[0] + 'px';
+        bounceImg.style.height = iconSize[1] + 'px';
+
         const bounceIcon = L.divIcon({
             className:  'wpsl-marker-bounce',
             iconSize:   iconSize,
             iconAnchor: iconOptions.iconAnchor,
-            html:       '<img src="' + iconOptions.iconUrl +
-                        '" style="width:' + iconSize[0] + 'px;height:' + iconSize[1] + 'px;" alt="">'
+            html:       bounceImg.outerHTML
         });
 
         this._bounceMarker = L.marker( baseLatLng, {

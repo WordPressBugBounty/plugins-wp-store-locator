@@ -7,9 +7,8 @@ import { geolocation } from './wpsl-geolocation.js';
 import { helpers } from './wpsl-helpers.js';
 import { eventHandlers } from './wpsl-event-handlers.js';
 
-// prepareWpsl() may only run once: with [wpsl] + N [wpsl_map] maps on one
-// page every created map calls it, which stacked the delegated bindings
-// ( and a possible autoload search ) N + 1 times.
+// prepareWpsl() may only run once: every created map calls it, so on a
+// [wpsl] + N [wpsl_map] page the bindings and autoload search stack N + 1 times.
 let wpslPrepared = false;
 
 /**
@@ -106,8 +105,6 @@ export const mapBootstrap = {
      * @returns {void}
      */
     prepareWpsl: function() {
-        let args = {};
-
         if ( wpslPrepared ) {
             return;
         }
@@ -148,38 +145,20 @@ export const mapBootstrap = {
             }
         }
 
+        // A link with a search ( ?wpsl_address=Amsterdam ) runs like a widget search, so it
+        // takes the place of autolocate and autoload. A widget submission wins over the link.
+        const urlSearch = config.search.widgetEnabled ? '' : helpers.search.getUrlSearchValue();
+
         // Check if we need to autolocate the user,
         // or autoload the store locations.
-        if ( ! config.search.widgetEnabled ) {
+        if ( ! config.search.widgetEnabled && ! urlSearch ) {
             if ( config.search.autoLocate.enabled ) {
-                geolocation.init();
-            } else if ( config.search.autoLoad ) {
-                slData.firstLoadInProgress = true;
 
-                // If the country dropdown is present and a country is selected,
-                // then set the search type to country to make sure all results
-                // from the selected country are returned.
-                //
-                // @todo check filter values.
-                if ( jQuery( '#wpsl-country .wpsl-selected-dropdown' ).length ) {
-                    args = search.getAutoSubmitArgs();
-
-                    search.autoSubmit( args );
-                } else {
-                    args.latLng = config.map.startLatLng;
-                    
-                    // Extract coordinates for AJAX request (handles both Google Maps LatLng objects and plain objects)
-                    const coordinates = helpers.extractCoordinates( { latLng: config.map.startLatLng } );
-                    
-                    if ( coordinates ) {
-                        args.lat = coordinates.lat;
-                        args.lng = coordinates.lng;
-                    }
-                    
-                    args.autoLoad = true;
-
-                    search.prepare( args );
-                }
+                // The approximate location trigger shows the autoloaded
+                // locations when the location of the visitor is unknown.
+                geolocation.init( mapBootstrap.autoLoad );
+            } else {
+                mapBootstrap.autoLoad();
             }
         }
 
@@ -191,11 +170,58 @@ export const mapBootstrap = {
 
         helpers.search.checkWidgetSubmit();
 
+        if ( urlSearch ) {
+            jQuery( '#wpsl-search-input' ).val( urlSearch );
+            jQuery( '#wpsl-search-btn' ).trigger( 'click' );
+        }
+
         // The map exists now, so the credits may show. Held back by PHP for
         // every consent handler, including the ones that leave the rest of
         // the locator alone ( Borlabs ) and never reach revealSearch().
         jQuery( '#wpsl-wrap' ).removeClass( 'wpsl-credits-gated' );
 
         wp.hooks.doAction( 'wpslPrepareWpsl' );
+    },
+
+    /**
+     * Load the store locations around the start location,
+     * if the option to do so on pageload is enabled.
+     *
+     * @since 3.1.0
+     * @returns {void}
+     */
+    autoLoad: function() {
+        let args = {};
+
+        if ( ! config.search.autoLoad ) {
+            return;
+        }
+
+        slData.firstLoadInProgress = true;
+
+        // If the country dropdown is present and a country is selected,
+        // then set the search type to country to make sure all results
+        // from the selected country are returned.
+        //
+        // @todo check filter values.
+        if ( jQuery( '#wpsl-country .wpsl-selected-dropdown' ).length ) {
+            args = search.getAutoSubmitArgs();
+
+            search.autoSubmit( args );
+        } else {
+            args.latLng = config.map.startLatLng;
+
+            // Extract coordinates for AJAX request (handles both Google Maps LatLng objects and plain objects)
+            const coordinates = helpers.extractCoordinates( { latLng: config.map.startLatLng } );
+
+            if ( coordinates ) {
+                args.lat = coordinates.lat;
+                args.lng = coordinates.lng;
+            }
+
+            args.autoLoad = true;
+
+            search.prepare( args );
+        }
     }
 };

@@ -80,6 +80,30 @@ class Geocode_Osm extends Geocode {
     }
 
     /**
+     * Check if the address is a query the plugin already encoded: known
+     * Nominatim fields with encoded values ( see create_osm_address() and
+     * Nominatim_Geocode_Cache::build_geocode_query() ). Anything else
+     * is free text.
+     *
+     * @since  3.1.0
+     * @param  string $address The address, or the encoded query.
+     * @return bool   True when it can be sent as it is.
+     */
+    private function is_encoded_query( $address ) {
+        if ( ! is_string( $address ) || false === strpos( $address, '=' ) ) {
+            return false;
+        }
+
+        foreach ( explode( '&', $address ) as $part ) {
+            if ( ! preg_match( '/^(q|amenity|street|city|county|state|country|postalcode)=[A-Za-z0-9%+._~\-]*$/', $part ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Make the call to the Nominatim API.
      *
      * @since  3.0.0
@@ -100,15 +124,14 @@ class Geocode_Osm extends Geocode {
          */
         $language = $this->get_api_language( $this->get_language_provider( $wpsl_settings ) );
 
-        /**
-         * The start location from the settings page has no street=/city=/country=
-         * parameters and could be a street or city, so use q= instead.
-         *
-         * rawurlencode() prevents a free-form address from injecting Nominatim
-         * parameters via "&"/"=". Structured queries (postalcode=, street=&city=...)
-         * already contain "=" and are pre-encoded, so they skip this branch.
+        /*
+         * Free text ( a street, a city ) goes through q=, rawurlencoded so
+         * "&"/"=" can't inject Nominatim parameters. Pre-encoded structured
+         * queries skip this; containing "=" alone doesn't make one, as a
+         * [wpsl start_location] value is free text that can hold it
+         * too ( see is_encoded_query() ).
          */
-        if ( strpos( $address,'=' ) === false ) {
+        if ( ! $this->is_encoded_query( $address ) ) {
             $address = 'q=' . rawurlencode( $address );
         }
 

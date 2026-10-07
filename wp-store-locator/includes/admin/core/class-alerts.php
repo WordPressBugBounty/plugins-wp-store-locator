@@ -76,6 +76,14 @@ class Alerts {
     const MIGRATED_KEY_OPTION = 'wpsl_migrated_server_key_error';
 
     /**
+     * The key the blocked geolocation alert is filed under.
+     *
+     * @since 3.1.0
+     * @var string
+     */
+    const GEOLOCATION_POLICY_ALERT = 'wpsl-geolocation-policy';
+
+    /**
      * List of conflicting plugins
      *
      * @since 3.0.0
@@ -352,6 +360,47 @@ class Alerts {
                 ),
                 // Only Google's error is stored, so the wording and language follow the current code.
                 'details'     => wpsl_get_gmaps_error_details( $error ),
+            ],
+        ];
+    }
+
+    /**
+     * Tell the admin that a header on the site blocks geolocation.
+     *
+     * The result comes from the check the Home page runs in the browser, see
+     * Geolocation_Policy. Not dismissible: auto-locate stays broken until the
+     * header changes, and the next check clears it once it has.
+     *
+     * @since  3.1.0
+     * @return array The alert, or an empty array when it does not apply
+     */
+    public function get_geolocation_policy_alert() {
+        $result = Geolocation_Policy::get_result();
+
+        if ( empty( $result['blocked'] ) || ! Geolocation_Policy::is_needed() ) {
+            return [];
+        }
+
+        $details  = '<p>' . sprintf(
+            /* translators: %s: the header value that fixes it */
+            esc_html__( 'Change it to %s wherever the header is set. WordPress and WP Store Locator never send this header, something else on the site adds it: usually a security or headers plugin (such as HTTP Headers, Defender or Really Simple Security Pro), a rule in .htaccess or the server config, or a setting at your host or CDN.', 'wp-store-locator' ),
+            '<code>' . ( 'Feature-Policy' === $result['header'] ? "geolocation 'self'" : 'geolocation=(self)' ) . '</code>'
+        ) . '</p>';
+        $details .= '<p>' . esc_html__( 'After changing it, clear the page cache and the CDN cache, then reload this page. The alert goes away once the header allows geolocation.', 'wp-store-locator' ) . '</p>';
+        $details .= '<p><a href="' . esc_url( Geolocation_Policy::DOCS_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'How to fix this', 'wp-store-locator' ) . '</a></p>';
+
+        return [
+            self::GEOLOCATION_POLICY_ALERT => [
+                'name'        => __( 'Geolocation', 'wp-store-locator' ),
+                'dismissible' => false,
+                'description' => sprintf(
+                    /* translators: 1: the header name, 2: the page that was checked, 3: the geolocation part of the header */
+                    esc_html__( 'The %1$s header of %2$s contains %3$s. This stops the browser from sharing the visitor\'s location, so auto-locate and the "Use my current location" button can\'t work.', 'wp-store-locator' ),
+                    esc_html( $result['header'] ),
+                    '<a href="' . esc_url( $result['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $result['url'] ) . '</a>',
+                    '<code>' . esc_html( $result['directive'] ) . '</code>'
+                ),
+                'details'     => $details,
             ],
         ];
     }
@@ -643,6 +692,7 @@ class Alerts {
         return array_merge(
             $active_alerts,
             $this->get_handler_alert(),
+            $this->get_geolocation_policy_alert(),
             $this->get_migrated_key_alert(),
             $this->get_routes_api_alert(),
             $this->get_coordinate_alert(),

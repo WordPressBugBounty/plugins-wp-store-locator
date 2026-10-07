@@ -1,5 +1,6 @@
 import { state, createLoaderHTML } from '../wpsl-shared.js';
-import { helpers } from '../wpsl-helpers.js'; 
+import { helpers } from '../wpsl-helpers.js';
+import { sharedHelpers } from '../../../../common/wpsl-shared-helpers.js';
 import { api } from '../wpsl-api.js';
 import { mapBootstrap, mapObjects } from '../wpsl-map-bootstrap.js';
 import { markers } from '../wpsl-markers.js';
@@ -72,6 +73,9 @@ export const geocodeResponseTest = {
 
                     self.restrictionsMsg.create();
 
+                    // The restriction note made the open dialog taller.
+                    self.recenterDialog();
+
                     // Save the initial viewport state for later restoration
                     self.saveInitialViewport();
 
@@ -82,6 +86,7 @@ export const geocodeResponseTest = {
                 });
             } else {
                 self.restrictionsMsg.create();
+                self.recenterDialog();
 
                 // Save the initial viewport state for later restoration
                 self.saveInitialViewport();
@@ -135,35 +140,25 @@ export const geocodeResponseTest = {
     },
 
     /**
-     * Center the dialog vertically within the container.
-     *
-     * @since   3.0.0
-     * @param   {jQuery} $dialog The dialog element to position
-     * @returns {void}
-     */
-    centerDialogVertically: function( $dialog ) {
-        const $container = jQuery( "#wpbody-content" );
-        const containerOffsetTop = $container.offset().top;
-        const containerHeight = $container.outerHeight();
-        const dialogHeight = jQuery( '.ui-dialog.wpsl-geocode-dialog' ).outerHeight() + 25;
-    
-        const topOffset = Math.max( containerOffsetTop + ( containerHeight - dialogHeight ) / 2, 0 );
-        
-        $dialog.css({
-            top: topOffset + "px"
-        });
-    },
-
-    /**
-     * Create the dialog box
+     * Open the dialog box, creating it on the first call.
      *
      * @since   2.2.22
      * @returns {void}
      */
     createDialog: function() {
         const $geocodeTest = jQuery( '#wpsl-geocode-test' );
-        const $dialogContainer = jQuery( '.ui-dialog.wpsl-geocode-dialog' );
 
+        // Passing the options again would replace the position jQuery UI
+        // merged with its defaults, and with it the fit inside the window.
+        if ( $geocodeTest.dialog( 'instance' ) ) {
+            $geocodeTest.dialog( 'open' );
+
+            return;
+        }
+
+        // No position: the default centers the dialog in the visible part
+        // of the window, wherever the page is scrolled to. The open callback
+        // puts it back on every open, see recenterDialog().
         $geocodeTest.dialog({
             resizable: false,
             height: 'auto',
@@ -174,13 +169,12 @@ export const geocodeResponseTest = {
             dialogClass: 'wpsl-dialog wpsl-geocode-dialog',
             classes: { 'ui-dialog': 'wpsl-dialog wpsl-geocode-dialog' },
             appendTo: '#wpbody-content',
-            position: {
-                my: "center",
-                at: "center",
-                of: "#wpbody-content"
-            },
             open: function() {
                 const $dialog = jQuery( this );
+
+                // Looked up here: the container doesn't exist before the
+                // dialog is created.
+                const $dialogContainer = $dialog.dialog( 'widget' );
 
                 // Replace the existing close button with our own
                 helpers.ui.dialog.addCloseButton( 'wpsl-geocode-dialog' );
@@ -228,13 +222,26 @@ export const geocodeResponseTest = {
                 });
 
                 geocodeResponseTest.handleResponsiveDialog( $dialog, $dialogContainer );
-                geocodeResponseTest.centerDialogVertically( $dialogContainer );
             },
             close: function() {
                 jQuery( '.ui-widget-overlay, .wpsl-dialog-close' ).off( 'click' );
                 jQuery( window ).off( 'resize.geocodeDialog' );
             },
         });
+    },
+
+    /**
+     * Center the dialog in the window again.
+     *
+     * Called after a size change and on every open, so a dragged position
+     * doesn't stick. The default is set in full to keep the collision
+     * "fit" that holds the dialog inside the window.
+     *
+     * @since   3.1.0
+     * @returns {void}
+     */
+    recenterDialog: function() {
+        jQuery( '#wpsl-geocode-test' ).dialog( 'option', 'position', jQuery.ui.dialog.prototype.options.position );
     },
 
     /**
@@ -401,8 +408,11 @@ export const geocodeResponseTest = {
      * OSM / Google Maps have different responses, but it will
      * be something like 'OK', 'ZERO_RESULTS'.
      *
+     * The message is inserted as HTML: it's a status constant or a message
+     * from wpslL10n. Escape anything else before passing it.
+     *
      * @since   3.0.0
-     * @param   {string} msg The returned status message
+     * @param   {string} msg The returned status message, as HTML
      * @returns {void}
      */
     status: function( msg ) {
@@ -638,9 +648,10 @@ export const geocodeResponseTest = {
                 return country.label;
             }).join( ', ' );
 
-            text = message.replace( '%1$s', typed ).replace( '%2$s', restrictedTo );
+            text = message.replace( '%1$s', () => sharedHelpers.escapeHtml( typed ) ).replace( '%2$s', () => sharedHelpers.escapeHtml( restrictedTo ) );
         } else {
-            text = message.replace( '%s', typed );
+            // Typed in the dialog, and the notice below is built as HTML.
+            text = message.replace( '%s', () => sharedHelpers.escapeHtml( typed ) );
         }
 
         /**
@@ -752,8 +763,6 @@ export const geocodeResponseTest = {
      * @returns {void}
      */
     handleResponsiveDialog: function( $dialog, $dialogContainer ) {
-        const self = this;
-        
         const adjustDialogLayout = function() {
             const viewportWidth = jQuery( window ).width();
             const $container = jQuery( '.wpsl-geocode-test-container' );
@@ -775,14 +784,9 @@ export const geocodeResponseTest = {
                 $container.css( 'display', 'flex' );
             }
             
-            // Recenter the dialog after width adjustment
-            $dialog.dialog( 'option', 'position', {
-                my: "center",
-                at: "center",
-                of: "#wpbody-content"
-            });
-
-            self.centerDialogVertically( $dialogContainer );
+            // Recenter the dialog after the width adjustment, and after the
+            // open callback changed its height.
+            geocodeResponseTest.recenterDialog();
         };
 
         adjustDialogLayout();

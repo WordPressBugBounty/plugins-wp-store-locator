@@ -191,16 +191,21 @@ function createSvgContent( markerUrl, geometry ) {
         /*
          * Marker artwork only: a custom marker's SVG is built server-side from
          * the shape table ( every value escaped ); a bundled one is a file in
-         * the plugin's marker directory.
+         * the plugin's marker directory. Parsed as SVG with anything that can
+         * run code removed, rather than set through innerHTML.
          */
-        wrapper.innerHTML = markup;
+        const svg = sharedHelpers.parseSvgMarkup( markup );
 
-        const svg = wrapper.querySelector( 'svg' );
-        if ( svg ) {
-            svg.setAttribute( 'width',  geometry.width );
-            svg.setAttribute( 'height', geometry.height );
-            svg.style.setProperty( 'display', 'block', 'important' );
+        // Not SVG after all: the <img> stand-in stays.
+        if ( ! svg ) {
+            return;
         }
+
+        svg.setAttribute( 'width',  geometry.width );
+        svg.setAttribute( 'height', geometry.height );
+        svg.style.setProperty( 'display', 'block', 'important' );
+
+        wrapper.replaceChildren( svg );
     };
 
     const inline = sharedHelpers.svgMarkupFromDataUri( markerUrl ) || svgMarkupCache[ markerUrl ];
@@ -367,7 +372,11 @@ export const markers = {
                     pixelOffset: new google.maps.Size( 0, shift - ( sharedHelpers.markerGap + 1 ) )
                 });
 
-                marker.addListener( 'click', function() {
+                // AdvancedMarkerElement fires 'gmp-click' instead of 'click'; using
+                // 'click' on it logs a deprecation warning. Legacy markers still use 'click'.
+                const clickEvent = this.usesLegacyMarkers() ? 'click' : 'gmp-click';
+
+                marker.addListener( clickEvent, function() {
                     infoWindow.setContent( wpslL10n.popupContent );
                     infoWindow.open({
                         anchor: marker,

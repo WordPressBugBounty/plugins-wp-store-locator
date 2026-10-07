@@ -352,7 +352,13 @@ export const createApiRequest = {
             }
 
             if ( url && error && url.indexOf( 'http' ) === 0 && error.length ) {
-                const documentationUrl = '<a target="_blank" href=' + url + '>' + error + '</a>';
+                const documentationLink = document.createElement( 'a' );
+
+                documentationLink.target      = '_blank';
+                documentationLink.href        = encodeURI( url );
+                documentationLink.textContent = error;
+
+                const documentationUrl = documentationLink.outerHTML;
 
                 // Use the unmodified message ( billing ) when available, otherwise the
                 // captured error text linked to the documentation URL.
@@ -435,7 +441,7 @@ export const createApiRequest = {
          *
          * @since  3.0.0
          * @see    https://developers.google.com/maps/documentation/javascript/libraries
-         * @param  {object} additionalLibs
+         * @param  {array|null} additionalLibs
          * @param  {function} callback
          * @return {Promise<void>}
          */
@@ -444,10 +450,10 @@ export const createApiRequest = {
             // wpslSettings.api.libraries by the extras on every call.
             let libraries = wpslSettings.api.libraries.slice();
 
-            if ( typeof additionalLibs === 'object' ) {
-                jQuery.each( additionalLibs, function( key, value ) {
-                    libraries.push( value );
-                });
+            // Not typeof 'object': that is true for the null most callers pass,
+            // and jQuery.each( null ) throws on jQuery versions before 1.12 / 2.2.
+            if ( Array.isArray( additionalLibs ) ) {
+                libraries = libraries.concat( additionalLibs );
             }
 
             for ( const key of Object.keys( libraries ) ) {
@@ -672,7 +678,7 @@ export const createApiRequest = {
             getFormattedAddress: function( response ) {
                 const format = [ 'road', 'town', 'village', 'city', 'country' ];
 
-                if ( typeof response.address === 'object' ) {
+                if ( response.address && typeof response.address === 'object' ) {
                     const adressParts = Object.entries( response.address )
                         .filter( ( [ key ] ) => format.includes( key ) )
                         .map( ( [ , value ] ) => value );

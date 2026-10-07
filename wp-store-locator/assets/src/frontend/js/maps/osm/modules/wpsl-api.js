@@ -119,7 +119,7 @@ export const api = {
         reverse: function( args, callback ) {
             let lat, lng;
 
-            if ( typeof args.latLng === 'object' && typeof args.latLng.lat === 'function' ) {
+            if ( args.latLng && typeof args.latLng === 'object' && typeof args.latLng.lat === 'function' ) {
                 lat = args.latLng.lat();
                 lng = args.latLng.lng();
             } else {
@@ -167,7 +167,15 @@ export const api = {
             }
 
             if ( ! format ) {
-                if ( response.type == 'administrative' && response.category == 'boundary' ) {
+                // Nominatim names this field 'class' in the json format the
+                // plugin requests, and 'category' in jsonv2.
+                const placeClass = response.class || response.category;
+
+                // A county or district is an administrative boundary as well,
+                // only the state or country itself is a full search.
+                const isStateOrCountry = [ 'state', 'country' ].includes( response.addresstype );
+
+                if ( response.type == 'administrative' && placeClass == 'boundary' && isStateOrCountry ) {
                     jQuery.each( fieldList, function( index ) {
                         if ( typeof response.address[fieldList[index]] !== 'undefined' ) {
                             skipCountryStateSearch = true;

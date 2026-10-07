@@ -27,24 +27,26 @@ export const preloader = {
             text = wpslLabels.preloader;
         }
 
+        const $image = jQuery( '<img>' ).attr({ alt: text, src: preloader });
+
         if ( helpers.flexboxAvailable() ) {
             jQuery( '#wpsl-clear-search-input' ).hide();
 
             const $clearWrapper = jQuery( '#wpsl-clear-wrapper' );
             if ( ! $clearWrapper.find( '.wpsl-preloader' ).length ) {
-                $clearWrapper.append( '<img class="wpsl-preloader" alt="' + text + '" src="' + preloader + '"/>' );
+                $clearWrapper.append( $image.addClass( 'wpsl-preloader' ) );
             }
         } else if ( targetSelector ) {
             const $targetElem = jQuery( targetSelector );
 
             if ( ! jQuery( '.wpsl-preloader' ).length ) {
-                $targetElem.append( '<li class="wpsl-preloader"><img alt="' + text + '" src="' + preloader + '"/>' + text + '</li>' );
+                $targetElem.append( jQuery( '<li class="wpsl-preloader">' ).text( text ).prepend( $image ) );
             }
         } else {
             const $targetElem = jQuery( '#wpsl-stores ul' );
 
             if ( ! jQuery( '.wpsl-preloader' ).length ) {
-                $targetElem.empty().append( '<li class="wpsl-preloader"><img alt="' + text + '" src="' + preloader + '"/>' + text + '</li>' );
+                $targetElem.empty().append( jQuery( '<li class="wpsl-preloader">' ).text( text ).prepend( $image ) );
             }
         }
     },

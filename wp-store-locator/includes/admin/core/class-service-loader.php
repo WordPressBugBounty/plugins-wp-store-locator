@@ -74,6 +74,7 @@ class Service_Loader {
         'wpsl_home_feedback'            => [ 'home', 'status_report' ],
         'wpsl_home_create_page'         => [ 'home' ],
         'wpsl_home_mark_placed'         => [ 'home' ],
+        'wpsl_home_geolocation_policy'  => [ 'home' ],
     ];
 
     /**

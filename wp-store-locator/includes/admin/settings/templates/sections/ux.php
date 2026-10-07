@@ -75,6 +75,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             <input type="checkbox" value="" <?php checked( $section_settings['marker_zoom_to'], true ); ?> name="wpsl_ux[marker_zoom_to]" id="wpsl-marker-zoom-to">
         </p>
         <p>
+            <label for="wpsl-popup-thumb"><?php esc_html_e( 'Show the store thumbnail in the info window?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'The thumbnail is the featured image of the store, and only shows for stores that have one.', 'wp-store-locator' ); ?></span></span></label>
+            <input type="checkbox" value="" <?php checked( $section_settings['popup_thumb'], true ); ?> name="wpsl_ux[popup_thumb]" id="wpsl-popup-thumb">
+        </p>
+        <p>
             <label for="wpsl-mouse-focus"><?php esc_html_e( 'On page load move the mouse cursor to the search field?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php /* translators: %1$s: line breaks, %2$s: opening em tag, %3$s: closing em tag */ echo wp_kses_post( sprintf( __( 'If the store locator is not placed at the top of the page, enabling this feature can result in the page scrolling down. %1$s %2$sThis option is disabled on mobile devices.%3$s', 'wp-store-locator' ), '<br><br>', '<em>', '</em>' ) ); ?></span></span></label>
             <input type="checkbox" value="" <?php checked( $section_settings['mouse_focus'], true ); ?> name="wpsl_ux[mouse_focus]" id="wpsl-mouse-focus">
         </p>

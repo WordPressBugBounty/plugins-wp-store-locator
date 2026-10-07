@@ -99,7 +99,7 @@ class Geocode_Gmaps extends Geocode {
     protected function check_gmaps_response_code( $api_response, $address ) {
         if ( is_wp_error( $api_response ) ) {
             /* translators: %s: error message from the API */
-            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the Google Geocode API: %s. Please try again later.', 'wp-store-locator' ), $api_response->get_error_message() );
+            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the Google Geocode API: %s. Please try again later.', 'wp-store-locator' ), esc_html( $api_response->get_error_message() ) );
         } else {
             $http_code = (int) wp_remote_retrieve_response_code( $api_response );
             $body = wp_remote_retrieve_body( $api_response );
@@ -295,14 +295,24 @@ class Geocode_Gmaps extends Geocode {
             $location_data['country_iso'] = $response['results'][0]['postalAddress']['regionCode'];
 
             $country = $this->filter_country_name( $response );
-            if ( ! empty( $country ) ) {
+            if ( ! empty( $country['longText'] ) ) {
                 $location_data['country'] = $country['longText'];
             }
         } else {
+            // Google only returns shortText "if available", so check both keys.
             $country = $this->filter_country_name( $response );
-            if ( ! empty( $country ) ) {
+            if ( ! empty( $country['longText'] ) ) {
                 $location_data['country'] = $country['longText'];
+            }
+
+            if ( ! empty( $country['shortText'] ) ) {
                 $location_data['country_iso'] = $country['shortText'];
+            } elseif ( ! empty( $country['longText'] ) ) {
+                $country_iso = $this->country_iso_from_name( $country['longText'] );
+
+                if ( $country_iso ) {
+                    $location_data['country_iso'] = $country_iso;
+                }
             }
         }
 
@@ -395,6 +405,29 @@ class Geocode_Gmaps extends Geocode {
     }
 
     /**
+     * Look up the two-letter code of a country by its name.
+     *
+     * For a result without shortText: only matches when Google responded in
+     * the admin language of the settings-page country list, otherwise the
+     * restriction can't check the result ( enforce_region_restriction() ).
+     *
+     * @since  3.1.0
+     * @param  string $name The country name Google returned, e.g. Netherlands
+     * @return string The uppercase code, or an empty string when the name isn't in the list
+     */
+    public function country_iso_from_name( $name ) {
+        $name = strtolower( trim( $name ) );
+
+        foreach ( wpsl_get_regions() as $region => $code ) {
+            if ( $code && strtolower( html_entity_decode( $region, ENT_QUOTES ) ) === $name ) {
+                return strtoupper( $code );
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Return the address component matching the requested type.
      *
      * @since  3.0.0
@@ -405,68 +438,12 @@ class Geocode_Gmaps extends Geocode {
     public function filter_address_component( $response, $type ) {
         if ( isset( $response['results'][0]['addressComponents'] ) ) {
             foreach ( $response['results'][0]['addressComponents'] as $component ) {
-                if ( in_array( $type, $component['types'], true ) ) {
+                if ( ! empty( $component['types'] ) && is_array( $component['types'] ) && in_array( $type, $component['types'], true ) ) {
                     return $component;
                 }
             }
         }
 
         return [];
-    }
-
-    /**
-     * Return an formatted error messages
-     * 
-     * @since  3.0.0
-     * @param  array  $geocode_response API response
-     * @return string $error_msg        Formatted and readable error message
-     */
-    public function get_error_message( $geocode_response ) {
-        if ( isset( $geocode_response['error_message'] ) && $geocode_response['error_message'] ) {
-
-            // If the problem is IP based, then show a different error msg.
-            if ( strpos( $geocode_response['error_message'], 'IP' ) !== false  ) {
-                /* translators: 1: line break, 2: error message, 3: line break, 4: opening link tag for referrer documentation, 5: closing link tag, 6: opening link tag for Google API Console, 7: closing link tag */
-                $error_msg = sprintf( __( '%1$sError message: %2$s. %3$s Make sure the IP address mentioned in the error matches with the IP set as the %4$sreferrer%5$s for the server API key in the %6$sGoogle API Console%7$s.', 'wp-store-locator' ), '<br><br>', self::clickable_error_links( $geocode_response ), $breaks, '<a href="https://wpstorelocator.co/document/create-google-api-keys/#server-key-referrer">', '</a>', '<a href="https://console.developers.google.com">', '</a>' );
-            } else {
-                /* translators: 1: opening paragraph tag, 2: error message, 3: opening link tag for API keys documentation, 4: closing link tag, 5: opening link tag for troubleshooting documentation, 6: closing paragraph tag with closing link tag */
-                $error_msg = sprintf( __( '%1$s %2$s %3$sConfigure API keys%4$s | %5$sTroubleshooting%6$s', 'wp-store-locator' ),'<p>', self::clickable_error_links( $geocode_response ), '<br><a target="_blank" href="https://wpstorelocator.co/document/create-google-api-keys">', '</a>', '<a target="_blank" href="https://wpstorelocator.co/document/create-google-api-keys/#troubleshooting">', '</a></p>' );
-            }
-        } else {
-            $error_msg = '';
-        }
-
-        return $error_msg;
-    }
-
-    /**
-     * Error messages returned by the Google Maps API
-     * don't always contain clickable links.
-     *
-     * They now just look like this http://g.co/dev/maps-no-account
-     * and are not clickable. To change this we wrap a href around it.
-     *
-     * @since  2.2.22
-     * @param  array  $geocode_response The API response
-     * @return string $msg              The clickable error message
-     */
-    public static function clickable_error_links( $geocode_response ) {
-        $msg = $geocode_response['error_message'];
-
-        if ( strpos( $geocode_response['error_message'],'href' ) === false ) {
-            preg_match_all( '#\bhttp(s?)?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', $geocode_response['error_message'], $match );
-
-            foreach ( $match[0] as $k => $url ) {
-                $msg = str_replace( $url, '<a href="' . esc_url( $url ) . '">' . esc_html( $url ) . '</a>', $msg );
-            }
-        }
-
-        $last_dot = strrpos( $msg, '.' );
-
-        if ( $last_dot ) {
-            $msg = substr_replace( $msg, ' ( ' . $geocode_response['status'] . ' )', $last_dot, 0 );
-        }
-
-        return $msg;
     }
 }

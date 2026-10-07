@@ -219,7 +219,7 @@ export default function Edit( { attributes, setAttributes } ) {
                     />
                     <SelectControl
                         label={ __( 'Auto-locate the user', 'wp-store-locator' ) }
-                        help={ __( 'Requires HTTPS.', 'wp-store-locator' ) }
+                        help={ __( 'Requires HTTPS. Ignored when a country, state or city is set under Search Options. With a start point, the default from the settings is ignored as well.', 'wp-store-locator' ) }
                         value={ auto_locate }
                         options={ [
                             { label: __( 'Default (from settings)', 'wp-store-locator' ), value: '' },

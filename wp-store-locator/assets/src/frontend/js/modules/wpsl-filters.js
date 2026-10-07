@@ -79,7 +79,7 @@ export const filters = {
                     
                     $filterDiv.append(
                         '<div class="wpsl-filter-actions">' +
-                            '<button type="submit" class="wpsl-apply-filters wpsl-styled-btn wpsl-primary-btn">' + applyLabel + '</button>' +
+                            '<button type="submit" class="wpsl-apply-filters wpsl-styled-btn wpsl-primary-btn">' + sharedHelpers.escapeHtml( applyLabel ) + '</button>' +
                         '</div>'
                     );
                 }
@@ -129,7 +129,7 @@ export const filters = {
 
                     $panelDiv.append(
                         '<div class="wpsl-filter-actions">' +
-                            '<button type="submit" class="wpsl-apply-filters wpsl-styled-btn wpsl-primary-btn">' + applyLabel + '</button>' +
+                            '<button type="submit" class="wpsl-apply-filters wpsl-styled-btn wpsl-primary-btn">' + sharedHelpers.escapeHtml( applyLabel ) + '</button>' +
                         '</div>'
                     );
                 }
@@ -165,6 +165,9 @@ export const filters = {
         setActionsVisible: function( $actions, visible ) {
             $actions.toggle( visible );
             $actions.closest( '#wpsl-filter-options > div' ).toggleClass( 'wpsl-has-filter-actions', visible );
+
+            // The room reserved for the bar can make the list scroll. Measure once the panel is visible.
+            setTimeout( filters.advanced.updateNestedScroll, 0 );
         },
 
         /**
@@ -344,10 +347,11 @@ export const filters = {
         },
 
         /**
-         * Toggle the wpsl-has-scroll class on the nested filter panel.
+         * Toggle the wpsl-has-scroll class on the filter panel.
          *
          * The class lets the CSS keep the apply actions clear of the
-         * scrollbar an overflowing panel gets.
+         * scrollbar an overflowing panel gets. Runs for every panel with
+         * an Apply bar, not only the nested one.
          *
          * @since   3.0.0
          * @returns {void}
@@ -359,7 +363,15 @@ export const filters = {
                 return;
             }
 
-            jQuery( el ).toggleClass( 'wpsl-has-scroll', el.scrollHeight > el.clientHeight );
+            const hasScroll = el.scrollHeight > el.clientHeight;
+
+            // Scrollbar width varies per browser ( 0 for overlay scrollbars ),
+            // so measure it to keep the bar's right gap the same as below.
+            const style = window.getComputedStyle( el );
+            const scrollbarWidth = el.offsetWidth - el.clientWidth - ( parseFloat( style.borderLeftWidth ) || 0 ) - ( parseFloat( style.borderRightWidth ) || 0 );
+
+            jQuery( el ).toggleClass( 'wpsl-has-scroll', hasScroll );
+            el.style.setProperty( '--wpsl-filter-scrollbar', ( hasScroll ? Math.max( 0, scrollbarWidth ) : 0 ) + 'px' );
         },
 
         /**
@@ -967,7 +979,7 @@ export const filters = {
         let args = {};
 
         jQuery.each( fields, function( index ) {
-            if ( typeof fields[index].$elem !== 'undefined' && typeof fields[index].inputType !== 'undefined' ) {
+            if ( fields[index].$elem && typeof fields[index].inputType !== 'undefined' ) {
                 jQuery.each( fields[index].$elem, function() {
                     jQuery( this ).find( 'input[type="' + fields[index].inputType + '"]' ).on( 'change', function() {
                         args = filters.grabAllValues();
@@ -1010,7 +1022,7 @@ export const filters = {
      *                           Format: { dropdowns: { 'dropdown-id': 'value' }, checkboxes: { 'checkbox-id': true/false } }
      */
     setSelection: function( selections ) {
-        let catText, $customDiv, $customLi, customSelectedText, customSelectedData;
+        let $customDiv, $customLi, customSelectedText, customSelectedData;
 
         // Set dropdown selections
         if ( selections.dropdowns ) {
@@ -1025,8 +1037,7 @@ export const filters = {
                         jQuery( '#' + dropdownId + ' li' ).removeClass( 'wpsl-selected-dropdown' );
                         $targetLi.addClass( 'wpsl-selected-dropdown' );
 
-                        catText = $targetLi.text();
-                        jQuery( '#' + dropdownId + ' .wpsl-selected-item' ).html( sharedHelpers.escapeHtml( catText ) ).attr( 'data-value', selectedValue );
+                        sharedHelpers.showDropdownSelection( jQuery( '#' + dropdownId + ' .wpsl-selected-item' ), $targetLi );
                     }
                 }
             } );

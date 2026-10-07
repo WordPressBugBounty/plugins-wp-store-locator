@@ -125,14 +125,8 @@ class Search {
 
         $wpsl_settings = $this->settings->get_all();
 
-        /**
-         * Check if autoloading the locations on page load is enabled.
-         *
-         * If so then we save the store data in a transient to prevent a long loading time
-         * in case a large amount of locations need to be displayed.
-         */
-        $autoload = isset( $_REQUEST['autoload'] ) ? sanitize_key( $_REQUEST['autoload'] ) : false;
-        $skip_cache = isset( $_REQUEST['skip_cache'] ) ? sanitize_key( $_REQUEST['skip_cache'] ) : false;
+        $autoload = isset( $_GET['autoload'] ) ? sanitize_key( $_GET['autoload'] ) : false;
+        $skip_cache = isset( $_GET['skip_cache'] ) ? sanitize_key( $_GET['skip_cache'] ) : false;
         
         if ( $wpsl_settings['map']['autoload'] && $autoload && ! $wpsl_settings['tools']['debug'] && ! $skip_cache && $this->cacheable_autoload_results() ) {
             $transient_name = $this->create_transient_name();
@@ -216,20 +210,34 @@ class Search {
 
         // The placeholder values for the prepared statement in the SQL query.
         if ( empty( $args ) ) {
-            /**
-             * map_deep() is used instead of array_map() so that array
-             * parameters like restrictions[city] keep their structure.
-             * Passing an array to sanitize_text_field() directly would
-             * return an empty string and break the location restrictions.
-             */
             $args = map_deep( wp_unslash( $_GET ), 'sanitize_text_field' );
+        }
+
+        /**
+         * Normalize the restriction field names like create_transient_name()
+         * ( sanitize_key ), so the query and the cache key agree. Otherwise
+         * 'restrictions[City]' is dropped by the query but lowercased in the
+         * key, caching an unrestricted result under a restricted key.
+         */
+        if ( isset( $args['restrictions'] ) && is_array( $args['restrictions'] ) ) {
+            $normalized_restrictions = [];
+
+            foreach ( $args['restrictions'] as $field => $value ) {
+                $normalized_restrictions[ sanitize_key( $field ) ] = $value;
+            }
+
+            $args['restrictions'] = $normalized_restrictions;
         }
 
         /**
          * Set the correct earth radius in either km or miles.
          * We need this to calculate the distance between two coordinates.
+         *
+         * Only accept km / mi, matching create_transient_name(): any other
+         * value ( e.g. 'KM' ) would compute miles here while the cache key
+         * falls back to the default unit, caching mismatched distances.
          */
-        if ( isset( $args['distance_unit'] ) ) {
+        if ( isset( $args['distance_unit'] ) && in_array( $args['distance_unit'], [ 'km', 'mi' ], true ) ) {
             $distance_unit = $args['distance_unit'];
         } else {
             $distance_unit = wpsl_get_distance_unit();
@@ -386,6 +394,25 @@ class Search {
             $sql_parts->sort = 'ORDER BY distance ASC LIMIT 1';
         } else {
             $search_radius = $this->template_filters->check_store_filter( $args, 'search_radius' );
+
+            /*
+             * The approximate location of a visitor is the centre of their
+             * city at best. A small radius around it would leave out the
+             * locations the visitor is actually close to.
+             */
+            if ( ! empty( $args['approximate'] ) ) {
+                /**
+                 * Filter the smallest radius used for a search from the
+                 * approximate location of the visitor.
+                 *
+                 * @since 3.1.0
+                 * @param int    $min_radius    The radius, in the distance unit. Default 50 km / 30 mi.
+                 * @param string $distance_unit Either km or mi
+                 */
+                $min_radius = absint( apply_filters( 'wpsl_approximate_min_radius', $distance_unit == 'km' ? 50 : 30, $distance_unit ) );
+
+                $search_radius = max( absint( $search_radius ), $min_radius );
+            }
 
             $placeholder_values[] = $search_radius;
 

@@ -35,6 +35,7 @@ function wpsl_labels() {
         'search_name',
         'radius',
         'no_results',
+        'adjust_search',
         'search_btn',
         'preloader',
         'results',
@@ -103,6 +104,26 @@ function wpsl_get_distance_unit() {
     }
 
     return apply_filters( 'wpsl_distance_unit', $distance_unit );
+}
+
+/**
+ * The values the "Auto-locate trigger" setting and the 'auto_locate_trigger'
+ * shortcode attribute accept.
+ *
+ * "approximate" only while the approximate location is switched on, see
+ * Visitor_Location::ENABLED.
+ *
+ * @since  3.1.0
+ * @return string[] The trigger values.
+ */
+function wpsl_get_auto_locate_triggers() {
+    $triggers = [ 'pageload', 'user_request' ];
+
+    if ( \WPSL\Core\Map\Visitor_Location::is_enabled() ) {
+        $triggers[] = 'approximate';
+    }
+
+    return $triggers;
 }
 
 /**
@@ -250,11 +271,18 @@ function wpsl_get_location_status_options() {
  * @param  array  $args {
  *     Array of arguments for creating the meta filter.
  *
- *     @type string $meta_key  Required. The custom field meta key to filter by.
- *     @type string $type      Required. Filter type: 'dropdown' or 'checkbox'.
- *     @type string $label     Optional. Label text (only for dropdown type).
- *     @type string $selected  Optional. Pre-selected value.
- *     @type int    $columns   Optional. Number of columns (only for checkbox type, default: 3).
+ *     @type string       $meta_key    Required. The custom field meta key to filter by.
+ *     @type string       $type        Optional. Filter type: 'dropdown' or 'checkbox'. Default 'dropdown'.
+ *     @type string       $label       Optional. Label text (only for dropdown type).
+ *     @type string|array $selected    Optional. Pre-selected value, or values for the checkbox type.
+ *     @type int          $columns     Optional. Number of columns (only for checkbox type, default: 3).
+ *     @type string       $name        Optional. The name the value is sent under. Default restrictions[<field>],
+ *                                     where <field> is the meta key without the wpsl_ prefix.
+ *     @type string|false $empty_label Optional. Text of the empty first option (only for dropdown type). Default 'Any',
+ *                                     pass '' or false to leave it out.
+ *     @type array        $labels      Optional. Option labels keyed by the stored value. Defaults to the options of the
+ *                                     matching Fields Manager dropdown field.
+ *     @type string       $search_type Optional. Route the checkbox values through a built-in search type ( country or state ).
  * }
  * @return string The HTML markup for the filter.
  *

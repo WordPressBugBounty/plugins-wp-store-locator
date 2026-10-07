@@ -696,10 +696,21 @@ class Settings_Transfer {
 
             if ( 'appearance' === $group ) {
                 $values = $this->sanitize_appearance( $values, $sections );
+            } else {
+                $values = $this->apply_form_rules( $group, $values );
             }
 
             if ( 'markers' === $group ) {
                 $values = $this->heal_marker_slots( $values, $marker_ids );
+            }
+
+            // update() writes the option as-is, so apply the Google key format here.
+            if ( 'api' === $group ) {
+                foreach ( [ 'gmaps_browser_key', 'gmaps_server_key' ] as $gmaps_key ) {
+                    if ( isset( $values[ $gmaps_key ] ) ) {
+                        $values[ $gmaps_key ] = wpsl_sanitize_gmaps_key( $values[ $gmaps_key ] );
+                    }
+                }
             }
 
             $this->settings->update( $group, $values );
@@ -1104,6 +1115,16 @@ class Settings_Transfer {
             'details_target' => $this->choice( $cta, 'details_target', [ 'website', 'landing_page' ], 'website' ),
         ];
 
+        $categories = isset( $input['categories'] ) && is_array( $input['categories'] ) ? $input['categories'] : [];
+
+        $output['categories'] = [
+            'shape'         => $this->choice( $categories, 'shape', [ 'circle', 'square' ], 'circle' ),
+            'enabled'       => $this->flag( $categories, 'enabled' ),
+            'background'    => $this->choice( $categories, 'background', [ 'tint', 'custom', 'none' ], 'tint' ),
+            'custom_color'  => $this->hex( $categories, 'custom_color' ),
+            'border_radius' => isset( $categories['border_radius'] ) ? min( absint( $categories['border_radius'] ), 50 ) : 20,
+        ];
+
         $output['dimensions'] = $this->sanitize_dimensions( isset( $input['dimensions'] ) ? $input['dimensions'] : [], $defaults['dimensions'] );
 
         $fonts = isset( $input['font_sizes'] ) && is_array( $input['font_sizes'] ) ? $input['font_sizes'] : [];
@@ -1335,6 +1356,215 @@ class Settings_Transfer {
         $hex = sanitize_hex_color( (string) $input[ $key ] );
 
         return $hex ? $hex : '';
+    }
+
+    /**
+     * Hold an imported settings group to the rules the settings form applies.
+     *
+     * sanitize_tree() only makes every value plain text. The form also limits
+     * a setting to the values it offers, and keeps colors and numbers in
+     * their format. The appearance group has its own, see sanitize_appearance().
+     *
+     * @since  3.1.0
+     * @param  string $group  The settings group name.
+     * @param  array  $values The imported values, after sanitize_tree().
+     * @return array  The values.
+     */
+    private function apply_form_rules( $group, $values ) {
+        $defaults = $this->settings->defaults( $group );
+
+        if ( ! is_array( $defaults ) ) {
+            return $values;
+        }
+
+        $values = $this->match_default_types( $values, $defaults );
+
+        // The settings that are a choice from a list, with the values the form offers.
+        $choices = [
+            'api' => [
+                'active_map_service' => array_keys( wpsl_get_map_services() ),
+                'mapbox_geocoder'    => [ 'mapbox', 'nominatim' ],
+            ],
+            'search' => [
+                'search_method'        => [ 'geocode', 'name' ],
+                'auto_locate_format'   => [ 'zip', 'city', 'formatted_address' ],
+                'auto_locate_trigger'  => wpsl_get_auto_locate_triggers(),
+                'orderby'              => array_keys( wpsl_get_search_order_options() ),
+                'order'                => [ 'asc', 'desc', 'ASC', 'DESC' ],
+                'category_filter_type' => [ 'dropdown', 'checkboxes' ],
+                'distance_unit'        => [ 'km', 'mi' ],
+            ],
+            'ux' => [
+                'marker_effect'  => [ 'bounce', 'info_window', 'ignore' ],
+                'address_format' => array_keys( wpsl_get_address_formats() ),
+            ],
+            'markers' => [
+                'cluster_style'        => [ 'default', 'interpolation' ],
+                'cluster_marker_shape' => array_merge( [ 'default' ], array_keys( wpsl_get_cluster_marker_shapes() ) ),
+            ],
+            'gdpr' => [
+                'handler' => [ 'none', 'wpsl', 'borlabs', 'complianz' ],
+            ],
+            'tools' => [
+                'admin_bar_menu' => [ 'always', 'alerts', 'never' ],
+            ],
+        ];
+
+        if ( isset( $choices[ $group ] ) ) {
+            foreach ( $choices[ $group ] as $key => $allowed ) {
+                if ( isset( $values[ $key ] ) && ! in_array( (string) $values[ $key ], array_map( 'strval', $allowed ), true ) ) {
+                    $values[ $key ] = isset( $defaults[ $key ] ) ? $defaults[ $key ] : '';
+                }
+            }
+        }
+
+        if ( 'markers' === $group && isset( $values['labels'] ) ) {
+            $values['labels'] = \WPSL\Core\Markers\Marker_Label::sanitize_mode( $values['labels'] );
+        }
+
+        if ( 'editor' === $group && isset( $values['field_manager'] ) ) {
+            $values['field_manager'] = $this->apply_field_manager_rules( $values['field_manager'] );
+        }
+
+        return $values;
+    }
+
+    /**
+     * Keep each imported value in the format of its default.
+     *
+     * A setting that defaults to a number stays a number, a color stays a hex
+     * color, and an on / off setting stays 1 or 0. Settings without a default
+     * of that kind, and lists, are left as sanitize_tree() made them.
+     *
+     * @since  3.1.0
+     * @param  array $values   The imported values.
+     * @param  array $defaults The defaults of the same level.
+     * @return array The values.
+     */
+    private function match_default_types( $values, $defaults ) {
+        foreach ( $values as $key => $value ) {
+            if ( ! array_key_exists( $key, $defaults ) ) {
+                continue;
+            }
+
+            $default = $defaults[ $key ];
+
+            if ( is_array( $default ) ) {
+                $is_list = ( [] === $default ) || ( array_keys( $default ) === range( 0, count( $default ) - 1 ) );
+
+                if ( ! is_array( $value ) ) {
+                    $values[ $key ] = $default;
+                } elseif ( ! $is_list ) {
+                    $values[ $key ] = $this->match_default_types( $value, $default );
+                }
+            } elseif ( is_bool( $default ) ) {
+                /*
+                 * Some settings default to false but hold a number when set
+                 * ( cluster_zoom ), those stay. So does an empty one: it's
+                 * off for a checkbox, and an empty text field must not come
+                 * back as "0".
+                 */
+                if ( is_bool( $value ) || in_array( (string) $value, [ '0', '1' ], true ) ) {
+                    $values[ $key ] = ! empty( $value ) ? 1 : 0;
+                }
+            } elseif ( is_int( $default ) ) {
+                $values[ $key ] = is_numeric( $value ) ? (int) $value : $default;
+            } elseif ( is_string( $default ) && preg_match( '/^#[0-9a-f]{3,6}$/i', $default ) ) {
+                $hex = sanitize_hex_color( (string) $value );
+
+                $values[ $key ] = $hex ? $hex : $default;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Apply the settings form's Fields Manager rules to imported groups and fields.
+     *
+     * Mirrors Sanitizer::editor(): known field types only, and entities
+     * decoded before sanitizing so an encoded tag can't return as markup.
+     *
+     * @since  3.1.0
+     * @param  mixed $field_manager The imported field_manager setting.
+     * @return array The groups and the fields.
+     */
+    private function apply_field_manager_rules( $field_manager ) {
+        $text = function( $value ) {
+            return is_scalar( $value ) ? sanitize_text_field( wp_specialchars_decode( (string) $value, ENT_QUOTES ) ) : '';
+        };
+
+        $output = [
+            'groups' => [],
+            'fields' => [],
+        ];
+
+        if ( ! is_array( $field_manager ) ) {
+            return $output;
+        }
+
+        if ( isset( $field_manager['groups'] ) && is_array( $field_manager['groups'] ) ) {
+            foreach ( $field_manager['groups'] as $group_id => $group_name ) {
+                $output['groups'][ $group_id ] = mb_substr( $text( $group_name ), 0, 50 );
+            }
+        }
+
+        if ( isset( $field_manager['fields'] ) && is_array( $field_manager['fields'] ) ) {
+            $allowed_types = [ 'text', 'textarea', 'email', 'tel', 'url', 'checkbox', 'dropdown' ];
+
+            foreach ( $field_manager['fields'] as $group_id => $fields ) {
+                $output['fields'][ $group_id ] = [];
+
+                if ( ! is_array( $fields ) ) {
+                    continue;
+                }
+
+                foreach ( $fields as $field_id => $field ) {
+                    if ( ! is_array( $field ) ) {
+                        continue;
+                    }
+
+                    $clean = [];
+
+                    foreach ( $field as $key => $value ) {
+                        // Dropdown options are one per line, as sanitize_textarea_field() keeps them on the form.
+                        $clean[ $key ] = ( 'options' === $key && is_scalar( $value ) ) ? sanitize_textarea_field( (string) $value ) : $text( $value );
+                    }
+
+                    if ( ! isset( $clean['type'] ) || ! in_array( $clean['type'], $allowed_types, true ) ) {
+                        $clean['type'] = 'text';
+                    }
+
+                    // The form only saves a field that has a label.
+                    if ( empty( $clean['label'] ) ) {
+                        continue;
+                    }
+
+                    $clean['label'] = mb_substr( $clean['label'], 0, 50 );
+
+                    /*
+                     * The name is a variable name in the Underscore templates, so
+                     * the same rules as the form: letters and digits only, and
+                     * not starting with a digit.
+                     */
+                    $clean['name'] = strtolower( wpsl_alphanum_no_space( ! empty( $clean['name'] ) ? $clean['name'] : $clean['label'] ) );
+
+                    if ( preg_match( '/^[0-9]/', $clean['name'] ) ) {
+                        $clean['name'] = 'field_' . $clean['name'];
+                    }
+
+                    if ( isset( $clean['default'] ) && 'url' === $clean['type'] ) {
+                        $clean['default'] = esc_url_raw( $clean['default'] );
+                    } elseif ( isset( $clean['default'] ) && 'email' === $clean['type'] ) {
+                        $clean['default'] = sanitize_email( $clean['default'] );
+                    }
+
+                    $output['fields'][ $group_id ][ $field_id ] = $clean;
+                }
+            }
+        }
+
+        return $output;
     }
 
     /**

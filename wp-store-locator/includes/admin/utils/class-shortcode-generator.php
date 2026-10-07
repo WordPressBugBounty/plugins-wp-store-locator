@@ -131,8 +131,14 @@ class Shortcode_Generator {
         if ( ! $this->is_editor_screen() || ! current_user_can( 'edit_pages' ) ) {
             return;
         }
+
+        /*
+         * A name search never auto-locates ( see Resources ), whatever the
+         * stored value is, so the checkbox starts unticked for it.
+         */
+        $auto_locate = $this->settings->get( 'search', 'search_method' ) !== 'name' && $this->settings->get( 'search', 'auto_locate' );
         ?>
-        <div id="wpsl-shortcode-dialog" class="wpsl-hide" title="<?php esc_attr_e( 'Insert Store Locator', 'wp-store-locator' ); ?>">
+        <div id="wpsl-shortcode-dialog"class="wpsl-hide" title="<?php esc_attr_e( 'Insert Store Locator', 'wp-store-locator' ); ?>">
             <div id="wpsl-shortcode-tabs">
                 <ul>
                     <li><a href="#wpsl-sc-tab-general"><?php esc_html_e( 'General Options', 'wp-store-locator' ); ?></a></li>
@@ -148,8 +154,8 @@ class Shortcode_Generator {
                         <input type="text" placeholder="<?php esc_attr_e( 'Optional', 'wp-store-locator' ); ?>" value="" id="wpsl-start-location">
                     </p>
                     <p>
-                        <label for="wpsl-auto-locate"><?php esc_html_e( 'Attempt to auto-locate the user', 'wp-store-locator' ); ?><span class="wpsl-info <?php if ( ! wpsl_get_service( 'system_utils' )->ssl_active() ) { echo 'wpsl-warning'; } ?>"><?php /* translators: %1$s: opening link tag to documentation, %2$s: closing link tag */ ?><span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'A HTTPS connection is %1$srequired%2$s before the Geolocation API can access the user\'s location.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/" target="_blank">', '</a>' ) ); ?></span></span></label>
-                        <input type="checkbox" value="" <?php checked( $this->settings->get( 'map', 'auto_locate' ), true ); ?> name="wpsl_map[auto_locate]" id="wpsl-auto-locate">
+                        <label for="wpsl-auto-locate"><?php esc_html_e( 'Attempt to auto-locate the user', 'wp-store-locator' ); ?><span class="wpsl-info <?php if ( ! wpsl_get_service( 'system_utils' )->ssl_active() ) { echo 'wpsl-warning'; } ?>"><?php /* translators: %1$s: opening link tag to documentation, %2$s: closing link tag */ ?><span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'A HTTPS connection is %1$srequired%2$s before the Geolocation API can access the user\'s location.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/" target="_blank">', '</a>' ) ); ?><br><br><?php esc_html_e( 'Ignored when a country, state or city is set below, the store locator then always starts in that area. With a start point, that location is shown when the user can\'t be located.', 'wp-store-locator' ); ?></span></span></label>
+                        <input type="checkbox" value="" <?php checked( $auto_locate, true ); ?> name="wpsl_map[auto_locate]" id="wpsl-auto-locate">
                     </p>
                     <p>
                         <label for="wpsl-restrict-country"><?php esc_html_e( 'Country', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Restricts the search results to stores in this country. Combine it with the state and city fields for a narrower area.', 'wp-store-locator' ); ?></span></span></label>

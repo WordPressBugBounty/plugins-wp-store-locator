@@ -550,13 +550,13 @@ class Manager {
                 switch ( $map_service ) {
                     case 'gmaps':
                         if ( isset( $api_keys['gmaps_browser_key'] ) ) {
-                            $browser_key = sanitize_text_field( $api_keys['gmaps_browser_key'] );
+                            $browser_key = wpsl_sanitize_gmaps_key( $api_keys['gmaps_browser_key'] );
                             $this->settings->set( 'api', 'gmaps_browser_key', $browser_key );
                             $this->validate_keys()->update_and_validate( 'gmaps_browser', 'browser', $browser_key );
                         }
 
                         if ( isset( $api_keys['gmaps_server_key'] ) ) {
-                            $server_key = sanitize_text_field( $api_keys['gmaps_server_key'] );
+                            $server_key = wpsl_sanitize_gmaps_key( $api_keys['gmaps_server_key'] );
                             $this->settings->set( 'api', 'gmaps_server_key', $server_key );
                             $this->validate_keys()->update_and_validate( 'gmaps_server', 'server', $server_key );
                         }

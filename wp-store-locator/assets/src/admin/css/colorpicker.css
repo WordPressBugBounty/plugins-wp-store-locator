@@ -66,6 +66,10 @@
     z-index: 1;
 }
 
+#wpsl-appearance-form .wpsl-color-picker-wrapper.wpsl-active {
+    z-index: 1001;
+}
+
 #wpsl-appearance-form .wpsl-color-picker-popup.wpsl-active {
     z-index: 1000;
 }

@@ -46,8 +46,9 @@ export const eventHandlers = {
      */
     bindDirections: function() {
         jQuery( '#wpsl-result-list' ).on( 'click', '.wpsl-directions', function() {
-            // Mapbox always renders directions locally on the map (no external link option)
-            const isMapbox = config.api.provider === 'mapbox';
+            // Mapbox always renders directions locally on the map, unless the results list is hidden
+            // and the link goes to Mapbox's provider site like the other map services.
+            const isMapbox = config.api.provider === 'mapbox' && ! helpers.results.isListHidden();
             const shouldRenderLocally = isMapbox || ( ! config.search.directionRedirect && ! config.search.skipGeocode 
                 && ! helpers.results.maybeUseBasicMode() && ( ( config.api.provider !== 'osm' && config.api.provider !== 'stadia' ) || config.api.hasValidRouteKey ) );
 

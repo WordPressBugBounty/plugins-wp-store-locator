@@ -185,7 +185,7 @@ class Sanitizer {
 
         // Always just sanitize the browser key (no validation needed)
         if ( isset( $input['gmaps_browser_key'] ) ) {
-            $output['gmaps_browser_key'] = sanitize_text_field( $input['gmaps_browser_key'] );
+            $output['gmaps_browser_key'] = wpsl_sanitize_gmaps_key( $input['gmaps_browser_key'] );
         }
 
         // Deal with the different API keys.
@@ -194,9 +194,9 @@ class Sanitizer {
         // Validate Google Maps server key if Google Maps is active OR if a key is provided
         if ( $input['active_map_service'] === 'gmaps' || ! empty( trim( $input['gmaps_server_key'] ) ) ) {
             $notify = ( $input['active_map_service'] === 'gmaps' );
-            $output['gmaps_server_key'] = $this->validate_keys->check( 'gmaps', 'server', $input['gmaps_server_key'], $notify );
+            $output['gmaps_server_key'] = $this->validate_keys->check( 'gmaps', 'server', wpsl_sanitize_gmaps_key( $input['gmaps_server_key'] ), $notify );
         } else {
-            $output['gmaps_server_key'] = sanitize_text_field( $input['gmaps_server_key'] );
+            $output['gmaps_server_key'] = wpsl_sanitize_gmaps_key( $input['gmaps_server_key'] );
         }
 
         // Validate Mapbox key if Mapbox is active OR if a key is provided
@@ -269,7 +269,7 @@ class Sanitizer {
             $output['auto_locate_format'] = 'zip';
         }
         
-        if ( in_array( $input['auto_locate_trigger'], [ 'pageload', 'user_request' ] ) ) {
+        if ( in_array( $input['auto_locate_trigger'], wpsl_get_auto_locate_triggers(), true ) ) {
             $output['auto_locate_trigger'] = sanitize_text_field( $input['auto_locate_trigger'] );
         } else {
             $output['auto_locate_trigger'] = 'pageload';
@@ -287,6 +287,7 @@ class Sanitizer {
 
         $output['autosubmit_autocomplete'] = isset( $input['autosubmit_autocomplete'] ) ? 1 : 0;
         $output['input_only']              = isset( $input['input_only'] ) ? 1 : 0;
+        $output['hide_results_list']       = isset( $input['hide_results_list'] ) ? 1 : 0;
         $output['force_postalcode']        = isset( $input['force_postalcode'] ) ? 1 : 0;
 
         $output['distance_unit'] = ( $input['distance_unit'] == 'km' ) ? 'km' : 'mi';
@@ -462,6 +463,7 @@ class Sanitizer {
             'phone_url',
             'marker_streetview',
             'marker_zoom_to',
+            'popup_thumb',
             'mouse_focus',
             'show_contact_details',
             'clickable_contact_details',
@@ -541,6 +543,7 @@ class Sanitizer {
         $output['store_marker']  = $this->sanitize_marker( $input, 'store', 'blue' );
         $output['active_marker'] = $this->sanitize_marker( $input, 'active', 'dark-blue' );
 
+        $output['hide_start_marker']   = isset( $input['hide_start_marker'] ) ? 1 : 0;
         $output['start_marker_on_top'] = isset( $input['start_marker_on_top'] ) ? 1 : 0;
 
         // Runtime marker labels: none / numbers / letters.
@@ -687,7 +690,7 @@ class Sanitizer {
 
             foreach ( $input['field_manager']['groups'] as $group_id => $group_name ) {
                 $group_id = sanitize_text_field( $group_id );
-                $group_name = mb_substr( sanitize_text_field( $group_name ), 0, 50 );
+                $group_name = mb_substr( $this->sanitize_field_manager_text( $group_name ), 0, 50 );
 
                 if ( '' === trim( $group_name ) ) {
                     $this->validation_error( 'group_name_empty' );
@@ -766,7 +769,7 @@ class Sanitizer {
                                     break;
                             }
 
-                            $sanitized_fields = array_map( 'sanitize_text_field', $field );
+                            $sanitized_fields = array_map( [ $this, 'sanitize_field_manager_text' ], $field );
 
                             // Limit the field label to 50 characters.
                             if ( isset( $sanitized_fields['label'] ) ) {
@@ -800,6 +803,21 @@ class Sanitizer {
     }
 
     /**
+     * Sanitize a Fields Manager group name, or a value of a field.
+     *
+     * @since  3.1.0
+     * @param  mixed  $value The submitted value.
+     * @return string The sanitized value.
+     */
+    private function sanitize_field_manager_text( $value ) {
+        if ( ! is_scalar( $value ) ) {
+            return '';
+        }
+
+        return sanitize_text_field( wp_specialchars_decode( (string) $value, ENT_QUOTES ) );
+    }
+
+    /**
      * Sanitize the appearance settings.
      * 
      * @since  3.0.0
@@ -829,6 +847,27 @@ class Sanitizer {
                     $output['theme_colors'][$color_key] = absint( $color_code );
                 } else {
                     $output['theme_colors'][$color_key] = sanitize_hex_color( $color_code );
+                }
+            }
+
+            /*
+             * An empty featured color follows the default background tint.
+             * The picker shows that as its default, so a submitted color
+             * equal to it is saved empty again.
+             */
+            $featured_fallbacks = wpsl_get_service( 'theme_styles' )->featured_fallbacks( $output['theme_colors'] );
+
+            $normalize_hex = function( $hex ) {
+                $hex = strtolower( (string) $hex );
+
+                return ( 4 === strlen( $hex ) ) ? '#' . $hex[1] . $hex[1] . $hex[2] . $hex[2] . $hex[3] . $hex[3] : $hex;
+            };
+
+            foreach ( $featured_fallbacks as $field => $fallback ) {
+                $featured_key = 'listing_featured_' . $field;
+
+                if ( ! empty( $output['theme_colors'][ $featured_key ] ) && $normalize_hex( $output['theme_colors'][ $featured_key ] ) === $normalize_hex( $fallback ) ) {
+                    $output['theme_colors'][ $featured_key ] = '';
                 }
             }
         }
@@ -1081,6 +1120,29 @@ class Sanitizer {
             $output['cta']['details_target'] = 'website';
         }
 
+        // Category settings - nested structure like icons
+        $output['categories'] = [];
+
+        $category_shape = isset( $input['categories']['shape'] ) ? sanitize_text_field( $input['categories']['shape'] ) : '';
+        $output['categories']['shape'] = in_array( $category_shape, [ 'circle', 'square' ], true ) ? $category_shape : 'circle';
+
+        $output['categories']['enabled'] = isset( $input['categories']['enabled'] ) ? 1 : 0;
+
+        $category_background = isset( $input['categories']['background'] ) ? sanitize_text_field( $input['categories']['background'] ) : '';
+        $output['categories']['background'] = in_array( $category_background, [ 'tint', 'custom', 'none' ], true ) ? $category_background : 'tint';
+
+        $category_custom_color = isset( $input['categories']['custom_color'] ) ? sanitize_hex_color( $input['categories']['custom_color'] ) : '';
+        $output['categories']['custom_color'] = $category_custom_color ? $category_custom_color : '';
+
+        // Without a radius the shape decides: a box for the square, a pill for the circle.
+        $category_radius = isset( $input['categories']['border_radius'] ) ? absint( $input['categories']['border_radius'] ) : ( 'square' === $output['categories']['shape'] ? 3 : 20 );
+        $output['categories']['border_radius'] = min( $category_radius, 50 );
+
+        // The cached search results only carry the category names while this is on.
+        if ( (bool) $this->settings->get( 'appearance', 'categories.enabled' ) !== (bool) $output['categories']['enabled'] ) {
+            wpsl_flush_store_cache();
+        }
+
         // Button styles - sanitize button style selections (primary/secondary)
         if ( isset( $input['button_styles'] ) && is_array( $input['button_styles'] ) ) {
             $valid_actions = [ 'more_details', 'directions', 'zoom_here', 'share_location', 'no_thanks', 'streetview' ];
@@ -1241,6 +1303,8 @@ class Sanitizer {
         $output['debug'] = isset( $input['debug'] ) ? 1 : 0;
         $output['deregister_gmaps'] = isset( $input['deregister_gmaps'] ) ? 1 : 0;
         $output['disable_v3_css'] = isset( $input['disable_v3_css'] ) ? 1 : 0;
+
+        $output['admin_bar_menu'] = ( isset( $input['admin_bar_menu'] ) && in_array( $input['admin_bar_menu'], [ 'always', 'alerts', 'never' ], true ) ) ? $input['admin_bar_menu'] : 'always';
 
         // Check if we need to delete transients based on tools settings changes
         $this->admin_settings->set_delete_transient_option( 'tools', $output );

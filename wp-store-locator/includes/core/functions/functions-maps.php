@@ -299,6 +299,20 @@ if ( ! function_exists( 'wpsl_get_gdpr_handler' ) ) {
 }
 
 /**
+ * Sanitize a Google Maps API key.
+ *
+ * Keys only use letters, digits, "-" and "_"; anything else is stripped,
+ * so a saved key can never carry quotes or markup into what it is printed in.
+ *
+ * @since  3.1.0
+ * @param  mixed  $key The raw key.
+ * @return string The sanitized key.
+ */
+function wpsl_sanitize_gmaps_key( $key ) {
+    return preg_replace( '/[^A-Za-z0-9_-]/', '', sanitize_text_field( (string) $key ) );
+}
+
+/**
  * Google Maps Bootstrap loader.
  *
  * @see     https://developers.google.com/maps/documentation/javascript/load-maps-js-api

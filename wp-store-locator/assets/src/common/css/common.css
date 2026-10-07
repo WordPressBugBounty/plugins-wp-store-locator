@@ -92,6 +92,11 @@
     white-space: nowrap;
 }
 
+#wpsl-wrap .wpsl-cta-section a:empty,
+#wpsl-map .wpsl-cta-section a:empty {
+    display: none;
+}
+
 #wpsl-wrap .wpsl-cta-section .wpsl-styled-btn {
     margin: 0;
 }
@@ -737,6 +742,14 @@
     align-items: flex-start;
 }
 
+.wpsl-has-icons:not( .wpsl-cta-details) .wpsl-directions {
+    margin-inline-start: 28px;
+}
+
+#wpsl-wrap.wpsl-has-icons.wpsl-cta-details .wpsl-cta-section {
+    margin-inline-start: 28px;
+}
+
 /*
  * The store thumbnail is a float in the search results, but a flex item
  * can't float, so inside the icon layout it would sit between the icon and
@@ -799,6 +812,53 @@
 
 [class^="wpsl-icon-"]:hover, [class*=" wpsl-icon-"]:hover {
     cursor: pointer;
+}
+
+/* ========================================
+   Store Categories
+   Shared between frontend and admin customizer
+   ======================================== */
+
+.wpsl-category-dot {
+    display: inline-block;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: 6px;
+    border-radius: var(--wpsl-category-dot-radius, 50%);
+    background-color: var(--wpsl-cat-color, transparent);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.wpsl-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px var(--wpsl-category-gap, 6px);
+    margin: 0 0 15px;
+}
+
+#wpsl-wrap.wpsl-has-icons .wpsl-categories {
+    margin-inline-start: 28px;
+}
+
+.wpsl-category {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--wpsl-category-padding, 6px 10px);
+    border-radius: var(--wpsl-category-radius, 20px);
+    background: var(--wpsl-category-bg, rgba(120, 124, 130, 0.14));
+    line-height: 1.4;
+}
+
+@supports (background: color-mix(in srgb, red 10%, transparent)) {
+    .wpsl-category {
+        background: var(--wpsl-category-bg, color-mix(in srgb, var(--wpsl-cat-color, #787c82) 14%, transparent));
+    }
+}
+
+#wpsl-checkbox-filter label .wpsl-category-dot,
+#wpsl-filter-options label .wpsl-category-dot {
+    margin-inline-end: 0;
 }
 
 /* ========================================

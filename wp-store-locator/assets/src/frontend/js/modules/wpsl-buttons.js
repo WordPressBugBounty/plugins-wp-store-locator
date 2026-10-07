@@ -227,7 +227,6 @@ export const buttons = {
                 e.preventDefault();
             }
 
-            jQuery( this ).addClass( 'wpsl-user-activated' );
             jQuery( '#wpsl-search-btn' ).attr( 'disabled', true );
 
             slData.directions.active = false;

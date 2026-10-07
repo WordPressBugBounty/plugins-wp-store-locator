@@ -34,6 +34,7 @@ class Register {
 
         add_action( 'init',                                     [ $this, 'register_post_types' ], 10, 1 );
         add_action( 'init',                                     [ $this, 'register_taxonomies' ], 10, 1 );
+        add_action( 'init',                                     [ $this, 'register_store_meta' ], 10, 1 );
         add_action( 'manage_wpsl_stores_posts_custom_column',   [ $this, 'custom_columns' ], 10, 2 );
 
         // Clear categories cache when taxonomy terms are modified
@@ -46,6 +47,53 @@ class Register {
         add_filter( 'manage_edit-wpsl_stores_columns',          [ $this, 'edit_columns' ] );
         add_filter( 'manage_edit-wpsl_stores_sortable_columns', [ $this, 'sortable_columns' ] );
         add_filter( 'request',                                  [ $this, 'sort_columns' ] );
+
+        add_filter( 'is_protected_meta',                        [ $this, 'protect_store_meta' ], 10, 2 );
+    }
+
+    /**
+     * Treat all wpsl_* post meta as protected.
+     *
+     * This stops the meta from being written raw through WordPress core's
+     * generic custom-field handling ( add_meta() / the XML-RPC custom_fields
+     * path ), which bypasses the plugin's own sanitized save. The plugin's own
+     * update_post_meta() calls are unaffected, since they don't consult
+     * is_protected_meta.
+     *
+     * @since  3.1.0
+     * @param  bool   $protected Whether the meta key is considered protected.
+     * @param  string $meta_key  The meta key being checked.
+     * @return bool
+     */
+    public function protect_store_meta( $protected, $meta_key ) {
+        if ( 0 === strpos( (string) $meta_key, 'wpsl_' ) ) {
+            return true;
+        }
+
+        return $protected;
+    }
+
+    /**
+     * Register the marker post meta with a sanitize callback.
+     *
+     * is_protected_meta() only gates the core Custom Fields box and XML-RPC.
+     * Registering the keys with wpsl_sanitize_marker_value() as the sanitize
+     * callback runs the allowlist at the storage layer, so any update_post_meta()
+     * for these keys on a store ( imports, other plugins, future code ) stores a
+     * resolved marker value or nothing - never an attribute-breaking string.
+     *
+     * @since  3.1.0
+     * @return void
+     */
+    public function register_store_meta() {
+        foreach ( [ 'wpsl_location_marker', 'wpsl_location_marker_active' ] as $meta_key ) {
+            register_post_meta( 'wpsl_stores', $meta_key, [
+                'type'              => 'string',
+                'single'            => true,
+                'sanitize_callback' => 'wpsl_sanitize_marker_value',
+                'show_in_rest'      => false,
+            ] );
+        }
     }
 
     /**

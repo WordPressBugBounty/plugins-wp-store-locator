@@ -146,8 +146,10 @@ class Filters {
             $selection = absint( $_REQUEST['wpsl-widget-categories'] );
         } else if ( isset( $shortcodes->atts['category_selection'] ) ) {
             $selection = $shortcodes->atts['category_selection'];
-        } else if ( isset( $_REQUEST['wpsl_cat'] ) ) {
-            $selection = wpsl_get_term_ids( sanitize_text_field( wp_unslash( $_REQUEST['wpsl_cat'] ) ) );
+        } else if ( isset( $_REQUEST['wpsl_cat'] ) || isset( $_REQUEST['wpsl_category'] ) ) {
+            // wpsl_category is the same parameter under the name the other URL parameters follow ( wpsl_address, wpsl_name ).
+            $category_param = isset( $_REQUEST['wpsl_cat'] ) ? $_REQUEST['wpsl_cat'] : $_REQUEST['wpsl_category'];
+            $selection      = wpsl_get_term_ids( sanitize_text_field( wp_unslash( $category_param ) ) );
         }
 
         return $selection;
@@ -182,7 +184,8 @@ class Filters {
                     $selected_id = $selection[$key];
                 }
             } else {
-                $selected_id = $selection[0];
+                // The list is empty when the requested category doesn't exist.
+                $selected_id = isset( $selection[0] ) ? $selection[0] : '';
             }
         } else {
             $selected_id = $selection;
@@ -203,66 +206,144 @@ class Filters {
     }
 
     /**
-     * Create a dropdown that lists all unique values that
+     * Create a dropdown or checkbox list that lists all unique values that
      * belong to the passed meta key.
+     *
+     * The field is named restrictions[<field>] by default, where <field> is the
+     * meta key without the wpsl_ prefix. The search reads that name, and the
+     * <field> => meta key pair has to be registered through the
+     * wpsl_restriction_meta_fields filter ( city, state, country and iso are built in ).
      *
      * @since  3.0.0
      * @param  array  $args {
      *     Array of arguments for creating the meta filter.
      *
-     *     @type string $meta_key  Required. The custom field meta key to filter by.
-     *     @type string $type      Required. Filter type: 'dropdown' or 'checkbox'.
-     *     @type string $label     Optional. Label text (only for dropdown type).
-     *     @type string $selected  Optional. Pre-selected value.
-     *     @type int    $columns   Optional. Number of columns (only for checkbox type, default: 3).
+     *     @type string       $meta_key    Required. The custom field meta key to filter by.
+     *     @type string       $type        Optional. Filter type: 'dropdown' or 'checkbox'. Default 'dropdown'.
+     *     @type string       $label       Optional. Label text (only for dropdown type).
+     *     @type string|array $selected    Optional. Pre-selected value, or values for the checkbox type.
+     *     @type int          $columns     Optional. Number of columns (only for checkbox type, default: 3).
+     *     @type string       $name        Optional. The name the value is sent under. Default restrictions[<field>].
+     *     @type string|false $empty_label Optional. Text of the empty first option that clears the filter
+     *                                     (only for dropdown type). Default 'Any', pass '' or false to leave it out.
+     *     @type array        $labels      Optional. Option labels keyed by the stored value. Defaults to the options
+     *                                     of the matching Fields Manager dropdown field, else the stored value.
+     *     @type string       $search_type Optional. Route the checkbox values through a built-in search type ( country or state ).
      * }
      * @return string $filter The HTML markup for the filter.
      */
     public function create_meta_filter( $args ) {
-        $filter      = '';
-        $columns     = 3;
-        $meta_values = $this->location_utils->get_unique_meta_values( $args['meta_key'] );
+        $args = wp_parse_args( $args, [
+            'meta_key'    => '',
+            'type'        => 'dropdown',
+            'label'       => '',
+            'selected'    => '',
+            'columns'     => 3,
+            'name'        => '',
+            'empty_label' => null,
+            'labels'      => [],
+            'search_type' => '',
+        ] );
 
-        if ( $meta_values ) {
-            if ( $args['type'] == 'dropdown' ) {
-                $filter = "\t\t\t\t" . '<div id="'. esc_attr( $args['meta_key'] ) . '">' . "\r\n";
+        $meta_key = sanitize_key( $args['meta_key'] );
 
-                if ( $args['label'] ) {
-                    $filter .= "\t\t\t\t\t" . '<label for="'. esc_attr( $args['meta_key'] ) . '">' . esc_html( $args['label'] ) . '</label>' . "\r\n";
-                }
+        if ( '' === $meta_key ) {
+            return '';
+        }
 
-                $filter .= "\t\t\t\t\t" . '<select id="'. esc_attr( $args['meta_key'] ) . '" class="wpsl-dropdown wpsl-custom-dropdown" name="'. esc_attr( $args['meta_key'] ) . '">';
+        $meta_values = $this->location_utils->get_unique_meta_values( $meta_key );
 
-                foreach ( $meta_values as $k => $meta_value ) {
-                    $selected = ( $meta_value == $args['selected'] ) ? 'selected="selected"' : '';
-                    $filter .= "\t\t\t\t\t\t" . '<option value="' .  esc_attr( $meta_value ) . '"' . $selected . '>' . esc_html( $meta_value ) . '</option>';
-                }
+        if ( ! $meta_values ) {
+            return '';
+        }
 
-                $filter .= '</select>';
-                $filter .= '</div>';
-            } else if ( $args['type'] == 'checkbox' ) {
-                if ( isset( $args['columns'] ) && absint( $args['columns'] ) ) {
-                    $columns = $args['columns'];
-                }
+        $name     = ( '' !== $args['name'] ) ? $args['name'] : 'restrictions[' . preg_replace( '/^wpsl_/', '', $meta_key ) . ']';
+        $labels   = ( is_array( $args['labels'] ) && $args['labels'] ) ? $args['labels'] : $this->get_meta_value_labels( $meta_key );
+        $selected = array_map( 'strval', (array) $args['selected'] );
+        $filter   = '';
 
-                $filter = '<ul id="wpsl-checkbox-filter" class="wpsl-custom-checkboxes wpsl-checkbox-' . $columns . '-columns">';
+        if ( 'dropdown' === $args['type'] ) {
+            $filter = "\t\t\t\t" . '<div class="wpsl-custom-filter">' . "\r\n";
 
-                foreach ( $meta_values as $k => $meta_value ) {
-                    $selected = ( $meta_value == $args['selected'] ) ? 'checked="checked"' : '';
-
-                    $filter .= '<li>';
-                    $filter .= '<label>';
-                    $filter .= '<input type="checkbox" value="' . esc_attr( $meta_value ) . '" ' . $selected . ' />';
-                    $filter .= esc_html( $meta_value);
-                    $filter .= '</label>';
-                    $filter .= '</li>';
-                }
-
-                $filter .= '</ul>';
+            if ( $args['label'] ) {
+                $filter .= "\t\t\t\t\t" . '<label for="' . esc_attr( $meta_key ) . '">' . esc_html( $args['label'] ) . '</label>' . "\r\n";
             }
+
+            $filter .= "\t\t\t\t\t" . '<select id="' . esc_attr( $meta_key ) . '" class="wpsl-dropdown wpsl-custom-dropdown" name="' . esc_attr( $name ) . '">';
+
+            $empty_label = ( null === $args['empty_label'] ) ? __( 'Any', 'wp-store-locator' ) : $args['empty_label'];
+
+            if ( $empty_label ) {
+                $filter .= "\t\t\t\t\t\t" . '<option value="">' . esc_html( $empty_label ) . '</option>';
+            }
+
+            foreach ( $meta_values as $meta_value ) {
+                $is_selected = in_array( (string) $meta_value, $selected, true ) ? ' selected="selected"' : '';
+                $option_text = isset( $labels[ $meta_value ] ) ? $labels[ $meta_value ] : $meta_value;
+
+                $filter .= "\t\t\t\t\t\t" . '<option value="' . esc_attr( $meta_value ) . '"' . $is_selected . '>' . esc_html( $option_text ) . '</option>';
+            }
+
+            $filter .= '</select>';
+            $filter .= '</div>';
+        } else if ( 'checkbox' === $args['type'] ) {
+            $columns = absint( $args['columns'] ) ? absint( $args['columns'] ) : 3;
+
+            /*
+             * Not the wpsl-checkbox-filter id: the JS reads the checked boxes in
+             * that list as category ids, and the category filter already uses it.
+             * The data-name is where the checked values are sent to.
+             */
+            $filter  = '<ul id="wpsl-checkbox-' . esc_attr( $meta_key ) . '" class="wpsl-custom-checkboxes wpsl-checkbox-' . $columns . '-columns" data-name="' . esc_attr( $name ) . '"';
+
+            if ( $args['search_type'] ) {
+                $filter .= ' data-search-type="' . esc_attr( $args['search_type'] ) . '"';
+            }
+
+            $filter .= '>';
+
+            foreach ( $meta_values as $meta_value ) {
+                $is_checked  = in_array( (string) $meta_value, $selected, true ) ? 'checked="checked"' : '';
+                $option_text = isset( $labels[ $meta_value ] ) ? $labels[ $meta_value ] : $meta_value;
+
+                $filter .= '<li>';
+                $filter .= '<label>';
+                $filter .= '<input type="checkbox" value="' . esc_attr( $meta_value ) . '" ' . $is_checked . ' />';
+                $filter .= esc_html( $option_text );
+                $filter .= '</label>';
+                $filter .= '</li>';
+            }
+
+            $filter .= '</ul>';
         }
 
         return $filter;
+    }
+
+    /**
+     * The option labels of a Fields Manager dropdown field.
+     *
+     * A dropdown field saves the option as a lowercase slug ( finedining ), so
+     * the stored value alone would print as "finedining" instead of "Fine dining".
+     *
+     * @since  3.1.0
+     * @param  string $meta_key The custom field meta key, for example wpsl_cuisine.
+     * @return array  The option labels keyed by the stored value, empty when the key isn't a dropdown field.
+     */
+    private function get_meta_value_labels( $meta_key ) {
+        if ( ! $this->container->has( 'store_fields' ) ) {
+            return [];
+        }
+
+        $field_name = preg_replace( '/^wpsl_/', '', $meta_key );
+
+        foreach ( $this->container->get( 'store_fields' )->get_custom_field_names( [], true ) as $group_fields ) {
+            if ( isset( $group_fields[ $field_name ]['options'] ) && is_array( $group_fields[ $field_name ]['options'] ) ) {
+                return array_map( 'trim', $group_fields[ $field_name ]['options'] );
+            }
+        }
+
+        return [];
     }
 
     /**

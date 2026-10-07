@@ -121,8 +121,12 @@ export const themeStyles = {
 
                 const picker = $colorField.data( 'wpsl-color-picker' );
                 if ( picker ) {
-                    if ( defaultColor ) {
-                        const hsl = picker.hexToHsl( defaultColor );
+                    // A field without a default of its own can still show the color it
+                    // follows while empty ( a featured store's colors ), from data-default.
+                    const shownColor = defaultColor || $colorField.data( 'default' );
+
+                    if ( shownColor ) {
+                        const hsl = picker.hexToHsl( shownColor );
                         picker.currentHue = hsl.h;
                         picker.currentSat = hsl.s;
                         picker.currentLight = hsl.l;
@@ -253,7 +257,11 @@ export const themeStyles = {
             const styleName = isHover ? configId + '-hover' : elem;
             const defaultValue = wpslDefaultStyles[ styleName ];
 
-            styleElement.style.setProperty( cssVarName, defaultValue || 'transparent' );
+            /*
+             * No default: "initial" lets var() use its stylesheet fallback
+             * ( the featured tint ) or transparent if there is none.
+             */
+            styleElement.style.setProperty( cssVarName, defaultValue || 'initial' );
         }
     },
 

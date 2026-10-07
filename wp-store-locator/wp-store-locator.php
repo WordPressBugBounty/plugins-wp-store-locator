@@ -4,7 +4,7 @@ Plugin Name: WP Store Locator
 Description: WordPress store locator for OpenStreetMap, Stadia Maps, Mapbox and Google Maps, with unlimited locations, custom fields and custom markers. Free on OpenStreetMap, no API key needed.
 Author: Tijmen Smit
 Author URI: https://wpstorelocator.co/
-Version: 3.0.3
+Version: 3.1.0
 Tested up to: 7.1
 Requires at least: 5.7
 Requires PHP: 7.4
@@ -75,7 +75,7 @@ if ( ! class_exists( 'WP_Store_locator' ) ) {
             
             add_action( 'wp_ajax_store_search',        [ '\WPSL\Frontend\Search\Search', 'handle_ajax_search' ] );
             add_action( 'wp_ajax_nopriv_store_search', [ '\WPSL\Frontend\Search\Search', 'handle_ajax_search' ] );
-            
+
             // Initialize hooks
             $this->init_hooks();
         }
@@ -102,7 +102,7 @@ if ( ! class_exists( 'WP_Store_locator' ) ) {
          */
         private function define_constants() {
             if ( ! defined( 'WPSL_VERSION_NUM' ) )
-                define( 'WPSL_VERSION_NUM', '3.0.3' );
+                define( 'WPSL_VERSION_NUM', '3.1.0' );
 
             if ( ! defined( 'WPSL_URL' ) )
                 define( 'WPSL_URL', plugin_dir_url( __FILE__ ) );
@@ -317,7 +317,12 @@ if ( ! class_exists( 'WP_Store_locator' ) ) {
             $this->container->register( 'taxonomy_image', function( $container ) {
                 return new \WPSL\Core\Post_Types\Taxonomy_Image();
             }, true );
-            
+
+            // Register taxonomy color handler in container
+            $this->container->register( 'taxonomy_color', function( $container ) {
+                return new \WPSL\Core\Post_Types\Taxonomy_Color();
+            }, true );
+
             /*
              * Five of the eight hooks are admin-only UI, but the term-write
              * hooks fire on REST, WP-CLI, or wp_insert_term() too, so only a
@@ -325,6 +330,7 @@ if ( ! class_exists( 'WP_Store_locator' ) ) {
              */
             if ( ! wpsl_is_frontend_page_view() ) {
                 $this->container->get( 'taxonomy_image' );
+                $this->container->get( 'taxonomy_color' );
             }
 
             if ( is_user_logged_in() ) {

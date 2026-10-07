@@ -165,6 +165,7 @@ class Metaboxes {
         add_meta_box( 'wpsl-store-details', esc_html__( 'Store Details', 'wp-store-locator' ), [ $this, 'create_meta_fields' ], 'wpsl_stores', 'normal', 'high' );
 
         add_meta_box( 'wpsl-location-marker', esc_html__( 'Marker', 'wp-store-locator' ), [ $this, 'location_marker' ], 'wpsl_stores', 'side' );
+        add_meta_box( 'wpsl-featured-store', esc_html__( 'Featured', 'wp-store-locator' ), [ $this, 'featured' ], 'wpsl_stores', 'side' );
         add_meta_box( 'wpsl-map-preview', esc_html__( 'Store Map', 'wp-store-locator' ), [ $this, 'map_preview' ], 'wpsl_stores', 'side' );
 
         $enable_option = apply_filters( 'wpsl_enable_export_option', true );
@@ -612,6 +613,14 @@ class Metaboxes {
              */
             $store_data['recode'] = $trigger_recode;
 
+            /*
+             * Drop the notices of an earlier save, so a problem that was fixed
+             * doesn't show again. Before the geocode check, not after it: that
+             * wiped the warning or error it saves for this save, and the
+             * classic editor never showed them.
+             */
+            $this->notices->clear();
+
             $this->geocode->check_data( $post_id, $store_data );
 
             /**
@@ -621,8 +630,6 @@ class Metaboxes {
             $this->geocode->apply_stashed_location_fields( $post_id );
 
             $this->system->maybe_delete_autoload_transient( $post_id );
-
-            $this->notices->clear();
         } else {
             $this->notices->save( 'error', esc_html__( 'Failed to publish the store. Please fill in the required store details.', 'wp-store-locator' ) );
             $this->set_post_pending( $post_id );
@@ -841,6 +848,35 @@ class Metaboxes {
         <p class="wpsl-submit-wrap">
             <a id="wpsl-export-data" class="button-primary" href="<?php echo esc_url( $link_url ); ?>"><?php esc_html_e( 'Export Location Data', 'wp-store-locator' ); ?></a>
         </p>
+        <?php
+    }
+
+    /**
+     * Mark the location as featured, which shows it first in the search
+     * results, and optionally give it a position among the featured locations.
+     *
+     * @since  3.1.0
+     * @return void
+     */
+    public function featured() {
+        global $post;
+
+        $featured = get_post_meta( $post->ID, 'wpsl_featured', true );
+        $position = get_post_meta( $post->ID, 'wpsl_featured_position', true );
+
+        // The hidden field makes an unticked checkbox post a value, so the save can tell it apart from a payload without the field.
+        ?>
+        <p>
+            <input type="hidden" name="wpsl[featured]" value="0">
+            <label for="wpsl-featured"><?php esc_html_e( 'Show first in results?', 'wp-store-locator' ); ?></label>
+            <input type="checkbox" id="wpsl-featured" name="wpsl[featured]" value="1" <?php checked( $featured, 1 ); ?>>
+        </p>
+        <div class="wpsl-featured-options<?php if ( ! $featured ) { echo ' wpsl-hide'; } ?>">
+            <p>
+                <label for="wpsl-featured-position"><?php esc_html_e( 'Position', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo esc_html__( 'Optional. The featured store with the lowest number is shown first.', 'wp-store-locator' ) . '<br><br>' . esc_html__( 'Without a number they are sorted by distance with the Geocode API search, or alphabetically with the name search, unless "Sort results by" was changed.', 'wp-store-locator' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped parts joined by a line break ?></span></span></label>
+                <input type="number" class="small-text" id="wpsl-featured-position" name="wpsl[featured_position]" value="<?php echo esc_attr( $position ); ?>" min="1" step="1">
+            </p>
+        </div>
         <?php
     }
 

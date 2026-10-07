@@ -1,5 +1,6 @@
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
+import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { layers } from './wpsl-layers.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { markers } from './wpsl-markers.js';
@@ -691,7 +692,8 @@ export const geojson = {
             }
 
             if ( storeId === 0 ) {
-                template = wpslLabels.startPoint;
+                // A label is plain text, the popup takes HTML ( as on Google Maps and OpenStreetMap ).
+                template = sharedHelpers.escapeHtml( wpslLabels.startPoint );
 
                 helpers.map.setCenter( { lng: latLng[0], lat: latLng[1] } );
                 infoWindow.create( template, latLng, map, feature.properties.icon );
@@ -700,7 +702,8 @@ export const geojson = {
                     f => f.properties?.id === storeId
                 );
                 const featureProperties = activeFeature?.properties ?? feature.properties;
-                template = helpers.template.getInfoWindowTemplate( featureProperties );
+                // The feature's properties have no coordinates, but the directions link needs them.
+                template = helpers.template.getInfoWindowTemplate( Object.assign( { lat: latLng[1], lng: latLng[0] }, featureProperties ) );
 
                 geojson.icon.setActive( storeId, state, map, () => {
                     // No force-centering (Google Maps / Leaflet): infoWindow.create()
@@ -709,6 +712,7 @@ export const geojson = {
                     // swapped it, and the popup clears the marker on screen now.
                     infoWindow.create( template, latLng, map, featureProperties.icon );
                     map.getSource( 'locations' ).setData( state.active );
+                    geojson.syncRouteSource( map, state );
                 });
             }
         });
@@ -1093,7 +1097,7 @@ export const geojson = {
             }]
         };
     
-        if ( typeof markerData.latLng === 'object' ) {
+        if ( markerData.latLng && typeof markerData.latLng === 'object' ) {
             if ( typeof markerData.latLng.lat === 'function' ) {
                 featureCollection.features[0].geometry.coordinates = [ Number( markerData.latLng.lng() ), Number( markerData.latLng.lat() ) ];
             } else {
@@ -1126,6 +1130,29 @@ export const geojson = {
         }
 
         return featureCollection;
+    },
+
+    /**
+     * Pass a changed marker icon on to the route's own copy of the data.
+     *
+     * On a clustered map the route draws from its own source ( ROUTE_SOURCE ),
+     * not 'locations', so without this the destination never shows its active marker.
+     *
+     * @since  3.1.0
+     * @param  {object} map             Mapbox map instance
+     * @param  {object} geojsonInstance Reference to the geojson object
+     * @return {void}
+     */
+    syncRouteSource: function( map, geojsonInstance = geojson ) {
+        if ( ! slData.directions.active ) {
+            return;
+        }
+
+        const routeSource = map.getSource( 'wpsl-route-locations' );
+
+        if ( routeSource ) {
+            routeSource.setData( geojsonInstance.active );
+        }
     },
 
     /**
@@ -1180,23 +1207,32 @@ export const geojson = {
                     const layerArgs = {
                         layerId: activeIcon,
                         map: map,
-                        onLayerAdded: function() {                                
+                        onLayerAdded: function() {
                             feature.properties.icon = activeIcon;
-                            
+
                             if ( typeof callback === 'function' ) {
                                 callback();
                             }
                         }
                     };
 
+                    // A route on a clustered map draws from its own source, see syncRouteSource().
+                    if ( slData.directions.active && map.getSource( 'wpsl-route-locations' ) ) {
+                        layerArgs.dataSource = 'wpsl-route-locations';
+                    }
+
                     layers.image.load( layerArgs );
 
                     return;
                 }
+            } else if ( typeof config.markers.active === 'undefined' ) {
+                // No active marker in the settings ( it equals the store marker ), so
+                // there is no 'active' layer to move to, see markers.loadActiveImage().
+                activeIcon = feature.properties.icon;
             } else {
                 activeIcon = 'active';
             }
-            
+
             feature.properties.icon = activeIcon;
             
             if ( typeof callback === 'function' ) {

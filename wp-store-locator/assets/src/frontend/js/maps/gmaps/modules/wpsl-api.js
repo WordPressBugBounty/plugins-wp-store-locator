@@ -50,6 +50,13 @@ export const api = {
                 requestArgs.address = jQuery( '#wpsl-search-input' ).val();
             }
 
+            // Without a map region or country restriction from the settings,
+            // let Google prefer matches in the country of the visitor. It only
+            // ranks them first, a place in another country is still found.
+            if ( slData.visitorCountry && ! config.api.region && ! config.api.restrict && ! ( requestArgs.componentRestrictions && requestArgs.componentRestrictions.country ) ) {
+                requestArgs.region = slData.visitorCountry;
+            }
+
             // Google's componentRestrictions only accepts a single country, so an
             // ambiguous postcode ( "2000" exists in several countries ) can't be
             // resolved in one request. config.api.geocodeCountries is only set by
@@ -591,6 +598,9 @@ export const api = {
                 slData.directionsPolylines.forEach( ( polyline ) => polyline.setMap( null ) );
                 slData.directionsPolylines = [];
             }
+
+            // The destination marker can still be the active one, and is about to go.
+            markers.restoreActiveMarkers( 0 );
 
             // Remove the origin / destination markers from map.
             for ( i = 0, len = slData.provider.markers.directionStops.length; i < len; i++ ) {

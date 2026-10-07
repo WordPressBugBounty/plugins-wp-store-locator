@@ -288,8 +288,13 @@ export const infoWindow = {
             e.stopImmediatePropagation();
 
             if ( jQuery( this ).hasClass( 'wpsl-directions' ) ) {
+                // A hidden results list can't show the route, the link goes to the map provider instead.
+                if ( helpers.results.isListHidden() ) {
+                    return true;
+                }
+
                 map._wpslShouldReturnFocus = false;
-                
+
                 helpers.directions.scrollToTop();
 
                 api.directions.show( jQuery( this ) );
@@ -307,6 +312,7 @@ export const infoWindow = {
             if ( map._wpslLastFocusedMarkerId !== 0 ) {
                 geojson.icon.restore( mapGeojson );
                 map.getSource( 'locations' ).setData( mapGeojson.active );
+                geojson.syncRouteSource( map, mapGeojson );
             }
         });
     },

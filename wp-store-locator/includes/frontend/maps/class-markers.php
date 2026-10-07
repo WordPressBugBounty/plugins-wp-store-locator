@@ -120,7 +120,7 @@ class Markers {
         $marker = [
             'start'          => $this->resolve_marker( $start_marker, 'start_marker' ),
             'store'          => $this->resolve_marker( $store_marker, 'store_marker' ),
-            'skipStart'      => false,
+            'skipStart'      => ! empty( $this->marker_settings['hide_start_marker'] ),
             'scaledSize'     => [ 24, 35 ],
             'origin'         => [ 0, 0 ],
             'anchor'         => [ 12, 35 ],

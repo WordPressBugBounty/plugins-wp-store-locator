@@ -25,7 +25,7 @@ $wpsl_has_alerts  = ! empty( $wpsl_alert_items );
         <li data-plugin="<?php echo esc_attr( $wpsl_alert_key ); ?>">
             <span class="wpsl-alert-badge" aria-hidden="true"><span class="wpsl-icon-alerts"></span></span>
             <div class="wpsl-alert-description">
-                <?php echo wp_kses( \WPSL\Admin\Core\Alerts::link_settings_sections( $wpsl_alert['description'] ), [ 'a' => [ 'href' => [], 'class' => [], 'data-item' => [], 'target' => [], 'rel' => [] ] ] ); ?>
+                <?php echo wp_kses( \WPSL\Admin\Core\Alerts::link_settings_sections( $wpsl_alert['description'] ), [ 'a' => [ 'href' => [], 'class' => [], 'data-item' => [], 'target' => [], 'rel' => [] ], 'code' => [] ] ); ?>
                 <?php if ( ! empty( $wpsl_alert['details'] ) ) : ?>
                 <div class="wpsl-alert-details">
                     <?php
@@ -35,6 +35,7 @@ $wpsl_has_alerts  = ! empty( $wpsl_alert_items );
                             'a'      => [ 'href' => [], 'class' => [], 'data-item' => [], 'target' => [], 'rel' => [] ],
                             'p'      => [],
                             'strong' => [],
+                            'code'   => [],
                             'br'     => [],
                             'ol'     => [],
                             'ul'     => [],

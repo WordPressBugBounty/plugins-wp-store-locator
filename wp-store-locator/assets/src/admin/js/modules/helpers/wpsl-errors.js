@@ -19,10 +19,10 @@ export const errors = {
             status: response.status
         };
 
-        if ( typeof response.responseJSON === 'object' ) {
+        if ( response.responseJSON && typeof response.responseJSON === 'object' ) {
             if ( response.responseJSON.message ) {
                 error.message = response.responseJSON.message;
-            } else if ( typeof response.responseJSON.error === 'object' ) {
+            } else if ( response.responseJSON.error && typeof response.responseJSON.error === 'object' ) {
                 error.message = response.responseJSON.error.message;
             }
         } else if ( typeof response.statusText !== 'undefined' ) {

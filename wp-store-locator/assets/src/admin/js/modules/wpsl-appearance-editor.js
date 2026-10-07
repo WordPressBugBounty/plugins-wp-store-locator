@@ -165,7 +165,19 @@ export const appearanceEditor = {
      * @returns {void}
      */
     restoreTabFromSession() {
-        const tabId = sessionStorage.getItem( 'wpsl_reopen_tab' );
+        let tabId = sessionStorage.getItem( 'wpsl_reopen_tab' );
+
+        /*
+         * A link from another admin page can open a tab too, with the tab id
+         * as the hash: page=wpsl_appearance#wpsl-search-results-tab. The hash
+         * is cleared once used, so a reload shows the menu again.
+         */
+        if ( ! tabId && /^#wpsl-[a-z-]+-tab$/.test( window.location.hash ) ) {
+            tabId = window.location.hash;
+
+            history.replaceState( null, '', window.location.pathname + window.location.search );
+        }
+
         if ( ! tabId ) {
             return;
         }

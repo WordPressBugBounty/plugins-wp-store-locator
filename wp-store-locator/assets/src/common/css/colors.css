@@ -1,18 +1,10 @@
 /*
- * Theme colors: the --wpsl-header-*, --wpsl-listing-* and --wpsl-popup-* colors
- * of the search area, the results and the map popups. Split off from styles.css,
- * common.css and filters.css in 3.0.1; add new theme color rules here.
+ * Theme colors for the search area, results and map popups.
  *
- * Loaded normally when "Overwrite theme styles" is on, so these colors win.
- * Loaded as colors-layered.min.css ( this file inside @layer wpsl ) when it is
- * off, so any color the theme sets wins and these only fill the gaps.
+ * "Overwrite theme styles" on: these colors win.
+ * Off: loaded inside @layer wpsl, so the theme's colors win.
  *
- * Not in here, on purpose:
- * - The plugin's own controls ( dropdowns, filter panel, clear buttons ). Their
- *   backgrounds are set by the plugin, so their colors stay in the main files,
- *   or a theme's generic button color could end up on the plugin's background.
- * - !important: inside a layer that would beat the theme's own !important rules.
- * - The button colors ( --wpsl-submit-*, --wpsl-general-* ), those always apply.
+ * Don't add the plugin's own controls, the button colors or !important here.
  */
 
 /* From styles.css */
@@ -155,6 +147,23 @@
 #wpsl-wrap #wpsl-direction-details a:not(.wpsl-styled-btn):hover,
 #wpsl-wrap #wpsl-stores a:not(.wpsl-styled-btn):hover {
     color: var(--wpsl-listing-results-link-hover);
+}
+
+#wpsl-wrap #wpsl-result-list li.wpsl-featured {
+    background: var(--wpsl-listing-featured-background, rgba(128, 128, 128, 0.04));
+    color: var(--wpsl-listing-featured-text, var(--wpsl-listing-results-text));
+}
+
+#wpsl-wrap #wpsl-stores li.wpsl-featured a:not(.wpsl-styled-btn) {
+    color: var(--wpsl-listing-featured-link, var(--wpsl-listing-results-link));
+}
+
+#wpsl-wrap #wpsl-stores li.wpsl-featured a:not(.wpsl-styled-btn):hover {
+    color: var(--wpsl-listing-featured-link-hover, var(--wpsl-listing-results-link-hover));
+}
+
+#wpsl-wrap #wpsl-stores li.wpsl-featured [class*="wpsl-icon-"]::before {
+    color: var(--wpsl-listing-featured-icon, var(--wpsl-listing-icons-color, #000));
 }
 
 /* Google Maps Popups */

@@ -47,6 +47,7 @@ $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
 
     <select id="wpsl-listing-style-sections" class="wpsl-style-filter" style="display: none;">
         <option value="listing-results"><?php esc_html_e( 'Search results', 'wp-store-locator' ); ?></option>
+        <option value="listing-featured"><?php esc_html_e( 'Featured stores', 'wp-store-locator' ); ?></option>
         <option value="listing-icons" <?php if ( ! isset( $section_settings['icons']['enabled'] ) || ! $section_settings['icons']['enabled'] ) { echo 'style="display: none;"'; } ?>><?php esc_html_e( 'Icons', 'wp-store-locator' ); ?></option>
     </select>
 
@@ -80,6 +81,10 @@ $contrast_pairs = [
     'listing-results-text'                   => 'listing-results-background',
     'listing-results-link'                   => 'listing-results-background',
     'listing-results-link-hover'             => 'listing-results-background',
+    // Listing — featured stores
+    'listing-featured-text'                  => 'listing-featured-background',
+    'listing-featured-link'                  => 'listing-featured-background',
+    'listing-featured-link-hover'            => 'listing-featured-background',
     // Popup — content
     'popup-content-text'                     => 'popup-content-background',
     'popup-content-link'                     => 'popup-content-background',
@@ -90,6 +95,12 @@ $contrast_pairs = [
 
 $saved_colors = isset( $section_settings['theme_colors'] ) ? $section_settings['theme_colors'] : [];
 $contrast_checker = new \WPSL\Core\UI\Contrast_Checker();
+
+// Without featured stores their colors have nothing to style, so a note takes their place.
+$no_featured_stores = ! wpsl_get_service( 'location_utils' )->featured_exists();
+
+// The colors an empty featured color follows, shown as its default.
+$featured_fallbacks = $theme_styles->featured_fallbacks();
 
 $section_index = 0;
 foreach ( $customize_sections as $parent_name => $sections ) {
@@ -146,11 +157,30 @@ foreach ( $customize_sections as $parent_name => $sections ) {
                 $ul_class_section_name = ( strpos( $section_name, 'cta_' ) === 0 ) ? str_replace( '_', '-', $section_name ) : $section_name;
                 echo '<ul class="wpsl-' . esc_attr( $parent_name ) . '-' . esc_attr( $ul_class_section_name )  . '-options" ' . $section_visibility . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string, no dynamic data
 
+                /*
+                 * The fields are hidden rather than left out: they still post
+                 * the saved colors, so saving this page doesn't clear colors
+                 * picked while a store was featured.
+                 */
+                $hide_featured_fields = ( $parent_name === 'listing' && $section_name === 'featured' && $no_featured_stores );
+
+                if ( $hide_featured_fields ) {
+                    /* translators: %1$s: opening link tag to the store list, %2$s: closing link tag */
+                    $no_featured_text = sprintf( esc_html__( 'No featured stores yet. Feature a store in the %1$sstore editor%2$s to set these colors.', 'wp-store-locator' ), '<a href="' . esc_url( admin_url( 'edit.php?post_type=wpsl_stores' ) ) . '">', '</a>' );
+
+                    echo '<li class="wpsl-featured-none-row"><p class="wpsl-featured-none">' . $no_featured_text . '</p></li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped text with an escaped link
+                }
+
                 foreach ( $section_fields as $field_name => $value ) {
 
                     // Determine field visibility based on template and section.
-                    $should_hide = false;
-                    
+                    $should_hide = $hide_featured_fields;
+
+                    // The featured icon color follows "Use icons?", like the Icons section ( see bindIconToggle() ).
+                    if ( $parent_name === 'listing' && $section_name === 'featured' && $field_name === 'icon' && empty( $section_settings['icons']['enabled'] ) ) {
+                        $should_hide = true;
+                    }
+
                     // Vertical template specific rules
                     if ( $template_id === 'vertical' ) {
                         $vertical_hidden_fields = [
@@ -169,7 +199,7 @@ foreach ( $customize_sections as $parent_name => $sections ) {
                     if ( $template_id !== 'vertical' ) {
 
                         // Hide icon fields for non-vertical templates (except for the icons section itself)
-                        if ( strpos( $field_name, 'icon' ) !== false && $section_name !== 'icons' ) {
+                        if ( strpos( $field_name, 'icon' ) !== false && $section_name !== 'icons' && $section_name !== 'featured' ) {
                             $should_hide = true;
                         }
                         
@@ -189,6 +219,17 @@ foreach ( $customize_sections as $parent_name => $sections ) {
                     $setting_value = $theme_styles->get_color_value( $color_field );
                     $default_key = str_replace( '_', '-', $color_field );
                     $default_color = isset( $theme_styles->defaults[$default_key] ) ? $theme_styles->defaults[$default_key] : '';
+
+                    /*
+                     * Empty featured colors aren't transparent, they follow the
+                     * other results, so the picker shows the color in use. The
+                     * field itself stays empty to keep following it.
+                     */
+                    $featured_field = str_replace( '-', '_', $field_name );
+
+                    if ( $parent_name === 'listing' && $section_name === 'featured' && '' === $default_color && isset( $featured_fallbacks[ $featured_field ] ) ) {
+                        $default_color = $featured_fallbacks[ $featured_field ];
+                    }
 
                     // Build the data-elem ID
                     $elem_id = $parent_name . '-' . str_replace( '_', '-', $section_name ) . '-' . $field_name;

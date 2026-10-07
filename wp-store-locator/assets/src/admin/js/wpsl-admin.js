@@ -12,6 +12,9 @@ export async function initWpslAdmin() {
         const { categoryMarkers } = await import( /* webpackChunkName: "admin/js/category-image" */ './modules/wpsl-category-image.js' );
         categoryMarkers.init();
 
+        const { categoryColor } = await import( /* webpackChunkName: "admin/js/category-color" */ './modules/wpsl-category-color.js' );
+        categoryColor.init();
+
         return;
     }
 

@@ -150,6 +150,41 @@ $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
         </div>
     </div>
 </div>
+<?php
+$category_settings   = isset( $section_settings['categories'] ) ? (array) $section_settings['categories'] : [];
+$categories_enabled  = ! empty( $category_settings['enabled'] );
+$category_background = isset( $category_settings['background'] ) ? $category_settings['background'] : 'tint';
+?>
+<p>
+    <label for="wpsl-show-categories"><?php esc_html_e( 'Show categories?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Enabling this will include the names of all the categories of a location in the search results, directly below the address. A category with a color set on the Categories page gets a dot in that color in front of its name.', 'wp-store-locator' ); ?></span></span><?php
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- section_sync_warning_span() returns pre-escaped HTML
+    echo $ui->section_sync_warning_span( 'categories' );
+    ?></label>
+    <input type="checkbox" <?php checked( $categories_enabled, true ); ?> name="wpsl_appearance[categories][enabled]" id="wpsl-show-categories" class="wpsl-has-conditional-option">
+</p>
+<div class="wpsl-conditional-option" <?php if ( ! $categories_enabled ) { echo 'style="display:none;"'; } ?>>
+    <p>
+        <label for="wpsl-category-background"><?php esc_html_e( 'Category background', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'The background behind each category name. A tint is a light shade of the color of the category itself, a category without a color gets a neutral grey.', 'wp-store-locator' ); ?></span></span></label>
+        <?php echo $ui->create_dropdown( 'category_background' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>
+    </p>
+    <div class="wpsl-conditional-option"<?php if ( $category_background !== 'custom' ) { echo ' style="display:none;"'; } ?>>
+        <p>
+            <label for="wpsl-category-custom-color"><?php esc_html_e( 'Custom color', 'wp-store-locator' ); ?></label>
+            <input id="wpsl-category-custom-color" class="wpsl-color-field" name="wpsl_appearance[categories][custom_color]" type="text" value="<?php echo esc_attr( isset( $category_settings['custom_color'] ) ? $category_settings['custom_color'] : '' ); ?>" data-default="#f0f0f1" data-picker-position="below" />
+        </p>
+    </div>
+    <p>
+        <label for="wpsl-category-shape"><?php esc_html_e( 'Category color shape', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'The shape of the colored dot in front of a category name: a circle, or a square with slightly rounded corners. The category filter uses the same shape. Only categories with a color set on the Categories page have one. Changing the shape also sets the border radius below to the default for that shape.', 'wp-store-locator' ); ?></span></span></label>
+        <?php echo $ui->create_dropdown( 'category_shape' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>
+    </p>
+    <p>
+        <label for="wpsl-category-border-radius"><?php esc_html_e( 'Border radius', 'wp-store-locator' ); ?></label>
+        <span class="wpsl-input-with-unit">
+            <input type="number" value="<?php echo esc_attr( isset( $category_settings['border_radius'] ) ? $category_settings['border_radius'] : 20 ); ?>" id="wpsl-category-border-radius" name="wpsl_appearance[categories][border_radius]" min="0" max="50">
+            <span class="wpsl-unit-suffix">px</span>
+        </span>
+    </p>
+</div>
 <p>
     <label for="wpsl-cta-details-button"><?php esc_html_e( 'More details link', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'If a URL is provided in the details, the location name will link to that website. However, if permalinks are enabled, it will always link to its local page.', 'wp-store-locator' ); ?></span></span><?php
     /*

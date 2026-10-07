@@ -276,6 +276,36 @@ export const sharedHelpers = {
     },
 
     /**
+     * The colored dot shown in front of a category in a styled dropdown.
+     *
+     * @since   3.1.0
+     * @param   {string} color The hex color of the category.
+     * @returns {string}       The dot markup, or '' without a valid color.
+     */
+    categoryDot: function( color ) {
+        if ( ! /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test( color || '' ) ) {
+            return '';
+        }
+
+        return '<span class="wpsl-category-dot" style="background-color:' + color + '" aria-hidden="true"></span>';
+    },
+
+    /**
+     * Show a dropdown item as the selected one in the toggle button.
+     *
+     * @since   3.1.0
+     * @param   {jQuery} $button The button.wpsl-selected-item of the dropdown.
+     * @param   {jQuery} $item   The selected <li>.
+     * @returns {void}
+     */
+    showDropdownSelection: function( $button, $item ) {
+        $button
+            .text( $item.text() )
+            .attr( 'data-value', $item.attr( 'data-value' ) )
+            .prepend( $item.children( '.wpsl-category-dot' ).clone() );
+    },
+
+    /**
      * Strip all HTML tags from a string, leaving only the text content.
      *
      * @since   3.0.0
@@ -314,6 +344,41 @@ export const sharedHelpers = {
      */
     sanitizeForDisplay: function( text, max = 45 ) {
         return this.escapeHtml( this.truncate( this.stripTags( text ), max ) );
+    },
+
+    /**
+     * Turn SVG marker markup into an element that's safe to insert.
+     *
+     * @since   3.1.0
+     * @param   {string} markup The SVG markup.
+     * @returns {SVGElement|null} The <svg> element, or null when the markup isn't SVG.
+     */
+    parseSvgMarkup: function( markup ) {
+        if ( typeof markup !== 'string' || ! markup ) {
+            return null;
+        }
+
+        const doc = new DOMParser().parseFromString( markup, 'image/svg+xml' );
+        const svg = doc.documentElement;
+
+        if ( ! svg || svg.nodeName.toLowerCase() !== 'svg' || doc.getElementsByTagName( 'parsererror' ).length ) {
+            return null;
+        }
+
+        svg.querySelectorAll( 'script, foreignObject' ).forEach( ( node ) => node.remove() );
+
+        [ svg, ...svg.querySelectorAll( '*' ) ].forEach( ( node ) => {
+            Array.from( node.attributes ).forEach( ( attr ) => {
+                const name  = attr.name.toLowerCase();
+                const value = attr.value.replace( /[\s\u0000-\u001F]+/g, '' ).toLowerCase();
+
+                if ( name.startsWith( 'on' ) || ( /(^|:)href$/.test( name ) && value.startsWith( 'javascript:' ) ) ) {
+                    node.removeAttribute( attr.name );
+                }
+            });
+        });
+
+        return document.importNode( svg, true );
     },
 
     /**

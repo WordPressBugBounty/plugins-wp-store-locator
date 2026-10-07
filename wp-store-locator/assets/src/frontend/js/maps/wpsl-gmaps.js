@@ -301,8 +301,9 @@ export const gmaps = {
             if ( config.search.forceDirectionCoordinates || ! hasAddress ) {
                 destination = destLat + ',' + destLng;
             } else {
-                const zip = data.zip ? data.zip + ', ' : '';
-                destination = helpers.template.rfc3986EncodeURIComponent( data.address + ', ' + data.city + ', ' + zip + data.country );
+                // Only join the parts that have a value, so an empty city or country doesn't leave ', ,' behind.
+                const parts = [ data.address, data.city, data.zip, data.country ].filter( part => part && String( part ).trim() !== '' );
+                destination = helpers.template.rfc3986EncodeURIComponent( parts.join( ', ' ) );
             }
 
             const url = 'https://www.google.com/maps/dir/?api=1&origin=' + origin + '&destination=' + destination + '&travelmode=' + config.search.directionsTravelMode;

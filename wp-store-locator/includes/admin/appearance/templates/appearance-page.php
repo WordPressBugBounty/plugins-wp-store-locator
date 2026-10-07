@@ -20,7 +20,7 @@ $section_settings = $wpsl_settings->get_group( 'appearance' );
 $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
 ?>
 
-<script>(function(){if(sessionStorage.getItem('wpsl_reopen_tab')){document.documentElement.classList.add('wpsl-restoring-tab');}})();</script>
+<script>(function(){if(sessionStorage.getItem('wpsl_reopen_tab')||/^#wpsl-[a-z-]+-tab$/.test(location.hash)){document.documentElement.classList.add('wpsl-restoring-tab');}})();</script>
 <div id="wpsl-content-wrap" class="wpsl-settings-grid wpsl-appearance-editor">
     <div class="wpsl-appearance-nav" id="wpsl-appearance-nav">
         <div class="wpsl-appearance-view wpsl-hidden" id="wpsl-menu-view">
@@ -48,7 +48,15 @@ $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
         </div>
     </div>
 
-    <div id="wpsl-appearance-preview" data-template="<?php echo esc_attr( $template_id ); ?>">
+    <?php
+    /*
+     * The example categories are always in the preview markup. Hidden from the
+     * first paint while "Show categories?" is off, so they don't show until
+     * bindCategoryOptions() in wpsl-handlers.js gets to it.
+     */
+    $hide_categories = empty( $section_settings['categories']['enabled'] ) ? ' class="wpsl-hide-categories"' : '';
+    ?>
+    <div id="wpsl-appearance-preview"<?php echo $hide_categories; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed string ?> data-template="<?php echo esc_attr( $template_id ); ?>">
         <div id="wpsl-default-view" class="wpsl-appearance-view wpsl-customize-options" >
             <div class="wpsl-styled-template-preview<?php echo $wpsl_settings->get( 'tools', 'disable_v3_css' ) ? '' : ' wpsl-v3-css'; ?>">
                 <?php echo $appearance->get_template( $template_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>

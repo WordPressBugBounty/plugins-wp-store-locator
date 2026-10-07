@@ -131,7 +131,7 @@ function wpsl_autoptimize_optimize_js_excludes( $exclude_list ) {
         $exclude_list .= ',';
     }
 
-    $exclude_list .= 'jquery'. $min .'.js,jquery-migrate'. $min .'.js,underscore'. $min .'.js,' . $js_base . 'frontend/js/wpsl' . $min . '.js,wpsl-js-extra';
+    $exclude_list .= 'jquery'. $min .'.js,jquery-migrate'. $min .'.js,underscore'. $min .'.js,' . $js_base . 'frontend/js/wpsl' . $min . '.js,wpsl-js-extra,wpsl-js-before';
 
     // Exclude files based on the active map provider (frontend-only scripts)
     switch ( $optimization_settings['settings']['active_map_service'] ) {
@@ -216,6 +216,7 @@ function wpsl_litespeed_optimize_js_excludes( $exclude_list ) {
     $exclude_list[] = 'underscore.min.js';
     $exclude_list[] = $js_base . 'frontend/js/wpsl' . $min .'.js';
     $exclude_list[] = 'wpsl-js-extra';
+    $exclude_list[] = 'wpsl-js-before'; // The section templates ( wpslTemplateSections ).
 
     // Exclude files based on the active map provider (frontend-only scripts)
     switch ( $optimization_settings['settings']['active_map_service'] ) {

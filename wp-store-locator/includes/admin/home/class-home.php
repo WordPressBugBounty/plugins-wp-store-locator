@@ -66,6 +66,14 @@ class Home {
     const SERVICE_NONCE       = 'wpsl-home-map-service';
 
     /**
+     * Where the page's script reports the headers of the locator page, see
+     * Geolocation_Policy. Shares the map service step's nonce.
+     *
+     * @since 3.1.0
+     */
+    const POLICY_ACTION = 'wpsl_home_geolocation_policy';
+
+    /**
      * The feedback popup: its AJAX action, nonce, the API it relays to and
      * the kinds of feedback it takes.
      *
@@ -167,6 +175,7 @@ class Home {
         add_action( 'wp_ajax_' . self::FEEDBACK_ACTION, [ $this, 'send_feedback' ] );
         add_action( 'wp_ajax_' . self::CREATE_PAGE_AJAX, [ $this, 'create_page_ajax' ] );
         add_action( 'wp_ajax_' . self::MARK_PLACED_AJAX, [ $this, 'mark_placed' ] );
+        add_action( 'wp_ajax_' . self::POLICY_ACTION, [ $this, 'save_geolocation_policy' ] );
     }
 
     /**
@@ -1034,6 +1043,48 @@ class Home {
 
         wp_send_json_success( [
             'state'  => $this->get_setup_state(),
+            'alerts' => $this->get_alert_keys(),
+        ] );
+    }
+
+    /**
+     * Store the headers the page's script read from the locator page.
+     *
+     * Responds with the blocked alert's own markup ( shown without a
+     * reload ) and the active alert keys, so a fixed header removes it.
+     *
+     * @since  3.1.0
+     * @return void
+     */
+    public function save_geolocation_policy() {
+        $this->verify_ajax_request();
+
+        // The page could not be fetched, so nothing can be said either way.
+        if ( ! empty( $_POST['failed'] ) ) {
+            \WPSL\Admin\Core\Geolocation_Policy::clear();
+        } else {
+            \WPSL\Admin\Core\Geolocation_Policy::save(
+                isset( $_POST['permissions_policy'] ) ? sanitize_text_field( wp_unslash( $_POST['permissions_policy'] ) ) : '',
+                isset( $_POST['feature_policy'] ) ? sanitize_text_field( wp_unslash( $_POST['feature_policy'] ) ) : '',
+                isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : ''
+            );
+        }
+
+        $html = '';
+
+        if ( wpsl_container()->has( 'plugin_alerts' ) ) {
+            $wpsl_alert_items = wpsl_get_service( 'plugin_alerts' )->get_geolocation_policy_alert();
+
+            if ( $wpsl_alert_items ) {
+                ob_start();
+                require WPSL_PLUGIN_DIR . 'includes/admin/settings/templates/partials/alerts-list.php';
+                $html = ob_get_clean();
+            }
+        }
+
+        wp_send_json_success( [
+            'key'    => \WPSL\Admin\Core\Alerts::GEOLOCATION_POLICY_ALERT,
+            'html'   => $html,
             'alerts' => $this->get_alert_keys(),
         ] );
     }

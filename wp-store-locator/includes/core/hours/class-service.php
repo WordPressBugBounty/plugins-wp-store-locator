@@ -147,8 +147,8 @@ class Service {
         if ( $type === 'flexbox' ) {
             $classes[] = 'wpsl-flex-opening-hours';
         } else {
-            // Marks the table as the intended legacy layout so the
-            // table:not(.wpsl-legacy-hours) rule in the CSS keeps it visible.
+            // Marks the table as the legacy layout, so the CSS can style it apart
+            // from the flexbox ( for example the icon indent ).
             $classes[] = 'wpsl-legacy-hours';
         }
 
@@ -1301,6 +1301,8 @@ class Service {
                                 && (bool) $this->settings->get( 'ux', 'expand_hours' )
         ] ), $atts ) );
 
+        $explicit_id = ! empty( $atts['id'] );
+
         if ( get_post_type() == 'wpsl_stores' ) {
             if ( empty( $atts['id'] ) ) {
                 if ( isset( $post->ID ) ) {
@@ -1315,6 +1317,24 @@ class Service {
                 $output .= '<p>' . sprintf( esc_html__( 'If you use the [wpsl_hours] shortcode outside a store page, then you need to set the %1$sID attribute%2$s.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/shortcodes/#opening-hours">', '</a>' ) . '</p>';
             }
 
+            return $output;
+        }
+
+        /*
+         * An id from the shortcode attribute has to point to a published store, so
+         * the hours of drafts, private posts and other post types don't leak. The
+         * current-post fallback on a store page is trusted, so previews keep working.
+         */
+        if ( $explicit_id ) {
+            $atts['id'] = absint( $atts['id'] );
+
+            if ( get_post_type( $atts['id'] ) !== 'wpsl_stores' || get_post_status( $atts['id'] ) !== 'publish' ) {
+                return $output;
+            }
+        }
+
+        // A password-protected store keeps its hours hidden until the visitor entered the password.
+        if ( post_password_required( $atts['id'] ) ) {
             return $output;
         }
 

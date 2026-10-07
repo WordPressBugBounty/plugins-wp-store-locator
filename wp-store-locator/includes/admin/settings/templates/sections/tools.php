@@ -44,6 +44,27 @@ $migration_failed = get_option( 'wpsl_v3_migration_complete' ) === 'in_progress'
             </label>
             <input type="checkbox" value="" <?php checked( $wpsl_settings->get( 'tools', 'debug' ), true ); ?> name="wpsl_tools[debug]" id="wpsl-debug">
         </p>
+        <p>
+            <label for="wpsl-admin-bar-menu"><?php esc_html_e( 'Admin bar menu', 'wp-store-locator' ); ?>
+                <span class="wpsl-info">
+                    <?php /* translators: %s: line breaks */ ?>
+                    <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'Choose when the WPSL menu is shown in the WordPress admin bar. %s The menu also warns about plugin conflicts and API key problems. Use "Only when there is an alert" to keep it hidden until one of those appears. With "Hide" the alerts are still listed on the Store Locator home page.', 'wp-store-locator' ), '<br><br>' ) ); ?></span>
+                </span>
+            </label>
+            <select id="wpsl-admin-bar-menu" name="wpsl_tools[admin_bar_menu]">
+                <?php
+                $admin_bar_options = [
+                    'always' => __( 'Always show', 'wp-store-locator' ),
+                    'alerts' => __( 'Only when there is an alert', 'wp-store-locator' ),
+                    'never'  => __( 'Hide', 'wp-store-locator' ),
+                ];
+
+                foreach ( $admin_bar_options as $value => $text ) {
+                    echo '<option value="' . esc_attr( $value ) . '"' . selected( $wpsl_settings->get( 'tools', 'admin_bar_menu' ), $value, false ) . '>' . esc_html( $text ) . '</option>';
+                }
+                ?>
+            </select>
+        </p>
         <p class="wpsl-advanced">
             <label for="wpsl-disable-v3-css"><?php esc_html_e( 'Disable v3 theme rules?', 'wp-store-locator' ); ?>
                 <span class="wpsl-info">

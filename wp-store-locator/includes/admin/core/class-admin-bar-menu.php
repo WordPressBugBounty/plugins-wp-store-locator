@@ -137,13 +137,26 @@ class Admin_Bar_Menu {
             return;
         }
 
-        $show_admin_bar_menu = apply_filters( 'wpsl_admin_bar_menu', true );
+        $notification_count = $this->get_notification_count();
+
+        // The Tools setting decides if the menu is shown: always, only while there is an alert, or never.
+        $mode                = wpsl_get_service( 'wpsl_settings' )->get( 'tools', 'admin_bar_menu' );
+        $show_admin_bar_menu = ! ( 'never' === $mode || ( 'alerts' === $mode && $notification_count < 1 ) );
+
+        /**
+         * Filter if the WPSL menu is shown in the admin bar.
+         *
+         * Runs after the Tools setting, so it can still force the menu on or off.
+         *
+         * @since 3.0.0
+         * @param bool $show_admin_bar_menu The result of the "Admin bar menu" setting.
+         */
+        $show_admin_bar_menu = apply_filters( 'wpsl_admin_bar_menu', $show_admin_bar_menu );
 
         if ( ! $show_admin_bar_menu ) {
             return;
         }
 
-        $notification_count = $this->get_notification_count();
         $notification_badge = '';
         
         if ( $notification_count > 0 ) {

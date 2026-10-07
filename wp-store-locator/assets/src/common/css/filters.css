@@ -344,7 +344,7 @@
 }
 
 #wpsl-filter-options.wpsl-has-scroll .wpsl-filter-actions {
-    right: 15px;
+    right: var(--wpsl-filter-scrollbar, 8px);
 }
 
 #wpsl-panel #wpsl-filter-options::-webkit-scrollbar {

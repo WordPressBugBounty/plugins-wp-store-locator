@@ -2843,6 +2843,7 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
 .wpsl-toggle-wrap .wpsl-toggler-knob:before {
     font-family: "fontello" !important;
     font-size: 11px;
+    line-height: 1.5;
     color: #acacac;
     left: 5px;
     position: absolute;
@@ -4095,6 +4096,36 @@ body.block-editor-page #wpsl-meta-nav .wpsl-tab-content {
     max-width: 320px;
 }
 
+#wpsl-featured-store p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+}
+
+#wpsl-featured-store p > label:not( .wpsl-toggle-wrap ) {
+    display: flex;
+    align-items: center;
+    flex: 0 0 150px;
+}
+
+#wpsl-featured-store .wpsl-info {
+    position: relative;
+    margin-inline-start: auto;
+    padding-inline-start: 6px;
+}
+
+#wpsl-featured-store .wpsl-toggle-wrap {
+    flex: none;
+    margin: 0;
+}
+
+#wpsl-featured-store input[type="number"] {
+    flex: none;
+    width: 64px;
+    margin: 0;
+}
+
 .wpsl-lm-toggle {
     box-sizing: border-box;
     width: 100%;
@@ -5146,9 +5177,13 @@ ol.wpsl-home-check .wpsl-home-check-label:focus-visible {
     position: absolute;
     z-index: 1;
     top: 16px;
+    bottom: 16px;
     right: 16px;
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4px;
     font-style: normal;
 }
 

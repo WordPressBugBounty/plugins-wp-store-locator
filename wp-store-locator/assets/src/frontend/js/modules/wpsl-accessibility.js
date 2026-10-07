@@ -6,6 +6,8 @@
  * @since 3.0.0
  */
 
+import { sharedHelpers } from '../../../common/wpsl-shared-helpers.js';
+
 export const accessibility = {
     /**
      * Keyboard navigation handlers for various UI components.
@@ -135,7 +137,7 @@ export const accessibility = {
 
                     // Enter - select item
                     if ( e.which === 13 ) {
-                        dropdownWrap.find( 'button' ).text( jQuery( this ).text() ).attr( 'data-value', jQuery( this ).attr( 'data-value' ) );
+                        sharedHelpers.showDropdownSelection( dropdownWrap.find( 'button' ), jQuery( this ) );
                         dropdownWrap.find( 'li' ).removeClass( 'wpsl-selected-dropdown' );
 
                         jQuery( '.wpsl-active' ).find( 'li' ).removeClass( 'wpsl-selected-dropdown' );

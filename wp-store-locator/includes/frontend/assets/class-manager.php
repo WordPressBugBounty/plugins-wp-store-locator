@@ -225,6 +225,43 @@ class Manager {
     }
 
     /**
+     * Pass section templates to the frontend as wpslTemplateSections.
+     *
+     * @since  3.1.0
+     * @param  string $page_type Either store_locator or store_page.
+     * @return void
+     */
+    private function add_template_sections( $page_type ) {
+        $this->add_inline_data( 'wpslTemplateSections', $this->templates_manager->collect_sections( $page_type ) );
+    }
+
+    /**
+     * Print a localized data object as inline JSON.
+     *
+     * Unlike wp_localize_script(), this does not entity-decode every string,
+     * so escaped text stays escaped. The "var NAME = {...};" output keeps the
+     * format the scripts and the Weglot integration expect.
+     *
+     * @since  3.1.0
+     * @param  string $object_name The JS global to define.
+     * @param  array  $data        The data to encode.
+     * @return void
+     */
+    private function add_inline_data( $object_name, $data ) {
+        /*
+         * On failure, print an empty object to keep the script valid. Not
+         * wp_localize_script(): it would decode the escaped strings again.
+         */
+        $json = wp_json_encode( $data, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
+
+        if ( false === $json ) {
+            $json = '{}';
+        }
+
+        wp_add_inline_script( 'wpsl', 'var ' . $object_name . ' = ' . $json . ';', 'before' );
+    }
+
+    /**
      * Enqueue the required frontend scripts.
      *
      * @since  3.0.0
@@ -250,7 +287,13 @@ class Manager {
         if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
             add_filter( 'script_loader_tag', function( $tag, $handle ) {
                 if ( 'wpsl' === $handle ) {
-                    return str_replace( '<script', '<script type="module"', $tag );
+                    /*
+                     * $tag also holds the handle's inline scripts. Only the tag
+                     * loading the file becomes a module: an inline script turned
+                     * into one would keep its vars, like wpslTemplateSections,
+                     * out of the global scope.
+                     */
+                    return preg_replace( '/<script(?=[^>]*\ssrc=)/', '<script type="module"', $tag );
                 }
 
                 return $tag;
@@ -344,16 +387,16 @@ class Manager {
     
         // Localize the scripts
         wp_localize_script( 'wpsl', 'wpslSettings', $localized_data );
-        wp_localize_script( 'wpsl', 'wpslTemplateSections', $this->templates_manager->collect_sections( $page_type ) );
+        $this->add_template_sections( $page_type );
 
         // Both page types boot a map, and the key gate reads these messages.
         wp_localize_script( 'wpsl', 'wpslApiErrors', wpsl_api_error_messages() );
 
         if ( in_array( 'store_locator', $load_scripts ) ) {
-            wp_localize_script( 'wpsl', 'wpslLabels', $this->resources->labels() );
+            $this->add_inline_data( 'wpslLabels', $this->resources->labels() );
             wp_localize_script( 'wpsl', 'wpslGeolocationErrors', $this->resources->geolocation_errors() );
         } elseif ( in_array( 'store_page', $load_scripts ) ) {
-            wp_localize_script( 'wpsl', 'wpslLabels', [ 'clusterTitle' => $this->resources->cluster_label() ] );
+            $this->add_inline_data( 'wpslLabels', [ 'clusterTitle' => $this->resources->cluster_label() ] );
         }
 
         //Add store map data if available.
@@ -696,7 +739,7 @@ class Manager {
         $classes = $this->get_outer_classes( $shortcode_atts );
 
         if ( ! empty( $classes ) ) {
-            return 'class="'. join( ' ', $classes ) .'"';
+            return 'class="' . esc_attr( join( ' ', $classes ) ) . '"';
         }
     }
 
@@ -716,7 +759,12 @@ class Manager {
         }
 
         // Check if we need to use the shortcode template ID, or the one set on the WPSL settings page.
-        if ( isset( $shortcode_atts['template'] ) && $shortcode_atts['template'] )  {
+        /*
+         * The shortcode attribute is validated in check_sl_shortcode_atts(), but
+         * a caller ( a v2 custom template ) can pass its own attributes, so only
+         * a registered template id is used here too.
+         */
+        if ( isset( $shortcode_atts['template'] ) && $shortcode_atts['template'] && in_array( $shortcode_atts['template'], array_column( wpsl_get_templates(), 'id' ), true ) )  {
             $wpsl_template = $shortcode_atts['template'];
         } else {
             $wpsl_template = $this->settings->get( 'appearance', 'template_id' );
@@ -774,6 +822,11 @@ class Manager {
 
         if ( $this->settings->get( 'search', 'input_only' ) ) {
             $classes[] = 'wpsl-search-input-only';
+        }
+
+        // Only the search bar and the map are shown, see Filters::is_results_list_hidden().
+        if ( wpsl_get_service( 'template_filters' )->is_results_list_hidden() ) {
+            $classes[] = 'wpsl-hide-list';
         }
 
         // Are we using icons?

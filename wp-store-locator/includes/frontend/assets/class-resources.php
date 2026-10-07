@@ -181,7 +181,10 @@ class Resources {
                     'autoLocate'             => [
                             'enabled' => $is_name_search ? 0 : $this->get_setting( 'search', 'auto_locate' ),
                             'format'  => $this->get_setting( 'search', 'auto_locate_format' ),
-                            'trigger' => $this->get_setting( 'search', 'auto_locate_trigger' ),
+                            // A trigger saved while it was still accepted ( "approximate" ) becomes the default.
+                            'trigger' => in_array( $this->get_setting( 'search', 'auto_locate_trigger' ), wpsl_get_auto_locate_triggers(), true ) ? $this->get_setting( 'search', 'auto_locate_trigger' ) : 'pageload',
+                            // Whether a declined or failed location prompt may try the approximate location.
+                            'approximate' => \WPSL\Core\Map\Visitor_Location::is_enabled() ? 1 : 0,
                         ],
                     'draggableFormat'        => 'formatted_address',
                     'fullSearch'             => $this->maybe_enable_fullsearch( $base_settings['api'] ),
@@ -189,7 +192,8 @@ class Resources {
                     'autoloadHideDetails'    => $this->get_setting( 'map', 'autoload_start_latlng' ),
                     'categoryFilterOnly'     => $this->get_setting( 'search', 'category_filter_only' ),
                     'distanceUnit'           => wpsl_get_distance_unit(),
-                    'directionRedirect'      => $this->get_setting( 'ux', 'direction_redirect' ),
+                    // The route is shown in the results list, so a hidden list sends the visitor to the map provider instead.
+                    'directionRedirect'      => $this->get_setting( 'ux', 'direction_redirect' ) || $this->template_filters->is_results_list_hidden(),
                     /**
                      * Send coordinates instead of the address details in the
                      * Google Maps directions URL. For the rare location whose
@@ -716,6 +720,7 @@ class Resources {
             'geoLocationAccept' => $this->i18n->get_js_translation( 'geolocation_accept_label', esc_html__( 'Share Location', 'wp-store-locator' ) ),
             'geoLocationDecline' => $this->i18n->get_js_translation( 'geolocation_decline_label', esc_html__( 'No Thanks', 'wp-store-locator' ) ),
             'geoLocationLocating' => $this->i18n->get_js_translation( 'geolocation_locating_label', esc_html__( 'Determining your location…', 'wp-store-locator' ) ),
+            'approximateLocation' => $this->i18n->get_js_translation( 'approximate_location_label', esc_html__( 'Stores near {location}', 'wp-store-locator' ) ),
             //'retrySearch'       => sprintf( esc_html__( '%sNo results found.%s %sPlease adjust your search and try again.%s', 'wp-store-locator' ), '<p>', '</p>', '<p>', '</p>' )
         ];
 

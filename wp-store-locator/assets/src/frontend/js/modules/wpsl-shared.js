@@ -16,6 +16,9 @@ export const slData = {
         position: {},
         newRequest: false
     },
+
+    // Two letter country code from the approximate location of the visitor
+    visitorCountry: '',
     directions: {
         active: false,
     },

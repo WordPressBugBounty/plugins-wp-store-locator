@@ -556,7 +556,8 @@ export const markers = {
 
             if ( feature && feature.properties && feature.properties.id === storeId ) {
                 const latLng = [ feature.geometry.coordinates[0], feature.geometry.coordinates[1] ];
-                const template = helpers.template.getInfoWindowTemplate( feature.properties );
+                // The feature's properties have no coordinates, but the directions link needs them.
+                const template = helpers.template.getInfoWindowTemplate( Object.assign( { lat: latLng[1], lng: latLng[0] }, feature.properties ) );
 
                 geojson.icon.restore( state );
 
@@ -576,6 +577,7 @@ export const markers = {
                     infoWindow.create( template, latLng, map, feature.properties.icon );
 
                     map.getSource( 'locations' ).setData( state.active );
+                    geojson.syncRouteSource( map, state );
                 });
 
                 break;

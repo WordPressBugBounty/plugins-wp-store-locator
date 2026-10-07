@@ -305,7 +305,8 @@
         width: 100%;
     }
 
-    .wpsl-v3-css #wpsl-search-wrap #wpsl-category {
+    .wpsl-v3-css #wpsl-search-wrap #wpsl-category,
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter {
         display: block !important;
     }
 
@@ -316,6 +317,23 @@
     }
 
     .wpsl-v3-css #wpsl-search-wrap #wpsl-category .wpsl-dropdown {
+        width: 100% !important;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter {
+        flex: 1 1 100%;
+        width: 100%;
+        margin-top: 20px;
+        margin-inline-end: 0 !important;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter label {
+        display: block !important;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .wpsl-v3-css #wpsl-search-wrap .wpsl-custom-filter .wpsl-dropdown {
         width: 100% !important;
     }
 

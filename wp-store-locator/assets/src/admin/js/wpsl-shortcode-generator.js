@@ -138,11 +138,20 @@ jQuery( document ).ready( function( $ ) {
         }
     });
 
-    // Open the dialog with the same options and framing as the settings page
-    // dialogs ( see createDialog() in wpsl-geocode-test.js ).
+    $( "#wpsl-shortcode-tabs" ).tabs();
+
     $( "#wpsl-open-shortcode-dialog" ).on( "click", function( e ) {
         e.preventDefault();
 
+        if ( $dialog.dialog( "instance" ) ) {
+            $dialog.dialog( "option", "position", $.ui.dialog.prototype.options.position );
+            $dialog.dialog( "open" );
+
+            return;
+        }
+
+        // No position: the default centers the dialog in the visible part
+        // of the window on every open. The edit screen itself is much taller.
         $dialog.dialog({
             resizable: false,
             height: 'auto',
@@ -153,11 +162,6 @@ jQuery( document ).ready( function( $ ) {
             dialogClass: 'wpsl-dialog wpsl-flex-dialog wpsl-shortcode-dialog',
             classes: { 'ui-dialog': 'wpsl-dialog wpsl-flex-dialog wpsl-shortcode-dialog' },
             appendTo: '#wpbody-content',
-            position: {
-                my: "center",
-                at: "center",
-                of: "#wpbody-content"
-            },
             open: function() {
                 const $container = $( ".ui-dialog.wpsl-shortcode-dialog" );
 
@@ -167,10 +171,6 @@ jQuery( document ).ready( function( $ ) {
                 if ( ! $container.find( ".wpsl-close-cross" ).length ) {
                     $container.find( ".ui-dialog-titlebar-close" ).remove();
                     $container.find( ".ui-dialog-titlebar" ).append( '<button type="button" class="wpsl-close-cross wpsl-dialog-close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button>' );
-                }
-
-                if ( ! $( "#wpsl-shortcode-tabs" ).hasClass( "ui-tabs" ) ) {
-                    $( "#wpsl-shortcode-tabs" ).tabs();
                 }
 
                 $( ".ui-widget-overlay, .wpsl-dialog-close" ).on( "click", function() {

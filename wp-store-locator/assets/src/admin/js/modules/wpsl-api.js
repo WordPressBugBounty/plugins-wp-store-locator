@@ -1,5 +1,6 @@
 import { state } from './wpsl-shared.js';
 import { createApiRequest } from '../../../common/wpsl-core.js';
+import { sharedHelpers } from '../../../common/wpsl-shared-helpers.js';
 import { mapBootstrap, mapObjects } from './wpsl-map-bootstrap.js';
 import { helpers } from './wpsl-helpers.js';
 import { markers } from './wpsl-markers.js';
@@ -123,7 +124,7 @@ export const api = {
 
                         jQuery( '#wpsl-geocode-response textarea' ).val( '' );
                     } else {
-                        alert( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) );
+                        alert( sharedHelpers.stripTags( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) ) );
                     }
                 }
             });
@@ -524,7 +525,7 @@ export const api = {
 
                         jQuery( '#wpsl-geocode-response textarea' ).val( '' );
                     } else {
-                        alert( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) );
+                        alert( sharedHelpers.stripTags( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) ) );
                     }
                 }
             });
@@ -712,7 +713,7 @@ export const api = {
                         geocodeResponseTest.status( wpslL10n.noResults );
                         jQuery( '#wpsl-geocode-response textarea' ).val( '' );
                     } else {
-                        alert( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) );
+                        alert( sharedHelpers.stripTags( wpslL10n.noResults.replace( /<br\s*\/?>/gi, '\n' ) ) );
                     }
                 }
             });

@@ -74,8 +74,7 @@ export const fieldsManager = {
                     const $defaultInput = $defaultField.find( 'input[type="text"]' );
 
                     if ( $defaultInput.length ) {
-                        const textareaHtml = '<textarea name="' + $defaultInput.attr( 'name' ) + '" placeholder="' + $defaultInput.attr( 'placeholder' ) + '" id="' + $defaultInput.attr( 'id' ) + '">' + $defaultInput.val() + '</textarea>';
-                        $defaultInput.replaceWith( textareaHtml );
+                        $defaultInput.replaceWith( fieldsUI.swapDefaultInput( $defaultInput, '<textarea></textarea>' ) );
                     }
                     
                     $defaultField.show();
@@ -146,7 +145,8 @@ export const fieldsManager = {
                 jQuery( '.wpsl-field-editor .wpsl-required-field' ).each( function() {
                     if ( ! jQuery( this ).val() ) {
                         const groupId = jQuery( this ).parents( '.wpsl-fields-list-wrap' ).data( 'group-id' );
-                        const groupName = "'" + jQuery( '.wpsl-field-group-list option[value="' + groupId + '"]' ).text() + "'"
+                        // The group name goes into the warning markup below, so escape it.
+                        const groupName = "'" + sharedHelpers.escapeHtml( jQuery( '.wpsl-field-group-list option[value="' + groupId + '"]' ).text() ) + "'"
 
                         if ( jQuery.inArray( groupName, groupNames ) === -1 ) {
                             groupNames.push( groupName );
@@ -329,8 +329,7 @@ export const fieldsManager = {
                             const $defaultInput = $defaultField.find( 'input[type="text"]' );
                             
                             if ( $defaultInput.length ) {                                
-                                const textareaHtml = '<textarea name="' + $defaultInput.attr( 'name' ) + '" id="' + $defaultInput.attr( 'id' ) + '">' + $defaultInput.val() + '</textarea>';
-                                $defaultInput.replaceWith( textareaHtml );
+                                $defaultInput.replaceWith( fieldsUI.swapDefaultInput( $defaultInput, '<textarea></textarea>' ) );
                             }
                         }
                         
@@ -342,8 +341,7 @@ export const fieldsManager = {
                         const $existingTextarea = $defaultField.find( 'textarea' );
                         
                         if ( $existingTextarea.length ) {
-                            const inputHtml = '<input type="text" value="' + $existingTextarea.val() + '" name="' + $existingTextarea.attr( 'name' ) + '" id="' + $existingTextarea.attr( 'id' ) + '">';
-                            $existingTextarea.replaceWith( inputHtml );
+                            $existingTextarea.replaceWith( fieldsUI.swapDefaultInput( $existingTextarea, '<input type="text">' ) );
                         }
                         
                         fieldsUI.showDefaultAndRequired( $fieldEditor );

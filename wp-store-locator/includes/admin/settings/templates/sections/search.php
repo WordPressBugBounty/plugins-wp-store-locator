@@ -30,7 +30,7 @@ $is_name_search = ( $section_settings['search_method'] === 'name' );
             <label for="wpsl-auto-locate"><?php esc_html_e( 'Attempt to auto-locate the user', 'wp-store-locator' ); ?>
                 <span class="wpsl-info <?php if ( ! wpsl_get_service( 'system_utils' )->ssl_active() ) { echo 'wpsl-warning'; } ?>">
                     <?php /* translators: %1$s: opening link tag to documentation, %2$s: closing link tag */ ?>
-                    <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'A HTTPS connection is %1$srequired%2$s before the Geolocation API can access the user\'s location.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/">', '</a>' ) ); ?></span>
+                    <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'A HTTPS connection is %1$srequired%2$s before the Geolocation API can access the user\'s location.', 'wp-store-locator' ), '<a href="https://wpstorelocator.co/document/html-5-geolocation-not-working/">', '</a>' ) ); ?><br><br><?php esc_html_e( 'This option is ignored for a store locator that sets its own start point, or a country, state or city restriction, in the shortcode or block. It then always starts from that location.', 'wp-store-locator' ); ?></span>
                 </span>
             </label>
             <input type="checkbox" value="" <?php checked( $section_settings['auto_locate'], true ); ?> name="wpsl_search[auto_locate]" id="wpsl-auto-locate" class="wpsl-has-conditional-option">
@@ -116,6 +116,15 @@ $is_name_search = ( $section_settings['search_method'] === 'name' );
                 </span>
             </label>
             <input type="checkbox" value="" <?php checked( $section_settings['input_only'], true ); ?> name="wpsl_search[input_only]" id="wpsl-search-input-only">
+        </p>
+        <p>
+            <label for="wpsl-hide-results-list"><?php esc_html_e( 'Hide the search results list?', 'wp-store-locator' ); ?>
+                <span class="wpsl-info">
+                    <?php /* translators: %1$s: line breaks */ ?>
+                    <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'Only the search bar and the map are shown. The "No results found" message is shown in an overlay on the map. %1$s The directions link of a location opens the route in the same tab, on Google Maps when that is the map provider, and on OpenStreetMap for the other map providers. %1$s This only works for the default and horizontal templates. It is ignored for the vertical template, where the list is part of the panel next to the map.', 'wp-store-locator' ), '<br><br>' ) ); ?></span>
+                </span>
+            </label>
+            <input type="checkbox" value="" <?php checked( $section_settings['hide_results_list'], true ); ?> name="wpsl_search[hide_results_list]" id="wpsl-hide-results-list">
         </p>
         <p <?php if ( $is_name_search ) { echo 'style="display:none;"'; } ?>>
             <label for="wpsl-distance-unit"><?php esc_html_e( 'Distance unit', 'wp-store-locator' ); ?></label>

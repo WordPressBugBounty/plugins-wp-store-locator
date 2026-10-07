@@ -15,7 +15,7 @@
      * @param {number}           [options.size=180]          - Canvas diameter in pixels.
      * @param {number}           [options.ringThickness=8]   - Outer lightness ring thickness in pixels.
      * @param {number}           [options.gap=8]             - Gap between the inner wheel and the outer ring in pixels.
-     * @param {string}           [options.position='right']  - Popup alignment: 'left' or 'right'.
+     * @param {string}           [options.position='right']  - Popup alignment: 'left', 'right', 'beside' or 'below'.
      */
     window.WPSL_ColorPicker = function( element, options ) {
         if ( ! ( element instanceof HTMLInputElement ) ) {
@@ -31,6 +31,17 @@
         }, options );
 
         this.defaultColor = this.element.data( 'default' ) || '';
+
+        /*
+         * A field can swap the lightness swatches for a fixed set of colors
+         * with data-presets="#d63638,#2271b1,...". Anything that isn't a hex
+         * color is dropped, the values end up in a style.
+         */
+        this.presets = String( this.element.data( 'presets' ) || '' ).split( ',' ).map( function( preset ) {
+            return preset.trim();
+        } ).filter( function( preset ) {
+            return /^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test( preset );
+        } );
 
         this.center = this.options.size / 2;
         this.innerRadius = ( this.options.size / 2 ) - this.options.ringThickness - this.options.gap;
@@ -165,26 +176,40 @@
 
             this.swatchBox = $( '<div class="wpsl-swatches"></div>' );
 
-            for ( let s = 0; s < 10; s++ ) {
+            const swatchCount = this.presets.length || 10;
+
+            for ( let s = 0; s < swatchCount; s++ ) {
                 const $swatch = $( '<div class="swatch"></div>' );
 
                 ( function( idx ) {
+                    const preset = self.presets[ idx ];
+
                     $swatch.attr( {
                         tabindex:    '0',
                         role:        'button',
-                        'aria-label': 'Lightness preset ' + ( idx + 1 ),
+                        'aria-label': preset ? preset.toUpperCase() : 'Lightness preset ' + ( idx + 1 ),
                     } );
 
-                    $swatch.on( 'click', function() {
-                        self.currentLight = ( idx + 1 ) * 9;
-                        self.updateUI();
-                    } );
+                    if ( preset ) {
+                        $swatch.css( 'background-color', preset );
+                    }
+
+                    // A preset is a color of its own, a lightness swatch a shade of the current one.
+                    const pick = function() {
+                        if ( preset ) {
+                            self.setColor( preset );
+                        } else {
+                            self.currentLight = ( idx + 1 ) * 9;
+                            self.updateUI();
+                        }
+                    };
+
+                    $swatch.on( 'click', pick );
 
                     $swatch.on( 'keydown', function( e ) {
                         if ( e.key === 'Enter' || e.key === ' ' ) {
                             e.preventDefault();
-                            self.currentLight = ( idx + 1 ) * 9;
-                            self.updateUI();
+                            pick();
                         }
                     } );
                 } )( s );
@@ -365,19 +390,49 @@
                 positionCss.left   = isRtl ? '100%' : 'auto';
                 positionCss.top    = '0';
                 positionCss.bottom = 'auto';
-            } else if ( window.innerWidth <= 1024 ) {
+            } else if ( window.innerWidth <= 1024 && this.options.position !== 'below' ) {
                 // Left of the button, bottom edges aligned.
                 positionCss.right  = isRtl ? 'auto' : '100%';
                 positionCss.left   = isRtl ? '100%' : 'auto';
                 positionCss.bottom = '0';
                 positionCss.top    = 'auto';
             } else {
-                const viewportHeight = window.innerHeight;
-                const spaceBelow     = viewportHeight - wrapperRect.bottom;
-                const spaceAbove     = wrapperRect.top;
-                const showAbove      = spaceBelow < pickerHeight && spaceAbove > pickerHeight;
+                // The room around the field: on the Appearance page it's a scrolling panel, not the window.
+                const bounds = this._visibleBounds();
 
-                if ( this.options.position === 'left' ) {
+                /*
+                 * Below when it fits between the panel's header and footer
+                 * ( which the picker may cover ), otherwise above. No fit on
+                 * either side: the side with the most room.
+                 */
+                const pickerStyle = window.getComputedStyle( this.picker[ 0 ] );
+
+                // The popup's margin is the gap to the field, so it needs room too.
+                const needBelow = pickerHeight + ( parseFloat( pickerStyle.marginTop ) || 0 );
+                const needAbove = pickerHeight + ( parseFloat( pickerStyle.marginBottom ) || 0 );
+
+                const fits = function( edges ) {
+                    return {
+                        below: edges.bottom - wrapperRect.bottom >= needBelow,
+                        above: wrapperRect.top - edges.top >= needAbove
+                    };
+                };
+
+                const inner = fits( bounds.inner );
+                const outer = fits( bounds.outer );
+                let showAbove;
+
+                if ( inner.below || inner.above ) {
+                    showAbove = ! inner.below;
+                } else if ( outer.below || outer.above ) {
+                    showAbove = ! outer.below;
+                } else {
+                    showAbove = ( wrapperRect.top - bounds.outer.top - needAbove ) > ( bounds.outer.bottom - wrapperRect.bottom - needBelow );
+                }
+
+                // 'below' lines up like 'left', but also on a narrow screen: for a
+                // field at the start of the page, where there is no room beside it.
+                if ( this.options.position === 'left' || this.options.position === 'below' ) {
                     positionCss.left  = isRtl ? 'auto' : '0';
                     positionCss.right = isRtl ? '0' : 'auto';
                 } else {
@@ -414,6 +469,46 @@
             setTimeout( function() {
                 $( document ).on( 'click.wpsl-color-picker', self.$outsideHandler );
             }, 100 );
+        },
+
+        /**
+         * The part of the window the popup can be seen in.
+         *
+         * 'outer' is the window minus overflow-clipping ancestors ( the
+         * Appearance page panel ). 'inner' also drops that panel's sticky
+         * header and footer, which cover fields that scroll under them.
+         *
+         * @returns {{outer: {top: number, bottom: number}, inner: {top: number, bottom: number}}} Viewport coordinates.
+         */
+        _visibleBounds: function() {
+            const outer = { top: 0, bottom: window.innerHeight };
+            let el = this.wrapper[ 0 ].parentElement;
+
+            while ( el && el !== document.body && el !== document.documentElement ) {
+                if ( /auto|scroll|hidden|clip/.test( window.getComputedStyle( el ).overflowY ) ) {
+                    const rect = el.getBoundingClientRect();
+
+                    outer.top    = Math.max( outer.top, rect.top );
+                    outer.bottom = Math.min( outer.bottom, rect.bottom );
+                }
+
+                el = el.parentElement;
+            }
+
+            const inner  = { top: outer.top, bottom: outer.bottom };
+            const $panel = this.wrapper.closest( '.wpsl-appearance-nav' );
+
+            if ( $panel.length ) {
+                $panel.find( '.wpsl-tab-header:visible' ).each( function() {
+                    inner.top = Math.max( inner.top, this.getBoundingClientRect().bottom );
+                } );
+
+                $panel.find( '.wpsl-tab-footer:visible' ).each( function() {
+                    inner.bottom = Math.min( inner.bottom, this.getBoundingClientRect().top );
+                } );
+            }
+
+            return { outer: outer, inner: inner };
         },
 
         /**
@@ -650,6 +745,11 @@
          * saturation at evenly distributed lightness steps (9% through 90%).
          */
         _updateSwatchColors: function() {
+            // Presets keep the color they were created with.
+            if ( this.presets.length ) {
+                return;
+            }
+
             const swatches = this.swatchBox.children();
 
             for ( let i = 0; i < 10; i++ ) {
@@ -703,6 +803,20 @@
             this._updateMarkers();
             this._updateSwatchColors();
             this._updateRestoreBtn();
+        },
+
+        /**
+         * Sets the picker to a hex color, and writes it to the field.
+         *
+         * @param {string} hex - The hex color string (e.g. '#00ff00').
+         */
+        setColor: function( hex ) {
+            const hsl = this.hexToHsl( hex );
+
+            this.currentHue = hsl.h;
+            this.currentSat = hsl.s;
+            this.currentLight = hsl.l;
+            this.updateUI();
         },
 
         /**

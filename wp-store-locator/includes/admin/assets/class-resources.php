@@ -44,6 +44,28 @@ class Resources {
     }
 
     /**
+     * The texts in wpsl-admin.js that come from the label settings.
+     *
+     * Kept out of get_l10n(): wp_localize_script() entity-decodes every
+     * top-level string, which could turn an encoded tag into markup. These
+     * go to the page as JSON ( Manager::add_l10n_labels() ).
+     *
+     * moreDetails and searching are plain text, escaped on insert; the
+     * others HTML built from escaped labels.
+     *
+     * @since  3.1.0
+     * @return array The texts, keyed like get_l10n().
+     */
+    public function get_l10n_labels() {
+        return [
+            'moreDetails'  => wp_specialchars_decode( $this->i18n->get_translation( 'more_details_label', esc_html__( 'More details', 'wp-store-locator' ) ), ENT_QUOTES ),
+            'searching'    => wp_specialchars_decode( $this->i18n->get_translation( 'preloader_label', esc_html__( 'Searching...', 'wp-store-locator' ) ), ENT_QUOTES ),
+            'noResults'    => $this->i18n->get_no_results_message(),
+            'popupContent' => $this->get_popup_content(),
+        ];
+    }
+
+    /**
      * The text messages used in wpsl-admin.js.
      *
      * @since  1.2.20
@@ -151,7 +173,6 @@ class Resources {
             /* translators: 1: opening link tag for API section, 2: closing link tag */
             'mapboxNoKey'           => sprintf( esc_html__( 'This feature requires a Mapbox API key, please add one in the %1$sAPI section%2$s.', 'wp-store-locator' ), '<a class="wpsl-trigger-nav" data-item="api" href="' . admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings#wpsl-api' ) . '"> ', '</a>' ),
             'openfreemapUrlInvalid' => esc_html__( "This URL didn't load as a map style. Make sure the URL is valid.", 'wp-store-locator' ),
-            'noResults'             => $this->i18n->get_no_results_message(),
             /* translators: 1: opening link tag for partial match documentation, 2: closing link tag */
             'partialMatch'          => sprintf( esc_html__( 'The response from the Geocode API contained the %1$spartial match%2$s field, which means it failed to find the exact location. Check the address details for misspellings and/or an incomplete address.', 'wp-store-locator' ), '<a href="https://developers.google.com/maps/documentation/geocoding/requests-geocoding#results" target="_blank">', '</a>' ),
             /* translators: %s: the result type returned by the API (e.g. "postcode", "region") */
@@ -165,7 +186,6 @@ class Resources {
             'fieldsDropdownOptions'  => esc_html__( 'Dropdown options', 'wp-store-locator' ),
             'fieldsDropdownPlaceholder' => esc_html__( 'List at least two options. One option per line.', 'wp-store-locator' ),
             'fieldDropdownRequirements' => esc_html__( 'Please provide at least two options.', 'wp-store-locator' ),
-            'popupContent' => $this->get_popup_content(),
             'nothingToSave' => esc_html__( 'Nothing to save', 'wp-store-locator' ),
             'brokenSyntax'         => __( 'The template contains broken syntax. The code was not saved.', 'wp-store-locator' ),
             /* translators: %s: line number */
@@ -242,8 +262,6 @@ class Resources {
             'deleteAllCustomMarkers' => esc_html__( 'Delete All Custom Markers', 'wp-store-locator' ),
             'deleteAllMapShapes' => esc_html__( 'Delete All Map Shapes', 'wp-store-locator' ),
             'resetSettingsToDefaults' => esc_html__( 'Reset Settings to Defaults', 'wp-store-locator' ),
-            'moreDetails' => $this->i18n->get_translation( 'more_details_label', esc_html__( 'More details', 'wp-store-locator' ) ),
-            'searching' => $this->i18n->get_translation( 'preloader_label', esc_html__( 'Searching...', 'wp-store-locator' ) ),
             'savingCustomization' => esc_html__( 'Saving...', 'wp-store-locator' ),
             'saveCustomization' => esc_html__( 'Save Customization', 'wp-store-locator' ),
             'saveFailed' => esc_html__( 'Failed to save settings.', 'wp-store-locator' ),

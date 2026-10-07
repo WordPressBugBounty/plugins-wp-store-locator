@@ -152,26 +152,29 @@ function wpsl_get_address_latlng( $address, $map_service = 'gmaps' ) {
  * @return string $latlng  The coordinates of the geocoded location
  */
 function wpsl_check_latlng_transient( $address ) {
-    $name_section   = explode( ',', $address );
-    $transient_name = 'wpsl_' . sanitize_key( $name_section[0] ) . '_latlng';
+    $map_service = wpsl_get_active_map_service();
+
+    /*
+     * Keyed on the whole address and the map service ( a comma-prefix once
+     * made "London, Ontario" and "London" share one entry ). The "_latlng"
+     * suffix is what the cache clearing in System_Utils matches.
+     */
+    $normalized     = strtolower( trim( preg_replace( '/\s+/', ' ', (string) $address ) ) );
+    $transient_name = 'wpsl_start_' . md5( $map_service . '|' . $normalized ) . '_latlng';
 
     if ( false === ( $latlng = get_transient( $transient_name ) ) ) {
-        $map_service = wpsl_get_active_map_service();
-        $latlng      = wpsl_get_address_latlng( $address, $map_service );
+        $latlng = wpsl_get_address_latlng( $address, $map_service );
 
         if ( $latlng ) {
 
             /**
              * Keep the latlng data for 30 days, as allowed by the terms from Google
              * https://cloud.google.com/maps-platform/terms/maps-service-terms.
+             *
+             * The other map services get the same expiry: a transient without
+             * one is autoloaded on every request and never goes away.
              */
-            if ( $map_service == 'gmaps' ) {
-                $expires = 30 * DAY_IN_SECONDS;
-            } else {
-                $expires = 0;
-            }
-
-            set_transient( $transient_name, $latlng, $expires );
+            set_transient( $transient_name, $latlng, 30 * DAY_IN_SECONDS );
         }
     }
 

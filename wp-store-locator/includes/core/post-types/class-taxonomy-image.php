@@ -158,6 +158,11 @@ class Taxonomy_Image {
      */
     public function save_category_image( $term_id, $tt_id ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Term save nonce is handled by WordPress core.
+        if ( ! isset( $_POST['wpsl_category_marker_fields'] ) ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Term save nonce is handled by WordPress core.
         $enabled = isset( $_POST['wpsl_category_markers_enabled'] );
         $changed = false;
 
@@ -404,8 +409,9 @@ class Taxonomy_Image {
     /**
      * Render the "enable category markers" toggle field.
      *
-     * The bare checkbox is converted to the shared slider UI in JS via
-     * wpslSharedFuncs.createToggleSliders(), matching every other WPSL toggle.
+     * The checkbox becomes the shared toggle slider in JS. The hidden field
+     * marks a request that carried these fields, so save_category_image()
+     * reads an absent checkbox as "off", not as a save that never had them.
      *
      * @since  3.0.0
      * @param  bool   $enabled Whether the toggle should start checked.
@@ -420,7 +426,8 @@ class Taxonomy_Image {
          * wpsl-toggle-pending hides the bare checkbox until
          * setupEnableToggle() builds the slider around it (see style.css).
          */
-        $field = '<input type="checkbox" class="wpsl-toggle-pending" id="wpsl-category-markers-enabled" name="wpsl_category_markers_enabled" value="1"' . $checked . ' />';
+        $field = '<input type="hidden" name="wpsl_category_marker_fields" value="1" />'
+               . '<input type="checkbox" class="wpsl-toggle-pending" id="wpsl-category-markers-enabled" name="wpsl_category_markers_enabled" value="1"' . $checked . ' />';
 
         if ( 'edit' === $context ) {
             return '<tr class="form-field wpsl-category-markers-toggle-row">'

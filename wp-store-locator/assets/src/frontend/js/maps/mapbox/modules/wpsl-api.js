@@ -108,7 +108,7 @@ export const api = {
         reverse: function( args, callback ) {
             const requestArgs = this.createRequestArgs( args, 'reverse' );
             createApiRequest.mapbox.geocode( wp.hooks.applyFilters( 'wpslGeocodeParam', requestArgs ), function( response ) {
-                if ( typeof response.features === 'object' && response.features.length ) {
+                if ( response.features && typeof response.features === 'object' && response.features.length ) {
                     args = responseHandlers.reverseGeocodeFinished( args, response );
 
                     callback( args );
@@ -309,8 +309,6 @@ export const api = {
                 }
                 
                 if ( feature.properties.id === storeId ) {
-                    slData.directions.destinationLayer = feature.properties.icon;
-
                     destinationLatLng = feature.geometry.coordinates.join( ',' );
                 }
             });
@@ -475,10 +473,14 @@ export const api = {
                                     
                                     if ( layer === 'start' ) {
                                         slData.maps[0].setFilter( layer, ['==', ['get', 'id'], 0] );
-                                    } else if ( layer === slData.directions.destinationLayer ) {
-                                        slData.maps[0].setFilter( layer, ['==', ['get', 'id'], slData.directions.destinationId] );
                                     } else {
-                                        slData.maps[0].setFilter( layer, ['==', ['get', 'id'], -999] );
+                                        // The destination only, on the layer of the icon it has
+                                        // now: a click moves it to the active marker's layer.
+                                        slData.maps[0].setFilter( layer, [
+                                            'all',
+                                            ['==', ['get', 'id'], slData.directions.destinationId],
+                                            ['==', ['get', 'icon'], layer]
+                                        ] );
                                     }
                                 }
                             }

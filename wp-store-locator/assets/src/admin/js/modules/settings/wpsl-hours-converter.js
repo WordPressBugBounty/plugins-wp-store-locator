@@ -86,6 +86,7 @@ export const hoursConverter = {
      */
     openDialog: function() {
         const $dialog = jQuery( '#wpsl-hours-converter' );
+
         $dialog.dialog({
             resizable: false,
             height: 'auto',
@@ -97,7 +98,7 @@ export const hoursConverter = {
             dialogClass: 'wpsl-dialog wpsl-hours-converter-dialog',
             classes: { 'ui-dialog': 'wpsl-dialog wpsl-hours-converter-dialog' },
             appendTo: '#wpbody-content',
-            position: { my: 'center', at: 'center', of: '#wpbody-content' },
+            position: jQuery.ui.dialog.prototype.options.position,
             open: function() {
                 jQuery( '.ui-widget-overlay' ).off( 'click.wpslHours' ).on( 'click.wpslHours', function() {
                     $dialog.dialog( 'close' );
@@ -146,6 +147,10 @@ export const hoursConverter = {
             }
 
             hoursConverter.renderList( response.data );
+
+            // The dialog was centered while it only held the loading text.
+            // Center it again, now that the list made it taller.
+            jQuery( '#wpsl-hours-converter' ).dialog( 'option', 'position', jQuery.ui.dialog.prototype.options.position );
         }).fail( function() {
             hoursConverter.showError();
         });

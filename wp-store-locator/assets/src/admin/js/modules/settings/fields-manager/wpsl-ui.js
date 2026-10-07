@@ -17,6 +17,28 @@ export const fieldsUI = {
     },
 
     /**
+     * Build the element that replaces the default value field when the
+     * field type switches between a text input and a textarea.
+     *
+     * @since   3.1.0
+     * @param   {jQuery} $current The input or textarea that is replaced.
+     * @param   {string} tag      The new element, '<textarea></textarea>' or '<input type="text">'.
+     * @returns {jQuery} The new element.
+     */
+    swapDefaultInput: function( $current, tag ) {
+        const $new = jQuery( tag ).attr( {
+            name: $current.attr( 'name' ),
+            id:   $current.attr( 'id' )
+        } );
+
+        if ( $current.attr( 'placeholder' ) ) {
+            $new.attr( 'placeholder', $current.attr( 'placeholder' ) );
+        }
+
+        return $new.val( $current.val() );
+    },
+
+    /**
      * Make a group's fields sortable only when it holds multiple fields.
      *
      * @since   3.0.0

@@ -45,8 +45,12 @@ export const bootloader = {
              *
              * Keep this in sync with the copies in wpsl_gmaps_bootstrap()
              * ( includes/core/functions/functions-maps.php ) and wpsl-gdpr.js.
+             *
+             * The parameters are serialized with JSON.stringify(), never
+             * concatenated, so the key always stays a string literal in the
+             * generated source whatever the key field contains.
              */
-            script.text = '(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?(window.wpslGmapsConflict=1,console.warn(p+" only loads once. Ignoring:",g)):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({ key: "' + apiKeys['gmaps_browser_key'] + '", v: "quarterly" });';
+            script.text = '(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?(window.wpslGmapsConflict=1,console.warn(p+" only loads once. Ignoring:",g)):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})(' + JSON.stringify( { key: apiKeys['gmaps_browser_key'] || '', v: 'quarterly' } ) + ');';
             
             document.body.appendChild( script );
 

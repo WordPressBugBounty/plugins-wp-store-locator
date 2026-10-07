@@ -73,6 +73,36 @@ class Location_Utils {
     }
 
     /**
+     * Check if any location is featured.
+     *
+     * Drafts, pending and scheduled locations count as well, so the featured
+     * background can be set before a featured location is published.
+     *
+     * @since  3.1.0
+     * @return bool
+     */
+    public function featured_exists() {
+        $featured = get_posts( [
+            'post_type'              => 'wpsl_stores',
+            'post_status'            => [ 'publish', 'future', 'draft', 'pending', 'private' ],
+            'fields'                 => 'ids',
+            'posts_per_page'         => 1,
+            'no_found_rows'          => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+            'meta_query'             => [
+                [
+                    'key'     => 'wpsl_featured',
+                    'value'   => '1',
+                    'compare' => '='
+                ]
+            ]
+        ] );
+
+        return ! empty( $featured );
+    }
+
+    /**
      * Collect data for the online only stores.
      *
      * @since  3.0.0

@@ -415,6 +415,15 @@ class Manager {
                     $common_props['basic'],
                     $merge_props( ['with_link'] )
                 ),
+                // The search results of featured locations, see Data::sort_featured_first().
+                'featured' => array_merge(
+                    $common_props['basic'],
+                    $merge_props( ['with_link'] ),
+                    [
+                        // Only shown while "Use icons?" is on, like the Icons section.
+                        'icon' => $customize_texts['icon'],
+                    ]
+                ),
                 'icons' => [
                     'color' => $customize_texts['icon'],
                 ],
@@ -724,6 +733,27 @@ class Manager {
         $html .= '                                <span class="wpsl-country">' . $locations_details[$map_service]['country'] . '</span>';
         $html .= '                            </span>';
         $html .= '                        </p>';
+
+        /*
+         * Always in the listing preview, directly below the address: the
+         * "Show categories?" toggle on the Search Results tab shows and
+         * hides it, see bindCategoryOptions().
+         */
+        if ( $template_type === 'listing' ) {
+            $html .= '                        <div class="wpsl-categories">';
+
+            // The same example categories the category filter in the preview offers.
+            foreach ( wpsl_example_categories() as $example_category ) {
+                $color = sanitize_hex_color( $example_category->color );
+                $style = $color ? ' style="--wpsl-cat-color:' . esc_attr( $color ) . '"' : '';
+                $dot   = $color ? '<span class="wpsl-category-dot" aria-hidden="true"></span>' : '';
+
+                $html .= '<span class="wpsl-category"' . $style . '>' . $dot . esc_html( $example_category->name ) . '</span>';
+            }
+
+            $html .= '</div>';
+        }
+
         $html .= '                        <p class="wpsl-contact-details">';
         
         // Phone span with icon classes if enabled

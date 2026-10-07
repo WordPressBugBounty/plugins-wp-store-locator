@@ -111,7 +111,8 @@ class Sections {
 
         $links = '';
 
-        if ( $include_details ) {
+        // An emptied "More details" label leaves the link out.
+        if ( $include_details && ! $this->i18n->is_emptied_label( 'more_details_label' ) ) {
             // Use external URL if available, otherwise fall back to permalink
             if ( $this->settings['local_pages']['permalinks'] ) {
                 $links .= "\t\t" . '<a class="' . esc_attr( $details_class ) . '" target="_blank" rel="noopener" href="<% if ( url ) { %><%= url %><% } else { %><%= permalink %><% } %>">' . "{{wpsl_label( 'more_details_label' )}}" . '</a>' . "\r\n";
@@ -505,13 +506,14 @@ class Sections {
      * @return string Complete address paragraph template
      */
     private function get_address_paragraph_template( $context = 'listing' ) {
-        $base_indent = ( $context = 'listing' ) ? 2 : 1;
+        $base_indent = ( $context === 'listing' ) ? 2 : 1;
 
         $indent = str_repeat( "\t", $base_indent );
         $template = '';
 
-        // Thumbnail placeholder only for listing template
-        $thumb = ( $context === 'listing' ) ? $this->thumb_placeholder() : '';
+        // The listing always shows the thumbnail, the info window only when the setting allows it.
+        $show_thumb = ( $context === 'listing' ) || ! empty( $this->settings['ux']['popup_thumb'] );
+        $thumb      = $show_thumb ? $this->thumb_placeholder() : '';
 
         // Add icon classes to address paragraph if icons are enabled
         if ( $this->icons_enabled ) {
@@ -555,6 +557,11 @@ class Sections {
         $listing_template .= "\t" . '<div class="wpsl-store-location">' . "\r\n";
         $listing_template .= $this->get_address_paragraph_template( 'listing' );
 
+        // Maybe include the category names, directly below the address.
+        if ( ! empty( $this->settings['appearance']['categories']['enabled'] ) ) {
+            $listing_template .= $this->categories();
+        }
+
         // Maybe include the contact details.
         if ( in_array( 'search_results', $this->settings['ux']['contact_details'] ) ) {
             $listing_template .= $this->contact_details();
@@ -562,7 +569,7 @@ class Sections {
 
         // Maybe include the hours data.
         if ( in_array( 'search_results', $this->settings['ux']['hours'] ) ) {
-            $listing_template .= "\t\t" . '<% if ( typeof hours !== "undefined" && hours ) { %>' . "\r\n";
+            $listing_template .= "\t\t" . '<% if ( obj.hours ) { %>' . "\r\n";
 
             // Add icon classes to hours if icons are enabled
             if ( $this->icons_enabled ) {
@@ -593,7 +600,7 @@ class Sections {
 
         $listing_template .= "\t" . '</div>' . "\r\n";
 
-        $cta_enabled = isset( $this->settings['appearance']['cta']['enabled'] ) ? $this->settings['appearance']['cta']['enabled'] : false;
+        $cta_enabled =isset( $this->settings['appearance']['cta']['enabled'] ) ? $this->settings['appearance']['cta']['enabled'] : false;
         $cta_details_enabled = isset( $this->settings['appearance']['cta']['details'] ) ? $this->settings['appearance']['cta']['details'] : false;
 
         // Render the separate CTA section when the action links are styled as buttons
@@ -754,7 +761,7 @@ class Sections {
         $number_results_template = '';
 
         if ( $this->settings['search']['number_results'] ) {
-            $number_results_template = '<div class="wpsl-number-results"><strong><%= number_results %></strong></div>';
+            $number_results_template = '<div class="wpsl-number-results"><strong><%- number_results %></strong></div>';
         }
 
         return apply_filters( 'wpsl_number_results_template', $number_results_template );
@@ -798,7 +805,7 @@ class Sections {
 
         if ( $include_url ) {
             $contact_template .= "\t\t\t\t" . '<% if ( typeof url !== "undefined" && url ) { %>' . "\r\n";
-            $contact_template .= "\t\t\t\t" . '<span><strong>' . "{{wpsl_label( 'url_label' )}}" . '</strong>: <a' . $this->new_window() . ' href="<%= url %>"><%= url %></a></span>' . "\r\n";
+            $contact_template .= "\t\t\t\t" . '<span>' . $this->label_prefix( 'url_label' ) . '<a' . $this->new_window() . ' href="<%= url %>"><%= url %></a></span>' . "\r\n";
             $contact_template .= "\t\t\t\t" . '<% } %>' . "\r\n";
         }
 
@@ -809,16 +816,16 @@ class Sections {
             $phone_icon = isset( $this->settings['appearance']['icons']['phone'] ) ? $this->settings['appearance']['icons']['phone'] : 'phone';
             $contact_template .= "\t\t\t\t" . '<span class="wpsl-icon-' . esc_attr( $phone_icon ) . '"><%= formatPhoneNumber( phone ) %></span>' . "\r\n";
         } else {
-            $contact_template .= "\t\t\t\t" . '<span><strong>' . "{{wpsl_label( 'phone_label' )}}" . '</strong>: <%= formatPhoneNumber( phone ) %></span>' . "\r\n";
+            $contact_template .= "\t\t\t\t" . '<span>' . $this->label_prefix( 'phone_label' ) . '<%= formatPhoneNumber( phone ) %></span>' . "\r\n";
         }
 
         $contact_template .= "\t\t\t\t" . '<% } %>' . "\r\n";
         $contact_template .= "\t\t\t\t" . '<% if ( typeof fax !== "undefined" && fax ) { %>' . "\r\n";
 
         if ( $this->icons_enabled ) {
-            $contact_template .= "\t\t\t\t" . '<span class="wpsl-icon-fax"><%= formatPhoneNumber( fax ) %></span>' . "\r\n";
+            $contact_template .= "\t\t\t\t" . '<span class="wpsl-icon-fax"><%= fax %></span>' . "\r\n";
         } else {
-            $contact_template .= "\t\t\t\t" . '<span><strong>' . "{{wpsl_label( 'fax_label' )}}" . '</strong>: <%= formatPhoneNumber( fax ) %></span>' . "\r\n";
+            $contact_template .= "\t\t\t\t" . '<span>' . $this->label_prefix( 'fax_label' ) . '<%= fax %></span>' . "\r\n";
         }
 
         $contact_template .= "\t\t\t\t" . '<% } %>' . "\r\n";
@@ -830,7 +837,7 @@ class Sections {
             $email_icon = isset( $this->settings['appearance']['icons']['email'] ) ? $this->settings['appearance']['icons']['email'] : 'email';
             $contact_template .= "\t\t\t\t" . '<span class="wpsl-icon-' . esc_attr( $email_icon ) . '"><%= formatEmail( email ) %></span>' . "\r\n";
         } else {
-            $contact_template .= "\t\t\t\t" . '<span><strong>' . "{{wpsl_label( 'email_label' )}}" . '</strong>: <%= formatEmail( email ) %></span>' . "\r\n";
+            $contact_template .= "\t\t\t\t" . '<span>' . $this->label_prefix( 'email_label' ) . '<%= formatEmail( email ) %></span>' . "\r\n";
         }
 
         $contact_template .= "\t\t\t\t" . '<% } %>' . "\r\n";
@@ -840,12 +847,51 @@ class Sections {
     }
 
     /**
+     * The bold label in front of a contact detail or the opening hours.
+     *
+     * Left out with what follows it when the label was emptied on the
+     * settings page, so no stray ": " is left in front of the value.
+     *
+     * @since  3.1.0
+     * @param  string $name   The label name, e.g. phone_label
+     * @param  string $suffix What follows the label
+     * @return string
+     */
+    private function label_prefix( $name, $suffix = ': ' ) {
+        if ( $this->i18n->is_emptied_label( $name ) ) {
+            return '';
+        }
+
+        return '<strong>' . "{{wpsl_label( '" . $name . "' )}}" . '</strong>' . $suffix;
+    }
+
+    /**
+     * Categories template
+     *
+     * @since  3.1.0
+     * @return string
+     */
+    public function categories() {
+        $categories_template = "\t\t" . '<% if ( typeof categories !== "undefined" && categories ) { %>' . "\r\n";
+        $categories_template .= "\t\t" . '<%= categories %>' . "\r\n";
+        $categories_template .= "\t\t" . '<% } %>' . "\r\n";
+
+        return $categories_template;
+    }
+
+    /**
      * More info template
      *
      * @since  3.0.0
      * @return string
      */
     public function more_info_template() {
+
+        // An emptied "More info" label leaves out the link, and with it the details it opens.
+        if ( $this->i18n->is_emptied_label( 'more_label' ) ) {
+            return apply_filters( 'wpsl_more_info_template', '' );
+        }
+
         $more_info_template = '<% if ( hasMoreInfoData ) { %>' . "\r\n";
         $more_info_template .= "<p class='wpsl-more-info'><a class=\"wpsl-store-details wpsl-store-listing\" aria-expanded=\"false\" href=\"#wpsl-id-<%= id %>\">" . "{{wpsl_label( 'more_label' )}}" . '</a></p>' . "\r\n";
         $more_info_template .= "\t\t" . '<div id="wpsl-id-<%= id %>" class="wpsl-more-info-listings">' . "\r\n";
@@ -855,12 +901,12 @@ class Sections {
         }
 
         if ( in_array( 'more_info', $this->settings['ux']['hours'] ) ) {
-            $more_info_template .= "\t\t\t" . '<% if ( typeof hours !== "undefined" && hours ) { %>' . "\r\n";
+            $more_info_template .= "\t\t\t" . '<% if ( obj.hours ) { %>' . "\r\n";
 
             if ( $this->icons_enabled ) {
                 $more_info_template .= "\t\t\t" . '<div class="wpsl-store-hours wpsl-icon-hours"><%= hours %></div>' . "\r\n";
             } else {
-                $more_info_template .= "\t\t\t" . '<div class="wpsl-store-hours"><strong>' . "{{wpsl_label( 'hours_label' )}}" . '</strong><%= hours %></div>' . "\r\n";
+                $more_info_template .= "\t\t\t" . '<div class="wpsl-store-hours">' . $this->label_prefix( 'hours_label', '' ) . '<%= hours %></div>' . "\r\n";
             }
 
             $more_info_template .= "\t\t\t" . '<% } %>' . "\r\n";

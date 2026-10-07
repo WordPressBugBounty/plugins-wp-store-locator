@@ -99,12 +99,15 @@ class Manager {
                 'feedbackNonce'         => wp_create_nonce( \WPSL\Admin\Home\Home::FEEDBACK_NONCE ),
                 'validationStatusNonce' => wp_create_nonce( 'wpsl_update_validation_status' ),
                 'dismissNonce'          => wp_create_nonce( 'wpsl_dismiss_alert' ),
+                // The page whose headers are checked for a blocked geolocation, only while auto-locate is on.
+                'policyUrl'             => \WPSL\Admin\Core\Geolocation_Policy::is_needed() ? \WPSL\Admin\Core\Geolocation_Policy::get_check_url() : '',
                 'actions'               => [
                     'save'       => \WPSL\Admin\Home\Home::SAVE_SERVICE_ACTION,
                     'status'     => \WPSL\Admin\Home\Home::STATUS_ACTION,
                     'feedback'   => \WPSL\Admin\Home\Home::FEEDBACK_ACTION,
                     'createPage' => \WPSL\Admin\Home\Home::CREATE_PAGE_AJAX,
                     'markPlaced' => \WPSL\Admin\Home\Home::MARK_PLACED_AJAX,
+                    'policy'     => \WPSL\Admin\Home\Home::POLICY_ACTION,
                 ],
                 'i18n'                  => [
                     'save'          => esc_html__( 'Save', 'wp-store-locator' ),
@@ -192,6 +195,11 @@ class Manager {
                 wp_enqueue_script( 'wpsl-marker-studio-map', WPSL_URL . $studio_base . 'wpsl-marker-studio-map' . $js_ext, [ 'jquery', 'wpsl-marker-studio-svg' ], WPSL_VERSION_NUM, true );
 
                 wp_localize_script( 'wpsl-marker-studio', 'wpslMarkerStudio', $this->get_marker_studio_data() );
+            }
+
+            // The category screens have a color field, see Taxonomy_Color.
+            if ( $screen_id == 'edit-wpsl_store_category' ) {
+                $this->enqueue_color_picker( $css_base, $css_ext, $js_base, $js_ext );
             }
 
             if ( $screen_id == 'wpsl_stores_page_wpsl_appearance' ) {
@@ -300,6 +308,7 @@ class Manager {
             wp_enqueue_script( 'wpsl-retina', WPSL_URL . 'assets/src/admin/js/retina.min.js', [ 'jquery' ], WPSL_VERSION_NUM, true );           
             
             wp_localize_script( 'wpsl-admin', 'wpslL10n', $this->resources->get_l10n() );
+            $this->add_l10n_labels();
             wp_localize_script( 'wpsl-admin', 'wpslApiErrors', wpsl_api_error_messages() );
             wp_localize_script( 'wpsl-admin', 'wpslSettings', $this->resources->get_settings() );
             wp_localize_script( 'wpsl-admin', 'wpslSvgIcons', $this->resources->get_svg_icons() );
@@ -370,6 +379,25 @@ class Manager {
                 }
             }
         }
+    }
+
+    /**
+     * Add the texts that come from the label settings to wpslL10n.
+     *
+     * Printed as JSON after the wp_localize_script() data, so the entities in
+     * a label aren't decoded into markup, see Resources::get_l10n_labels().
+     *
+     * @since  3.1.0
+     * @return void
+     */
+    private function add_l10n_labels() {
+        $json = wp_json_encode( $this->resources->get_l10n_labels(), JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
+
+        if ( false === $json ) {
+            return;
+        }
+
+        wp_add_inline_script( 'wpsl-admin', 'Object.assign( wpslL10n, ' . $json . ' );', 'before' );
     }
 
     /**

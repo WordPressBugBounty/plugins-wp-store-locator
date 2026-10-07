@@ -515,13 +515,18 @@ window.wpslSharedFuncs = window.wpslSharedFuncs || {};
             const marker    = $item.data( 'marker' );
 
             const name = $item.find( 'span:not(.wpsl-lm-art)' ).contents().first().text();
-            const src  = $item.find( 'img' ).attr( 'src' );
+            const $img = $item.find( 'img' );
 
             $dropdown.find( '.wpsl-lm-item' ).removeClass( 'selected' );
             $item.addClass( 'selected' );
 
             $dropdown.find( 'input[type="hidden"]' ).val( marker );
-            $dropdown.find( '.wpsl-lm-toggle img' ).attr( 'src', src );
+            // A custom marker's row carries an inline max-height
+            // ( wpsl_marker_preview_style() ); copy style alongside src, or the
+            // toggle keeps the cap of whatever marker it showed before.
+            $dropdown.find( '.wpsl-lm-toggle img' )
+                .attr( 'src', $img.attr( 'src' ) )
+                .attr( 'style', $img.attr( 'style' ) || '' );
             $dropdown.find( '.wpsl-lm-name' ).text( name );
 
             if ( typeof opts.onSelect === 'function' ) {

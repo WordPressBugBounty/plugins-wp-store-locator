@@ -1,4 +1,8 @@
 <wpml-config>
+    <custom-term-fields>
+        <!-- The category color, the same for every translation of a category. -->
+        <custom-term-field action="copy">wpsl_category_color</custom-term-field>
+    </custom-term-fields>
     <admin-texts>
         <!-- Labels from Settings > Labels, stored in the wpsl_labels option. -->
         <key name="wpsl_labels">
@@ -9,6 +13,7 @@
             <key name="category_label"/>
             <key name="categories_label"/>
             <key name="no_results_label"/>
+            <key name="adjust_search_label"/>
             <key name="search_btn_label"/>
             <key name="preloader_label"/>
             <key name="category_default_label"/>
@@ -40,6 +45,7 @@
             <key name="geolocation_accept_label"/>
             <key name="geolocation_decline_label"/>
             <key name="geolocation_locating_label"/>
+            <key name="approximate_location_label"/>
         </key>
         <!-- Consent text shown by the built-in GDPR overlay, stored in the wpsl_gdpr option. -->
         <key name="wpsl_gdpr">

@@ -16,6 +16,32 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <li>
                             <input type="radio" id="wpsl-not-working" name="survey-reason" value="not_working">
                             <label for="wpsl-not-working"><?php esc_html_e( 'I couldn\'t get the plugin to work' , 'wp-store-locator' ); ?></label>
+                            <div class="wpsl-survey-not-working">
+                                <select id="wpsl-survey-not-working-reason" aria-label="<?php esc_attr_e( 'What went wrong?', 'wp-store-locator' ); ?>">
+                                    <option value=""><?php esc_html_e( 'What went wrong?', 'wp-store-locator' ); ?></option>
+                                    <?php foreach ( \WPSL\Admin\Utils\Exit_Survey::get_not_working_reasons() as $wpsl_reason_slug => $wpsl_reason_label ) : ?>
+                                        <option value="<?php echo esc_attr( $wpsl_reason_slug ); ?>"><?php echo esc_html( $wpsl_reason_label ); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <label for="wpsl-survey-not-working-feedback"><?php esc_html_e( 'What happened?', 'wp-store-locator' ); ?></label>
+                                <textarea id="wpsl-survey-not-working-feedback" rows="3" maxlength="1000"></textarea>
+                                <label class="wpsl-survey-debug" for="wpsl-survey-debug">
+                                    <input type="checkbox" id="wpsl-survey-debug" value="1">
+                                    <?php esc_html_e( 'Include technical details to help us debug', 'wp-store-locator' ); ?>
+                                </label>
+                                <details class="wpsl-survey-debug-details">
+                                    <summary><?php esc_html_e( 'What is sent?', 'wp-store-locator' ); ?></summary>
+                                    <ul>
+                                        <li><?php esc_html_e( 'The WordPress, PHP, MySQL and WP Store Locator versions, and server settings such as the memory limit', 'wp-store-locator' ); ?></li>
+                                        <li><?php esc_html_e( 'Your WP Store Locator settings, such as the map provider, search radius and template', 'wp-store-locator' ); ?></li>
+                                        <li><?php esc_html_e( 'Whether your API keys are saved and valid. The keys themselves are never sent', 'wp-store-locator' ); ?></li>
+                                        <li><?php esc_html_e( 'The active theme and plugins, with versions', 'wp-store-locator' ); ?></li>
+                                        <li><?php esc_html_e( 'The WP Store Locator alerts that are showing, such as a conflicting plugin', 'wp-store-locator' ); ?></li>
+                                        <li><?php esc_html_e( 'The number of locations and categories', 'wp-store-locator' ); ?></li>
+                                    </ul>
+                                    <p><strong><?php esc_html_e( 'Your site address, your stores and any personal data are not included.', 'wp-store-locator' ); ?></strong></p>
+                                </details>
+                            </div>
                             <p class="wpsl-survey-support-links">
                                 <a class="button-primary" href="https://wpstorelocator.co/support" target="_blank"><?php esc_html_e( 'Open Support Ticket', 'wp-store-locator' ); ?></a>
                                 <a class="button-primary" href="https://wpstorelocator.co/documentation" target="_blank"><?php esc_html_e( 'Documentation', 'wp-store-locator' ); ?></a>

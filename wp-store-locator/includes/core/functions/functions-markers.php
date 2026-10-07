@@ -566,6 +566,9 @@ function wpsl_category_marker_src( $term_id, $type = 'store' ) {
  * @return string A marker URL or SVG data URI, or an empty string if it no longer resolves.
  */
 function wpsl_marker_src( $value ) {
+    // Only allow known marker files or valid custom markers.
+    $value = wpsl_sanitize_marker_value( $value );
+
     if ( ! $value ) {
         return '';
     }
@@ -580,12 +583,12 @@ function wpsl_marker_src( $value ) {
     $sources = wpsl_marker_sources();
 
     if ( isset( $files[ $value ] ) ) {
-        return $sources[ $files[ $value ] ] . $value;
+        return esc_url_raw( $sources[ $files[ $value ] ] . $value );
     }
 
     // On disk nowhere. The bundled directory is the one that always exists, so
     // point there rather than at a folder this file was never in.
-    return end( $sources ) . $value;
+    return esc_url_raw( end( $sources ) . $value );
 }
 
 /**

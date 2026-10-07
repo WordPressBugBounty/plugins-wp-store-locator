@@ -292,14 +292,17 @@ class Admin_Service_Provider implements Service_Provider {
          * The status report is also needed during the Home page feedback
          * popup's submission, which attaches it to bug reports ( mirrors
          * the Service_Loader's tools context and its wpsl_home_feedback
-         * AJAX map entry ).
+         * AJAX map entry ), and when a deactivation survey opted in to
+         * sending the technical details.
          */
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- routing only, the AJAX handlers verify their nonces
         $wpsl_page        = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
         $wpsl_ajax_action = ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_POST['action'] ) ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
         $wpsl_report_ajax = ( 'wpsl_home_feedback' === $wpsl_ajax_action );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- routing only, Exit_Survey::deactivate() verifies the nonce
+        $wpsl_survey      = ( isset( $GLOBALS['pagenow'] ) && 'plugins.php' === $GLOBALS['pagenow'] && ! empty( $_REQUEST['wpsl_debug'] ) );
 
-        if ( 'wpsl_tools' === $wpsl_page || $wpsl_report_ajax ) {
+        if ( 'wpsl_tools' === $wpsl_page || $wpsl_report_ajax || $wpsl_survey ) {
             $container->register_shared( 'status_report', function( $container ) {
                 return new \WPSL\Admin\Tools\Status_Report(
                     $container->get( 'wpsl_settings' ),

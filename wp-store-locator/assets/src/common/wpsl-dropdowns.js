@@ -417,7 +417,10 @@ export const createDropdowns = function( helpers, config ) {
                         active = '';
                     }
 
-                    $this.$dropdown.append( '<li tabindex="0" role="option" data-value="' + sharedHelpers.escapeHtml( jQuery( this ).val() ) + '" ' + active + '>' + sharedHelpers.escapeHtml( optionText ) + '</li>' );
+                    // Only the category options carry a color, see Category_Dropdown_Walker.
+                    const dot = sharedHelpers.categoryDot( jQuery( this ).attr( 'data-color' ) );
+
+                    $this.$dropdown.append( '<li tabindex="0" role="option" data-value="' + sharedHelpers.escapeHtml( jQuery( this ).val() ) + '" ' + active + '>' + dot + sharedHelpers.escapeHtml( optionText ) + '</li>' );
                 });
 
                 /*
@@ -441,7 +444,8 @@ export const createDropdowns = function( helpers, config ) {
                         'tabindex':          '0'
                     } )
                     .addClass( 'wpsl-selected-item' )
-                    .text( $selected.text() );
+                    .text( $selected.text() )
+                    .prepend( sharedHelpers.categoryDot( $selected.attr( 'data-color' ) ) );
 
                 $this.$dropdownElem.before( $button );
                 $this.$dropdownItem = $this.$dropdownElem.find( 'li' );
@@ -496,7 +500,7 @@ export const createDropdowns = function( helpers, config ) {
                     $btn = jQuery( this ).closest( '.wpsl-dropdown' ).find( 'button' );
                     accessibility.aria.toggleExpanded( $btn );
 
-                    $this.$dropdownWrap.find( jQuery( '.wpsl-selected-item' ) ).text( jQuery( this ).text() ).attr( 'data-value', jQuery( this ).attr( 'data-value' ) );
+                    sharedHelpers.showDropdownSelection( $this.$dropdownWrap.find( '.wpsl-selected-item' ), jQuery( this ) );
 
                     $this.$dropdownItem.removeClass( 'wpsl-selected-dropdown' );
                     jQuery( this ).addClass( 'wpsl-selected-dropdown' );
@@ -580,7 +584,7 @@ export const createDropdowns = function( helpers, config ) {
                     const $btn = jQuery( this ).closest( '.wpsl-dropdown' ).find( 'button' );
                     accessibility.aria.toggleExpanded( $btn );
 
-                    $dropdownWrap.find( '.wpsl-selected-item' ).text( jQuery( this ).text() ).attr( 'data-value', jQuery( this ).attr( 'data-value' ) );
+                    sharedHelpers.showDropdownSelection( $dropdownWrap.find( '.wpsl-selected-item' ), jQuery( this ) );
 
                     $dropdownItem.removeClass( 'wpsl-selected-dropdown' );
                     jQuery( this ).addClass( 'wpsl-selected-dropdown' );
@@ -663,7 +667,10 @@ const fitDropdownWidth = function( $dropdownWrap, $button, texts ) {
         box += px( wrapStyle, [ 'paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth' ] );
     }
 
-    return Math.ceil( Math.max( 0, ...widths ) - probeBox + box );
+    // A category dot sits in front of the label: 10px wide plus its 6px margin.
+    const dotSpace = $dropdownWrap.find( 'li .wpsl-category-dot' ).length ? 16 : 0;
+
+    return Math.ceil( Math.max( 0, ...widths ) - probeBox + box + dotSpace );
 };
 
 /**

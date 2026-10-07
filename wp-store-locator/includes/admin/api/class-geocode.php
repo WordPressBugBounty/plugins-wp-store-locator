@@ -302,9 +302,17 @@ class Geocode {
 
                 return $restricted;
             }
+
+            // Carries the warning for a result whose country couldn't be checked.
+            $response = $restricted;
         } else {
             if ( ! isset( $response['message'] ) && method_exists( $this->geocode_request, 'get_status_message' ) ) {
                 $response = $this->geocode_request->get_status_message( $response );
+            }
+
+            // Never return a failure without a message, callers rely on it to show the problem.
+            if ( empty( $response['message'] ) ) {
+                $response['message'] = esc_html__( 'The geocoding API failed to return valid data, please try again later.', 'wp-store-locator' );
             }
 
             if ( ! $this->is_block_editor && $post_id ) {
@@ -469,7 +477,7 @@ class Geocode {
 
         if ( is_wp_error( $api_response ) ) {
             /* translators: 1: map service name, 2: error message */
-            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the %1$s Geocode API: %2$s Please try again later.', 'wp-store-locator' ), $name, $api_response->get_error_message() );
+            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the %1$s Geocode API: %2$s Please try again later.', 'wp-store-locator' ), esc_html( $name ), esc_html( $api_response->get_error_message() ) );
         } else if ( $api_response['response']['code'] !== 200 ) {
             $decoded = json_decode( $api_response['body'], true );
             $code    = $api_response['response']['code'];
@@ -720,6 +728,22 @@ class Geocode {
 
         // Within an allowed country, nothing to do.
         if ( $country_iso && in_array( $country_iso, $allowed, true ) ) {
+            return $response;
+        }
+
+        /*
+         * No country code to check against. Google only returns one "if
+         * available", and a store isn't refused for what the API left out:
+         * it's saved, with a warning to check the country.
+         */
+        if ( '' === $country_iso ) {
+            $countries = wpsl_map_country_names( $this->settings->get( 'api', 'multiple_regions' ) );
+
+            /* translators: %s: the list of countries the results are restricted to. */
+            $notice = sprintf( esc_html__( 'The geocoding results are restricted to %s, but the API returned no country code for this address, so its country could not be checked. Please check that the location is correct.', 'wp-store-locator' ), $countries );
+
+            $response['warning'] = ! empty( $response['warning'] ) ? $response['warning'] . ' ' . $notice : $notice;
+
             return $response;
         }
 

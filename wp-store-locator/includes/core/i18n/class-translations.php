@@ -350,6 +350,10 @@ class Translations {
      * @return string The translation
      */
     public function get_translation( $name, $text ) {
+        if ( $this->is_emptied_label( $name ) ) {
+            return '';
+        }
+
         $wpsl_settings = $this->settings->get_group( 'labels' );
 
         $value = isset( $wpsl_settings[$name] ) ? $wpsl_settings[$name] : '';
@@ -434,11 +438,19 @@ class Translations {
     public function get_js_translation( $name, $text ) {
         $translation = $this->get_translation( $name, $text );
 
-        if ( $translation === $text ) {
+        if ( $translation === $text || '' === $translation ) {
             return $translation;
         }
 
-        return $this->translate_dynamic_string( $translation );
+        /*
+         * The translation comes from the TranslatePress string list, so it
+         * gets the same treatment get_translation() gives the saved label:
+         * plain text, no tags. Without it a translation could put markup in
+         * the labels the JS inserts as HTML.
+         */
+        $translated = wp_strip_all_tags( html_entity_decode( (string) $this->translate_dynamic_string( $translation ), ENT_QUOTES ) );
+
+        return ( '' !== trim( $translated ) ) ? $translated : $translation;
     }
 
     /**
@@ -516,10 +528,10 @@ class Translations {
      * Backs the {{wpsl_label( '...' )}} template tag; the value is substituted
      * straight into the section template HTML, so it's escaped here.
      *
-     * An emptied label stays empty - clearing it is how its text gets left out
-     * of a template, so it must not fall back to the default. A label that was
-     * never edited does get the default, as a gettext string, so language packs
-     * can translate it.
+     * An emptied optional label stays empty, see is_emptied_label(). Any other
+     * emptied label falls back to its default, as everywhere else. A label
+     * that was never edited gets the default as a gettext string, so language
+     * packs can translate it.
      *
      * @since  3.0.0
      * @param  string $name The name of value from the WPSL settings page ( label section )
@@ -529,7 +541,7 @@ class Translations {
         $name   = sanitize_key( $name );
         $labels = $this->settings->get_group( 'labels' );
 
-        if ( empty( $labels[$name] ) || ! is_string( $labels[$name] ) ) {
+        if ( ! isset( $labels[$name] ) || ! is_string( $labels[$name] ) ) {
             return '';
         }
 
@@ -540,16 +552,85 @@ class Translations {
     }
 
     /**
+     * The labels that may be left empty, see is_emptied_label().
+     *
+     * @since  3.1.0
+     * @return array Label names, e.g. phone_label
+     */
+    public function optional_labels() {
+        return [ 'phone_label', 'fax_label', 'email_label', 'url_label', 'hours_label', 'more_label', 'more_details_label' ];
+    }
+
+    /**
+     * Whether a label that may be left out was emptied on the settings page.
+     *
+     * These labels sit in front of a value or on a link that can go, so an
+     * emptied one stays empty everywhere. The other labels need text and
+     * fall back to their default, like the start location label ( the
+     * start popup's only text ).
+     *
+     * @since  3.1.0
+     * @param  string $name The name of value from the WPSL settings page ( label section )
+     * @return bool
+     */
+    public function is_emptied_label( $name ) {
+        if ( ! in_array( $name, $this->optional_labels(), true ) ) {
+            return false;
+        }
+
+        $labels = $this->settings->get_group( 'labels' );
+
+        return isset( $labels[ $name ] ) && is_string( $labels[ $name ] ) && '' === trim( $labels[ $name ] );
+    }
+
+    /**
+     * The 'please adjust your search' label as it is saved on the settings page.
+     *
+     * Unlike get_translation() an emptied label stays empty, so the settings
+     * field keeps showing that the sentence was left out on purpose.
+     *
+     * @since  3.1.0
+     * @return string The saved label, or the default when nothing was saved.
+     */
+    public function get_adjust_search_label() {
+        $labels = $this->settings->get_group( 'labels' );
+
+        if ( isset( $labels['adjust_search_label'] ) && is_string( $labels['adjust_search_label'] ) ) {
+            return wp_strip_all_tags( html_entity_decode( stripslashes( $labels['adjust_search_label'] ), ENT_QUOTES ) );
+        }
+
+        return __( 'Please adjust your search and try again.', 'wp-store-locator' );
+    }
+
+    /**
      * Get the 'please adjust your search' sentence.
      *
      * Kept in one place so the front-end, the settings page and the
      * onboarding all show the exact same text.
      *
      * @since  3.0.0
-     * @return string The translated sentence.
+     * @return string The translated sentence, or an empty string when the label was emptied.
      */
     public function get_adjust_search_text() {
-        return esc_html__( 'Please adjust your search and try again.', 'wp-store-locator' );
+        // Emptied on the settings page: the sentence is left out.
+        if ( '' === trim( $this->get_adjust_search_label() ) ) {
+            return '';
+        }
+
+        return esc_html( $this->get_js_translation( 'adjust_search_label', __( 'Please adjust your search and try again.', 'wp-store-locator' ) ) );
+    }
+
+    /**
+     * Join the first sentence of a message with the 'please adjust your search' sentence.
+     *
+     * @since  3.1.0
+     * @param  string $message The first sentence.
+     * @return string The message, containing an HTML line break when both sentences are shown.
+     */
+    private function add_adjust_search_text( $message ) {
+        $adjust = $this->get_adjust_search_text();
+
+        return ( '' === $adjust ) ? $message : $message . '<br><br>' . $adjust;
     }
 
     /**
@@ -562,10 +643,8 @@ class Translations {
      * @return string The message, containing HTML line breaks.
      */
     public function get_no_results_message() {
-        return sprintf(
-            '%1$s<br><br>%2$s',
-            $this->get_js_translation( 'no_results_label', esc_html__( 'No results found.', 'wp-store-locator' ) ),
-            $this->get_adjust_search_text()
+        return $this->add_adjust_search_text(
+            $this->get_js_translation( 'no_results_label', esc_html__( 'No results found.', 'wp-store-locator' ) )
         );
     }
 
@@ -578,10 +657,8 @@ class Translations {
      * @return string The message, containing HTML line breaks.
      */
     public function get_no_directions_message() {
-        return sprintf(
-            '%1$s<br><br>%2$s',
-            $this->get_js_translation( 'no_directions_label', esc_html__( 'No route found between the origin and destination.', 'wp-store-locator' ) ),
-            $this->get_adjust_search_text()
+        return $this->add_adjust_search_text(
+            $this->get_js_translation( 'no_directions_label', esc_html__( 'No route found between the origin and destination.', 'wp-store-locator' ) )
         );
     }
 

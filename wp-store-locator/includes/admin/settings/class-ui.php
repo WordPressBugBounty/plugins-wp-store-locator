@@ -246,6 +246,26 @@ class UI {
                 'name'     => 'wpsl_appearance[search][filter_layout]',
                 'selected' => $this->settings->get( 'appearance', 'filter_layout' )
             ],
+            'category_shape' => [
+                'values' => [
+                    'circle' => esc_html__( 'Circle', 'wp-store-locator' ),
+                    'square' => esc_html__( 'Square', 'wp-store-locator' ),
+                ],
+                'id'       => 'wpsl-category-shape',
+                'name'     => 'wpsl_appearance[categories][shape]',
+                'selected' => $this->settings->get( 'appearance', 'categories.shape' )
+            ],
+            'category_background' => [
+                'values' => [
+                    'tint'   => esc_html__( 'Tint of the category color', 'wp-store-locator' ),
+                    'custom' => esc_html__( 'Custom', 'wp-store-locator' ),
+                    'none'   => esc_html__( 'None', 'wp-store-locator' ),
+                ],
+                'id'       => 'wpsl-category-background',
+                'class'    => 'wpsl-has-conditional-option',
+                'name'     => 'wpsl_appearance[categories][background]',
+                'selected' => $this->settings->get( 'appearance', 'categories.background' )
+            ],
             'cta_details_target' => [
                 'values' => [
                     'website'      => esc_html__( 'Website', 'wp-store-locator' ),

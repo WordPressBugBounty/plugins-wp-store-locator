@@ -34,21 +34,34 @@ $filters_label    = $i18n->get_translation( 'filters_label', __( 'Filters', 'wp-
 $categories_label = $i18n->get_translation( 'categories_label', __( 'Categories', 'wp-store-locator' ) );
 $filter_layout    = ! empty( $appearance_settings['filter_layout'] ) ? $appearance_settings['filter_layout'] : 'horizontal';
 
-// Example category + radius option markup, reused by every layout below.
+/*
+ * Example category + radius option markup, reused by every layout below.
+ *
+ * The categories are the ones the example location shows in the results. The
+ * second one gets two made-up levels below it, so the nested levels have
+ * something to show their styling on.
+ */
 $categories_mock  = '<div class="wpsl-filter" data-type="category">';
 $categories_mock .= '    <ul>';
-$categories_mock .= '        <li class="wpsl-categories-level-0" aria-selected="false"><label><input class="wpsl-categories-level-0" type="checkbox" value="3">Amsterdam</label></li>';
-$categories_mock .= '        <li class="wpsl-categories-level-0" aria-selected="false"><label><input class="wpsl-categories-level-0" type="checkbox" value="6">Category test</label></li>';
-$categories_mock .= '        <li class="wpsl-categories-level-0 wpsl-has-child" aria-selected="false"><label><input class="wpsl-categories-level-0 wpsl-has-child" type="checkbox" value="4">Rotterdam</label>';
-$categories_mock .= '            <ul>';
-$categories_mock .= '                <li class="wpsl-categories-level-1 wpsl-has-child" aria-selected="false"><label><input class="wpsl-categories-level-1 wpsl-has-child" type="checkbox" value="40">Coolsingle</label>';
-$categories_mock .= '                    <ul>';
-$categories_mock .= '                        <li class="wpsl-categories-level-2" aria-selected="false"><label><input class="wpsl-categories-level-2" type="checkbox" value="108">V&amp;D</label></li>';
-$categories_mock .= '                    </ul>';
-$categories_mock .= '                </li>';
-$categories_mock .= '            </ul>';
-$categories_mock .= '        </li>';
-$categories_mock .= '        <li class="wpsl-categories-level-0" aria-selected="false"><label><input class="wpsl-categories-level-0" type="checkbox" value="2">Utrecht</label></li>';
+
+foreach ( wpsl_example_categories() as $index => $example_category ) {
+    $example_label = wpsl_category_dot_markup( $example_category->color ) . esc_html( $example_category->name );
+
+    if ( 1 === $index ) {
+        $categories_mock .= '        <li class="wpsl-categories-level-0 wpsl-has-child" aria-selected="false"><label><input class="wpsl-categories-level-0 wpsl-has-child" type="checkbox" value="' . esc_attr( $example_category->term_id ) . '">' . $example_label . '</label>';
+        $categories_mock .= '            <ul>';
+        $categories_mock .= '                <li class="wpsl-categories-level-1 wpsl-has-child" aria-selected="false"><label><input class="wpsl-categories-level-1 wpsl-has-child" type="checkbox" value="40">' . esc_html__( 'Regional office', 'wp-store-locator' ) . '</label>';
+        $categories_mock .= '                    <ul>';
+        $categories_mock .= '                        <li class="wpsl-categories-level-2" aria-selected="false"><label><input class="wpsl-categories-level-2" type="checkbox" value="108">' . esc_html__( 'Sales office', 'wp-store-locator' ) . '</label></li>';
+        $categories_mock .= '                    </ul>';
+        $categories_mock .= '                </li>';
+        $categories_mock .= '            </ul>';
+        $categories_mock .= '        </li>';
+    } else {
+        $categories_mock .= '        <li class="wpsl-categories-level-0" aria-selected="false"><label><input class="wpsl-categories-level-0" type="checkbox" value="' . esc_attr( $example_category->term_id ) . '">' . $example_label . '</label></li>';
+    }
+}
+
 $categories_mock .= '    </ul>';
 $categories_mock .= '</div>';
 

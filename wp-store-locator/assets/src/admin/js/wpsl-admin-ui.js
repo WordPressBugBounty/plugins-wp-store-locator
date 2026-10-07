@@ -1,7 +1,7 @@
 /**
  * Small standalone admin behaviour for the Home page: the shortcode copy
- * buttons, the feedback popup, and the "Choose a map service" step of the
- * setup checklist.
+ * buttons, the feedback popup, the "Choose a map service" step of the
+ * setup checklist, and the check for a header that blocks geolocation.
  *
  * @since 3.0.0
  */
@@ -225,6 +225,62 @@
 
         updateAdminBarBadge( alerts.count );
     }
+
+    /*
+     * Check whether the locator page sends a header that blocks geolocation.
+     *
+     * @since 3.1.0
+     */
+    ( function checkGeolocationPolicy() {
+        if ( ! config.policyUrl || ! window.fetch ) {
+            return;
+        }
+
+        window.fetch( config.policyUrl, { credentials: 'same-origin', cache: 'no-store' } )
+            .then( function( response ) {
+                const fields = {
+                    permissions_policy: response.headers.get( 'permissions-policy' ) || '',
+                    feature_policy:     response.headers.get( 'feature-policy' ) || '',
+                    url:                response.url || config.policyUrl
+                };
+
+                // Only the headers are needed, not the page itself.
+                if ( response.body && typeof response.body.cancel === 'function' ) {
+                    response.body.cancel().catch( function() {} );
+                }
+
+                return fields;
+            }, function() {
+                // A redirect to another origin, or no connection at all.
+                return { failed: 1 };
+            } )
+            .then( function( fields ) {
+                return post( config.actions.policy, fields );
+            } )
+            .then( function( response ) {
+                if ( ! response || ! response.success ) {
+                    return;
+                }
+
+                const $box  = $( '#wpsl-home-alerts' );
+                const $list = $box.find( '.wpsl-alerts-list' );
+                const key   = response.data.key;
+
+                if ( response.data.html ) {
+                    const $item = $( '<div>' ).append( $.parseHTML( response.data.html ) ).find( 'li[data-plugin]' );
+
+                    $list.children( 'li' ).filter( function() {
+                        return $( this ).attr( 'data-plugin' ) === key;
+                    } ).remove();
+
+                    $list.prepend( $item ).show();
+                    $box.find( '.wpsl-no-alerts' ).hide();
+                }
+
+                syncAlerts( response.data.alerts );
+            } )
+            .catch( function() {} );
+    }() );
 
     /*
      * The feedback popup.

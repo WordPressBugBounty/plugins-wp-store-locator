@@ -2,6 +2,7 @@ import { config, slData } from './wpsl-shared.js';
 import { helpers } from './wpsl-helpers.js';
 import { search } from './wpsl-search.js';
 import { filters } from './wpsl-filters.js';
+import { sharedHelpers } from '../../../common/wpsl-shared-helpers.js';
 
 /**
  * Geolocation functionality for WPSL frontend
@@ -11,30 +12,148 @@ import { filters } from './wpsl-filters.js';
 
 export const geolocation = {
     timeout: '',
-    locationTimeout: '',
+
+    // The running or last location attempt, see run().
+    attempt: null,
     /**
      * Initialize geolocation based on trigger setting.
-     * Either runs immediately or shows a dialog for user confirmation.
+     * Either runs immediately, shows a dialog for user confirmation, or
+     * uses the approximate location that needs no permission at all.
      *
      * @since   3.0.0
+     * @param   {Function} [showDefault] Shows the locator as it is without auto-locate
      * @returns {void}
      */
-    init: function() {
+    init: function( showDefault ) {
         if ( config.search.autoLocate.trigger === 'pageload' ) {
             this.run();
         } else if ( config.search.autoLocate.trigger === 'user_request' ) {
             this.showDialog();
+        } else if ( config.search.autoLocate.trigger === 'approximate' && config.search.autoLocate.approximate ) {
+            this.runApproximate( showDefault );
         }
     },
 
+    /**
+     * Start the locator near the visitor without the browser asking for
+     * permission, with the approximate location the CDN or host of the site
+     * reports for the request.
+     *
+     * @since   3.1.0
+     * @param   {Function} [showDefault] Shows the locator as it is without auto-locate
+     * @returns {void}
+     */
+    runApproximate: function( showDefault ) {
+        const requestId = search.requestId;
+
+        const useDefault = function() {
+
+            // A visitor who searched in the meantime already has what they asked for.
+            if ( requestId === search.requestId && typeof showDefault === 'function' ) {
+                showDefault();
+            }
+        };
+
+        jQuery.ajax({
+            type: 'GET',
+            data: { action: 'wpsl_visitor_location' },
+            dataType: 'json',
+            url: config.search.ajaxurl,
+
+            // The map is waiting on this, and most sites don't know the location at all.
+            timeout: 2000
+        }).done( function( visitorLocation ) {
+
+            // Known more often than the coordinates, and enough to prefer nearby matches when geocoding.
+            if ( visitorLocation && visitorLocation.country ) {
+                slData.visitorCountry = visitorLocation.country;
+            }
+
+            if ( visitorLocation && typeof visitorLocation.lat === 'number' && typeof visitorLocation.lng === 'number' ) {
+                if ( requestId === search.requestId ) {
+                    geolocation.searchApproximateLocation( visitorLocation );
+                }
+            } else {
+                useDefault();
+            }
+        }).fail( useDefault );
+    },
+
+    /**
+     * Search from the approximate location of the visitor.
+     *
+     * No reverse geocode is made for it. What that would add to the search
+     * ( the country for the border restriction, the text for the search
+     * field ) the location already comes with.
+     *
+     * @since   3.1.0
+     * @param   {object} visitorLocation The country, region, city, postalCode, lat and lng
+     * @returns {void}
+     */
+    searchApproximateLocation: function( visitorLocation ) {
+        const inputValue = ( config.search.autoLocate.format === 'zip' && visitorLocation.postalCode ) || visitorLocation.city;
+
+        const args = {
+            autoLoad: config.search.autoLoad,
+            approximate: visitorLocation,
+            latLng: {
+                lat: visitorLocation.lat,
+                lng: visitorLocation.lng
+            }
+        };
+
+        if ( typeof helpers.map.checkLatLngInstance === 'function' ) {
+            args.latLng = helpers.map.checkLatLngInstance( args.latLng );
+        }
+
+        if ( config.search.restrictions.borders && visitorLocation.country ) {
+            args.countryCode = visitorLocation.country;
+        }
+
+        if ( config.search.directionRedirect ) {
+            slData.directionOrigin = visitorLocation.lat + ',' + visitorLocation.lng;
+        }
+
+        // As in searchStartLocation(): what is left of an abandoned search goes.
+        helpers.input.getSearchField().val( inputValue || '' );
+
+        slData.autoCompleteLatLng = '';
+
+        // Handled as a geolocation search: no cached results, no search statistics.
+        slData.geolocation = {
+            active: true,
+            position: args,
+            newRequest: false
+        };
+
+        search.prepare( args );
+
+        wp.hooks.doAction( 'wpslApproximateLocation', visitorLocation );
+    },
+
+    /**
+     * Where to search from when the exact position of the visitor can't be
+     * used ( declined, timed out, no geolocation ): their approximate location
+     * if the site knows it, otherwise the configured start location.
+     *
+     * @since   3.1.0
+     * @returns {void}
+     */
+    searchFallbackLocation: function() {
+        // Only while the approximate location is switched on ( Visitor_Location::ENABLED ).
+        if ( ! config.search.autoLocate.approximate ) {
+            geolocation.searchStartLocation();
+
+            return;
+        }
+
+        geolocation.runApproximate( geolocation.searchStartLocation );
+    },
 
     /**
      * Fall back to the configured start location when the visitor declines
-     * the location prompt ( or has no geolocation ) and no results are showing.
-     *
-     * The search box and the autocomplete coordinates are cleared with it:
-     * both belong to the search being abandoned, and the next search would
-     * otherwise reuse them.
+     * the location prompt ( or has no geolocation ), their approximate
+     * location is unknown as well, and no results are showing.
      *
      * @since   3.0.0
      * @returns {void}
@@ -71,10 +190,10 @@ export const geolocation = {
         
         const $dialog = jQuery( '<div class="wpsl-geolocation-dialog" role="dialog" aria-modal="true" aria-labelledby="wpsl-geolocation-title">' +
             '<div class="wpsl-geolocation-dialog-content">' +
-                '<p id="wpsl-geolocation-title">' + wpslLabels.geoLocationDialog + '</p>' +
+                '<p id="wpsl-geolocation-title">' + sharedHelpers.escapeHtml( wpslLabels.geoLocationDialog ) + '</p>' +
                 '<div class="wpsl-geolocation-dialog-actions">' +
-                    '<button class="' + acceptClass + '" type="button">' + wpslLabels.geoLocationAccept + '</button>' +
-                    '<button class="' + declineClass + '" type="button">' + wpslLabels.geoLocationDecline + '</button>' +
+                    '<button class="' + acceptClass + '" type="button">' + sharedHelpers.escapeHtml( wpslLabels.geoLocationAccept ) + '</button>' +
+                    '<button class="' + declineClass + '" type="button">' + sharedHelpers.escapeHtml( wpslLabels.geoLocationDecline ) + '</button>' +
                 '</div>' +
             '</div>' +
         '</div>' );
@@ -99,7 +218,7 @@ export const geolocation = {
             
             // Load default map if no results are shown
             if ( ! jQuery( '#wpsl-stores li' ).length || jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-no-results' ) ) {
-                geolocation.searchStartLocation();
+                geolocation.searchFallbackLocation();
             }
         });
 
@@ -119,50 +238,64 @@ export const geolocation = {
      * @since   3.0.0
      * @returns {void}
      */
-    run: function() {
-        let args = {},
-            inProgress = '';
-
+    run: function( userActivated ) {
         this.timeout = config.search.geoLocationTimeout;
 
         if ( navigator.geolocation ) {
 
+            /*
+             * Every attempt keeps its own state. A click on the direction icon
+             * after the pageload attempt timed out used to count as already
+             * handled: a declined prompt showed no message, the icon kept
+             * flashing and the search button stayed disabled.
+             */
+            this.endAttempt();
+
+            const attempt = this.attempt = {
+                userActivated: !! userActivated,
+                finished: false,
+                located: false,
+
+                // Make the direction icon flash every 600ms to
+                // indicate the geolocation attempt is in progress.
+                inProgress: setInterval( function() {
+                    jQuery( '.wpsl-icon-direction' ).toggleClass( 'wpsl-active-icon' );
+                }, 600 ),
+                timer: ''
+            };
+
             // Show a small overlay so the user gets feedback while we locate them.
             this.showLocatingOverlay();
 
-            // Make the direction icon flash every 600ms to
-            // indicate the geolocation attempt is in progress.
-            inProgress = setInterval( function() {
-                jQuery( '.wpsl-icon-direction' ).toggleClass( 'wpsl-active-icon' );
-            }, 600 );
-
             // Load the default map if the user doesn't approve in time. The
-            // wpsl_geolocation_timeout filter changes the timeout value.
-            this.locationTimeout = setTimeout( function() {
-                // Only run fallback if geolocation hasn't succeeded yet
-                if ( ! jQuery( '.wpsl-search' ).hasClass( 'wpsl-geolocation-run' ) ) {
+            // wpsl_geolocation_timeout filter changes the timeout value. A
+            // location that arrives later is still shown.
+            attempt.timer = setTimeout( function() {
+                if ( attempt.finished ) {
+                    return;
+                }
 
-                    // Mark as handled to prevent error callback from also running
-                    jQuery( '.wpsl-search' ).addClass( 'wpsl-geolocation-run' );
+                geolocation.attemptFinished( attempt );
 
-                    geolocation.attemptFinished( inProgress );
+                if ( attempt.userActivated ) {
+                    jQuery( '#wpsl-search-btn' ).attr( 'disabled', false );
+                }
 
-                    // Fall back to the start location only when no results
-                    // are showing, like the decline and no-API branches.
-                    if ( ! jQuery( '#wpsl-stores li' ).length || jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-no-results' ) ) {
-                        geolocation.searchStartLocation();
-                    }
+                // Fall back to the start location only when no results
+                // are showing, like the decline and no-API branches.
+                if ( ! jQuery( '#wpsl-stores li' ).length || jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-no-results' ) ) {
+                    geolocation.searchFallbackLocation();
                 }
             }, this.timeout );
 
-            this.locateUser( inProgress );
+            this.locateUser( attempt );
         } else {
             alert( wpslGeolocationErrors.unavailable );
 
             // Only run a search for the default start point
             // if no results are shown on the map
             if ( ! jQuery( '#wpsl-stores li' ).length || jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-no-results' ) ) {
-                geolocation.searchStartLocation();
+                geolocation.searchFallbackLocation();
             }
         }
     },
@@ -172,16 +305,27 @@ export const geolocation = {
      * by making a call to the Geolocation API.
      *
      * @since   3.0.0
-     * @param   {number} inProgress The setInterval timer
+     * @param   {object} attempt The attempt this request belongs to, see run()
      * @returns {void}
      */
-    locateUser: function( inProgress ) {
+    locateUser: function( attempt ) {
         const args = {};
         const self = this;
 
         navigator.geolocation.getCurrentPosition( function( position ) {
-            self.attemptFinished( inProgress );
-            clearTimeout( self.locationTimeout );
+
+            // A newer attempt took over. The browser answers its request too,
+            // so the position is handled there and not searched twice.
+            if ( attempt !== self.attempt ) {
+                return;
+            }
+
+            // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1283563:
+            // in Firefox the error callback also fires after a successful lookup,
+            // which would run showStores() with the wrong start location.
+            attempt.located = true;
+
+            self.attemptFinished( attempt );
 
             args.position = position;
 
@@ -197,21 +341,24 @@ export const geolocation = {
             slData.provider.markers.removeAll();
             self.handleQuery( args );
 
-            // Workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1283563:
-            // in Firefox the error callback also fires after a successful lookup,
-            // which would run showStores() with the wrong start location.
-            jQuery( '.wpsl-search' ).addClass( 'wpsl-geolocation-run' );
-
             wp.hooks.doAction( 'wpslUserGeolocation', position );
         }, function( error ) {
-            self.hideLocatingOverlay();
+            if ( attempt !== self.attempt || attempt.located ) {
+                return;
+            }
+
+            const timedOut = attempt.finished;
+
+            self.attemptFinished( attempt );
 
             // Only show the geocode errors if the user actually clicked on the
             // direction icon. With the "Attempt to auto-locate the user" option
             // enabled a failed attempt ( blocked in the browser, unavailable )
             // would otherwise greet the visitor with an alert box on pageload.
             // Without that click the default map is shown, no alert.
-            if ( jQuery( '.wpsl-icon-direction' ).hasClass( 'wpsl-user-activated' ) && ! jQuery( '.wpsl-search' ).hasClass( 'wpsl-geolocation-run' ) ) {
+            if ( attempt.userActivated ) {
+                jQuery( '#wpsl-search-btn' ).attr( 'disabled', false );
+
                 switch ( error.code ) {
                     case error.PERMISSION_DENIED:
                         alert( wpslGeolocationErrors.denied );
@@ -227,11 +374,15 @@ export const geolocation = {
                         break;
                 }
 
-                jQuery( '.wpsl-icon-direction' ).removeClass( 'wpsl-active-icon' );
-            } else if ( ! jQuery( '.wpsl-search' ).hasClass( 'wpsl-geolocation-run' ) ) {
-                clearTimeout( geolocation.locationTimeout );
+                // A click before the pageload attempt finished ended that
+                // attempt, and with it the fallback it would have run.
+                if ( ! timedOut && ( ! jQuery( '#wpsl-stores li' ).length || jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-no-results' ) ) ) {
+                    geolocation.searchFallbackLocation();
+                }
+            } else if ( ! timedOut ) {
 
-                geolocation.searchStartLocation();
+                // After a timeout the fallback already ran.
+                geolocation.searchFallbackLocation();
             }
         }, { maximumAge: 60000, timeout: geolocation.timeout, enableHighAccuracy: true });
     },
@@ -240,13 +391,31 @@ export const geolocation = {
      * Clean up after the geolocation attempt finished.
      *
      * @since   2.0.0
-     * @param   {number} inProgress The setInterval timer
+     * @param   {object} attempt The attempt that finished, see run()
      * @returns {void}
      */
-    attemptFinished: function( inProgress ) {
-        clearInterval( inProgress );
+    attemptFinished: function( attempt ) {
+        attempt.finished = true;
+
+        clearInterval( attempt.inProgress );
+        clearTimeout( attempt.timer );
         jQuery( '.wpsl-icon-direction' ).removeClass( 'wpsl-active-icon' );
         this.hideLocatingOverlay();
+    },
+
+    /**
+     * Stop the attempt that is still running, before a new one starts.
+     *
+     * Its request may still be waiting for an answer, the callbacks then
+     * ignore it ( the attempt is no longer the current one ).
+     *
+     * @since   3.1.0
+     * @returns {void}
+     */
+    endAttempt: function() {
+        if ( this.attempt && ! this.attempt.finished ) {
+            this.attemptFinished( this.attempt );
+        }
     },
 
     /**
@@ -264,12 +433,12 @@ export const geolocation = {
             return;
         }
 
-        const text = wpslLabels.geoLocationLocating;
+        const text = sharedHelpers.escapeHtml( wpslLabels.geoLocationLocating );
 
         $map.append(
             '<div class="wpsl-geolocation-overlay" role="status" aria-live="polite">' +
                 '<div class="wpsl-geolocation-overlay-box">' +
-                    '<img alt="' + wpslLabels.preloadLabel + '" width="18" height="18" src="' + config.search.geoLocationPreloader + '" />' +
+                    '<img alt="' + sharedHelpers.escapeHtml( wpslLabels.preloadLabel ) + '" width="18" height="18" src="' + config.search.geoLocationPreloader + '" />' +
                     '<span>' + text + '</span>' +
                 '</div>' +
             '</div>'

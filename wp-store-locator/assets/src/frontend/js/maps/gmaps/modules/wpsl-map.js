@@ -176,11 +176,14 @@ export const map = {
             // marker's map, so a click on map A can't close the popup on map B.
             slData.basicMaps.markers[mapIndex] = markerData;
 
-            // With more than one location and "auto adjust the zoom level" enabled,
-            // fit all markers. Disabled leaves the map at its configured start
-            // location / zoom level.
+            // With "auto adjust the zoom level" enabled, fit all markers. A single
+            // location zooms in on it at the max auto zoom level ( or the zoom
+            // attribute ), the same as on OSM and Mapbox.
             if ( config.map.fitBounds && locationData.length > 1 ) {
                 markers.fitBounds( bounds, slData.maps[mapIndex] );
+            } else if ( config.map.fitBounds && locationData.length === 1 ) {
+                slData.maps[mapIndex].setCenter( locationData[0].latLng );
+                slData.maps[mapIndex].setZoom( Number( config.map.autoZoomLevel ) );
             }
 
             // Collect the active maps for the grey-map-in-a-tab fix.

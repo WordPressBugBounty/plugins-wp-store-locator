@@ -111,7 +111,7 @@ class Geocode_Mapbox extends Geocode {
     public function check_mapbox_response_code( $api_response, $address ) {
         if ( is_wp_error( $api_response ) ) {
             /* translators: %s: error message from the API */
-            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the Mapbox Geocode API: %s. Please try again later.', 'wp-store-locator' ), $api_response->get_error_message() );
+            $response['message'] = sprintf( esc_html__( 'Something went wrong connecting to the Mapbox Geocode API: %s. Please try again later.', 'wp-store-locator' ), esc_html( $api_response->get_error_message() ) );
 
             return $response;
         }

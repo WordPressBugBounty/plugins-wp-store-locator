@@ -129,8 +129,7 @@ class Manager {
             $options = $this->adopt_legacy_local_seo();
         }
 
-        // Use array_replace_recursive for deep merge to handle nested arrays properly
-        $settings = array_replace_recursive( $defaults, $options );
+        $settings = $this->merge_with_defaults( $defaults, $options );
 
         // Automatically disable the radius dropdown and nearest location fallback in previews/templates when Name Search is active
         if ( $group === 'search' && isset( $settings['search_method'] ) && $settings['search_method'] === 'name' ) {
@@ -263,6 +262,37 @@ class Manager {
     }
 
     /**
+     * Deep merge saved settings over the defaults.
+     *
+     * Works like array_replace_recursive(), except that a default holding a
+     * list ( e.g. ux hours => [ 'search_results' ] ) is replaced as a whole.
+     * array_replace_recursive() merges lists by index, so a saved empty list
+     * could never override a non-empty default and unticked options came back.
+     *
+     * @since  3.1.0
+     * @param  array $defaults The default values
+     * @param  array $options  The saved values
+     * @return array           The merged settings
+     */
+    private function merge_with_defaults( $defaults, $options ) {
+        if ( ! is_array( $options ) ) {
+            return $defaults;
+        }
+
+        foreach ( $options as $key => $value ) {
+            $default_value = isset( $defaults[ $key ] ) ? $defaults[ $key ] : null;
+
+            if ( is_array( $value ) && is_array( $default_value ) && $default_value && array_keys( $default_value ) !== range( 0, count( $default_value ) - 1 ) ) {
+                $defaults[ $key ] = $this->merge_with_defaults( $default_value, $value );
+            } else {
+                $defaults[ $key ] = $value;
+            }
+        }
+
+        return $defaults;
+    }
+
+    /**
      * Get a specific setting value
      * 
      * @since  3.0.0
@@ -382,7 +412,11 @@ class Manager {
     private function sanitize_setting( $section, $key, $value ) {
         // Special case handling for specific settings
         if ( $section === 'api' ) {
-            if ( in_array( $key, [ 'active_map_service', 'gmaps_browser_key', 'gmaps_server_key', 'openrouteservice_key', 'mapbox_access_token' ] ) ) {
+            if ( in_array( $key, [ 'gmaps_browser_key', 'gmaps_server_key' ], true ) ) {
+                return wpsl_sanitize_gmaps_key( $value );
+            }
+
+            if ( in_array( $key, [ 'active_map_service', 'openrouteservice_key', 'mapbox_key', 'stadia_key' ], true ) ) {
                 return sanitize_text_field( $value );
             }
         } elseif ( $section === 'map' ) {
@@ -483,6 +517,7 @@ class Manager {
                     ],
                     'autosubmit_autocomplete'         => false,
                     'input_only'                      => false,
+                    'hide_results_list'               => false,
                     'force_postalcode'                => false,
                     'distance_unit'                   => 'km',
                     'max_results'                     => '[25],50,75,100',
@@ -529,6 +564,7 @@ class Manager {
                     'phone_url'                 => false,
                     'marker_streetview'         => false,
                     'marker_zoom_to'            => false,
+                    'popup_thumb'               => true,
                     'keyboard_focus_min_zoom'   => 7,
                     'mouse_focus'               => false,
                     'show_contact_details'      => false,
@@ -555,6 +591,7 @@ class Manager {
                     'start_marker'             => 'red.svg',
                     'store_marker'             => 'blue.svg',
                     'active_marker'            => 'dark-blue.svg',
+                    'hide_start_marker'        => false,
                     'start_marker_on_top'      => false,
                     'labels'                   => 'none',
                     'marker_clusters'          => false,
@@ -694,6 +731,13 @@ class Manager {
                         'details'        => false,
                         'details_target' => 'website',
                     ],
+                    'categories' => [
+                        'shape'         => 'circle',
+                        'enabled'       => false,
+                        'background'    => 'tint',
+                        'custom_color'  => '',
+                        'border_radius' => 20,
+                    ],
                 ];
             case 'local_pages':
                 return [
@@ -711,6 +755,7 @@ class Manager {
                     'preloader_label'          => esc_html__( 'Searching...', 'wp-store-locator' ),
                     'radius_label'             => esc_html__( 'Search radius', 'wp-store-locator' ),
                     'no_results_label'         => esc_html__( 'No results found.', 'wp-store-locator' ),
+                    'adjust_search_label'      => esc_html__( 'Please adjust your search and try again.', 'wp-store-locator' ),
                     'results_label'            => esc_html__( 'Results', 'wp-store-locator' ),
                     'more_label'               => esc_html__( 'More info', 'wp-store-locator' ),
                     'directions_label'         => esc_html__( 'Directions', 'wp-store-locator' ),
@@ -742,6 +787,7 @@ class Manager {
                     'geolocation_accept_label' => esc_html__( 'Share Location', 'wp-store-locator' ),
                     'geolocation_decline_label' => esc_html__( 'No Thanks', 'wp-store-locator' ),
                     'geolocation_locating_label' => esc_html__( 'Determining your location…', 'wp-store-locator' ),
+                    'approximate_location_label' => esc_html__( 'Stores near {location}', 'wp-store-locator' ),
                     'visibility'                => [
                         'search'      => true,
                         'search_name' => true,
@@ -771,7 +817,8 @@ class Manager {
                 return [
                     'debug' => false,
                     'deregister_gmaps' => false,
-                    'disable_v3_css' => false
+                    'disable_v3_css' => false,
+                    'admin_bar_menu' => 'always',
                 ];
             default:
                 return [];
@@ -933,6 +980,10 @@ class Manager {
         $browser_key = $old_settings['api_browser_key'] ?? $old_settings['api_gmaps_browser_key'] ?? '';
         $server_key  = $old_settings['api_server_key'] ?? $old_settings['api_gmaps_server_key'] ?? '';
 
+        // The same check as every other way a key is saved, see wpsl_sanitize_gmaps_key().
+        $browser_key = wpsl_sanitize_gmaps_key( $browser_key );
+        $server_key  = wpsl_sanitize_gmaps_key( $server_key );
+
         // Only set from 2.2.250 onwards, so pre-2.2.250 installs fall back to the 3.x default.
         $api_versions = $old_settings['api_versions'] ?? $this->defaults( 'api' )['versions']['gmaps'];
 
@@ -1016,6 +1067,7 @@ class Manager {
                 'phone_url'                 => $old_settings['phone_url'],
                 'marker_streetview'         => $old_settings['marker_streetview'],
                 'marker_zoom_to'            => $old_settings['marker_zoom_to'],
+                'popup_thumb'               => false, // The 2.x info window never showed the thumbnail.
                 'mouse_focus'               => $old_settings['mouse_focus'],
             ] + $this->migrate_more_info( $old_settings ),
             'markers' => [
@@ -1070,7 +1122,7 @@ class Manager {
             
             $defaults = $this->defaults( $group );
             
-            $merged_settings[ $group ] = array_replace_recursive( $defaults, $new_settings[ $group ] );
+            $merged_settings[ $group ] = $this->merge_with_defaults( $defaults, $new_settings[ $group ] );
         }
 
         // Save all the merged settings to the database

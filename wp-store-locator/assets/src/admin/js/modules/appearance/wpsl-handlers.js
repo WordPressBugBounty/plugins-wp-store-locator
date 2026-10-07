@@ -1,5 +1,6 @@
 import { state } from '../wpsl-shared.js';
 import { alignSearchColumns } from '../../../../common/wpsl-dropdowns.js';
+import { sharedHelpers } from '../../../../common/wpsl-shared-helpers.js';
 
 /**
  * Event handlers for the appearance section.
@@ -81,6 +82,8 @@ export const eventHandlers = {
         this.bindCTAButtons();
         this.bindMoreDetailsTarget();
         this.bindIconToggle();
+        this.bindCategoryOptions();
+        this.bindFeaturedPreview();
         this.bindGmapsStyleSource();
 
         this.setInitialResetButtonVisibility();
@@ -661,7 +664,7 @@ export const eventHandlers = {
 
                 if ( ! $detailsLink.length ) {
                     const buttonClass = ctaButtonsEnabled ? ' wpsl-styled-btn' : '';
-                    $detailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + wpslL10n.moreDetails + '</a>' );
+                    $detailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + sharedHelpers.escapeHtml( wpslL10n.moreDetails ) + '</a>' );
                 } else if ( ctaButtonsEnabled ) {
                     $detailsLink.addClass( 'wpsl-styled-btn' );
                 }
@@ -926,6 +929,99 @@ export const eventHandlers = {
     },
 
     /**
+     * Show the category options in the preview.
+
+     *
+     * @since 3.1.0
+     */
+    bindCategoryOptions() {
+        const $preview = jQuery( '#wpsl-appearance-preview' );
+        const $fields  = jQuery( '#wpsl-category-shape, #wpsl-show-categories, #wpsl-category-background, #wpsl-category-custom-color, #wpsl-category-border-radius' );
+
+        if ( ! $preview.length || ! $fields.length ) {
+            return;
+        }
+
+        const update = function() {
+            const style      = $preview[0].style;
+            const background = jQuery( '#wpsl-category-background' ).val();
+            const $custom    = jQuery( '#wpsl-category-custom-color' );
+            const radius     = parseInt( jQuery( '#wpsl-category-border-radius' ).val(), 10 );
+
+            $preview.toggleClass( 'wpsl-hide-categories', ! jQuery( '#wpsl-show-categories' ).is( ':checked' ) );
+
+            style.setProperty( '--wpsl-category-dot-radius', jQuery( '#wpsl-category-shape' ).val() === 'square' ? '3px' : 'initial' );
+            style.setProperty( '--wpsl-category-radius', Math.min( Math.max( radius || 0, 0 ), 50 ) + 'px' );
+
+            /*
+             * The same three outcomes Theme_Styles writes for the frontend.
+             * Reset with "initial" rather than removed: the saved choice is
+             * on :root, and a removed property would inherit it again.
+             */
+            style.setProperty( '--wpsl-category-bg', 'initial' );
+            style.setProperty( '--wpsl-category-padding', 'initial' );
+            style.setProperty( '--wpsl-category-gap', 'initial' );
+
+            if ( background === 'custom' ) {
+                style.setProperty( '--wpsl-category-bg', $custom.val() || $custom.data( 'default' ) );
+            } else if ( background === 'none' ) {
+                style.setProperty( '--wpsl-category-bg', 'transparent' );
+                style.setProperty( '--wpsl-category-padding', '0' );
+                style.setProperty( '--wpsl-category-gap', '14px' );
+            }
+        };
+
+        /*
+         * Each shape has a border radius that goes with it: a square dot sits
+         * in a box with the same 3px corners, a circle in a pill. Bound before
+         * update(), so the preview is drawn with the new radius.
+         */
+        jQuery( '#wpsl-category-shape' ).on( 'change', function() {
+            jQuery( '#wpsl-category-border-radius' ).val( jQuery( this ).val() === 'square' ? 3 : 20 );
+        } );
+
+        $fields.on( 'change input', update );
+
+        update();
+    },
+
+    /**
+     * Show a featured result in the preview while its colors are edited.
+     *
+     * The first example result turns into a featured one only while "Featured
+     * stores" is picked under Listing on the Theme Style tab, so the rest of
+     * the time the preview shows a regular result.
+     *
+     * @since 3.1.0
+     */
+    bindFeaturedPreview() {
+        const $fields = jQuery( '#wpsl-overwrite-theme-styles, #wpsl-style-editor-dropdown, #wpsl-listing-style-sections' );
+
+        if ( ! $fields.length ) {
+            return;
+        }
+
+        const update = function() {
+            const editing = jQuery( '#wpsl-overwrite-theme-styles' ).is( ':checked' ) &&
+                jQuery( '#wpsl-style-editor-dropdown' ).val() === 'listing' &&
+                jQuery( '#wpsl-listing-style-sections' ).val() === 'listing-featured';
+
+            jQuery( '#wpsl-appearance-preview #wpsl-result-list li' ).removeClass( 'wpsl-featured' );
+
+            // On the preview container, so it survives a template switch replacing #wpsl-wrap.
+            jQuery( '#wpsl-appearance-preview' ).toggleClass( 'wpsl-preview-featured', editing );
+
+            if ( editing ) {
+                jQuery( '#wpsl-appearance-preview #wpsl-result-list li' ).first().addClass( 'wpsl-featured' );
+            }
+        };
+
+        $fields.on( 'change', update );
+
+        update();
+    },
+
+    /**
      * Bind icon toggle checkbox.
      *
      * @since 3.0.0
@@ -940,6 +1036,11 @@ export const eventHandlers = {
             $wpslWrap.toggleClass( 'wpsl-has-icons', isChecked );
 
             const $iconElements = jQuery( '#wpsl-listing-style-sections option[value="listing-icons"], #wpsl-popup-style-sections option[value="popup-icons"], .wpsl-listing-icons-options, .wpsl-popup-icons-options' );
+
+            // The featured icon color follows the icons too, but stays hidden while there are no featured stores.
+            const $featuredIcon = jQuery( 'li[data-elem="listing-featured-icon"]' );
+
+            $featuredIcon.toggle( isChecked && ! $featuredIcon.siblings( '.wpsl-featured-none-row' ).length );
 
             if ( isChecked ) {
                 if ( self.parent.icons ) {
@@ -1598,7 +1699,7 @@ export const eventHandlers = {
             if ( detailsEnabled && $ctaButtons.length ) {
                 if ( ! $detailsLink.length ) {
                     const buttonClass = ctaButtonsEnabled ? ' wpsl-styled-btn' : '';
-                    const $newDetailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + wpslL10n.moreDetails + '</a>' );
+                    const $newDetailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + sharedHelpers.escapeHtml( wpslL10n.moreDetails ) + '</a>' );
 
                     if ( ctaButtonsEnabled ) {
                         const selectedStyle = jQuery( 'input.wpsl-button-style-toggle[data-button-target="wpsl-details"]:checked' ).data( 'style-type' );
@@ -1667,7 +1768,7 @@ export const eventHandlers = {
                 if ( detailsEnabled && $ctaButtons.length ) {
                     if ( ! $detailsLink.length ) {
                         const buttonClass = ctaButtonsEnabled ? ' wpsl-styled-btn' : '';
-                        const $newDetailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + wpslL10n.moreDetails + '</a>' );
+                        const $newDetailsLink = jQuery( '<a class="wpsl-details' + buttonClass + '" href="#">' + sharedHelpers.escapeHtml( wpslL10n.moreDetails ) + '</a>' );
 
                         if ( ctaButtonsEnabled ) {
                             const selectedStyle = jQuery( 'input.wpsl-button-style-toggle[data-button-target="wpsl-details"]:checked' ).data( 'style-type' );
@@ -1745,7 +1846,7 @@ export const eventHandlers = {
 
         if ( detailsEnabled ) {
             if ( ! $detailsLink.length ) {
-                $detailsLink = jQuery( '<a class="wpsl-details" href="#">' + wpslL10n.moreDetails + '</a>' );
+                $detailsLink = jQuery( '<a class="wpsl-details" href="#">' + sharedHelpers.escapeHtml( wpslL10n.moreDetails ) + '</a>' );
                 $infoActions.prepend( $detailsLink );
             }
         } else {

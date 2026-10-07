@@ -148,18 +148,15 @@ class Filters {
     public function category_list( $args = [] ) {
         $wpsl_settings = $this->settings->get_group( 'search' );
 
-        $terms = $this->get_category_terms();
-        
         /**
-         * Only used on the theme customization 
-         * page if no other category data exists.
+         * The preview on the Appearance page always gets the example
+         * categories, also when the site has categories of its own: the
+         * example location in that preview shows the same ones.
          */
-        if ( ! count( $terms ) && isset( $args['defaults'] ) && $args['defaults'] ) {
-            $terms = [
-                (object) ['term_id' => 1, 'name' => 'Restaurant'],
-                (object) ['term_id' => 2, 'name' => 'Museum'],
-                (object) ['term_id' => 3, 'name' => 'Cafe']
-            ];
+        if ( isset( $args['defaults'] ) && $args['defaults'] ) {
+            $terms = wpsl_example_categories();
+        } else {
+            $terms = $this->get_category_terms();
         }
 
         if ( count( $terms ) > 0 ) {
@@ -192,6 +189,7 @@ class Filters {
                     $category .= '<li>';
                     $category .= '<label>';
                     $category .= '<input type="checkbox" value="' . esc_attr( $term->term_id ) . '" ' . $this->set_selected_category( $args['style'], $selected, $term ) . ' />';
+                    $category .= $this->category_dot( $term );
                     $category .= esc_html( $term->name );
                     $category .= '</label>';
                     $category .= '</li>';
@@ -222,16 +220,22 @@ class Filters {
                             'taxonomy'          => 'wpsl_store_category',
                             'hide_if_empty'     => true,
                             'exclude'           => $this->maybe_exclude_catogries(),
-                            'parent'            => $this->maybe_set_parent_id()
+                            'parent'            => $this->maybe_set_parent_id(),
+                            'walker'            => new Category_Dropdown_Walker()
                         ]
                     );
 
                     $category .= wp_dropdown_categories( $dropdown_args );
-                } else { // Only used on the theme customization page if no other category data exists.
+                } else { // The example categories, only used in the preview on the Appearance page.
                     $category .= '<select id="wpsl-category-list" class="wpsl-dropdown" name="wpsl-category">';
+                    $category .= '<option value="0">' . esc_html( $this->i18n->get_translation( 'category_default_label', __( 'Any', 'wp-store-locator' ) ) ) . '</option>';
 
                     foreach ( $terms as $term ) {
-                        $category .= '<option value="' . esc_attr( $term->term_id ) . '">' . esc_html( $term->name ) . '</option>';
+                        // The same data-color attribute Category_Dropdown_Walker adds to a real category.
+                        $color = empty( $term->color ) ? '' : sanitize_hex_color( $term->color );
+                        $color = $color ? ' data-color="' . esc_attr( $color ) . '"' : '';
+
+                        $category .= '<option value="' . esc_attr( $term->term_id ) . '"' . $color . '>' . esc_html( $term->name ) . '</option>';
                     }
 
                     $category .= '</select>';
@@ -242,6 +246,24 @@ class Filters {
 
             return $category;
         }
+    }
+
+    /**
+     * The colored dot shown in front of a category in the filter.
+     *
+     * The preview on the Appearance page fills the filter with example
+     * categories. Those aren't terms, they carry their color themselves.
+     *
+     * @since  3.1.0
+     * @param  object $term The category.
+     * @return string The dot markup, or '' when the category has no color.
+     */
+    private function category_dot( $term ) {
+        if ( $term instanceof \WP_Term ) {
+            return wpsl_category_dot( $term->term_id );
+        }
+
+        return empty( $term->color ) ? '' : wpsl_category_dot_markup( $term->color );
     }
 
     /**
@@ -296,8 +318,10 @@ class Filters {
             $selection = absint( $_REQUEST['wpsl-widget-categories'] );
         } else if ( ! empty( $this->get_shortcodes()->atts['category_selection'] ) ) {
             $selection = $this->get_shortcodes()->atts['category_selection'];
-        } else if ( isset( $_REQUEST['wpsl_cat'] ) ) {
-            $selection = wpsl_get_term_ids( sanitize_text_field( wp_unslash( $_REQUEST['wpsl_cat'] ) ) );
+        } else if ( isset( $_REQUEST['wpsl_cat'] ) || isset( $_REQUEST['wpsl_category'] ) ) {
+            // wpsl_category is the same parameter under the name the other URL parameters follow ( wpsl_address, wpsl_name ).
+            $category_param = isset( $_REQUEST['wpsl_cat'] ) ? $_REQUEST['wpsl_cat'] : $_REQUEST['wpsl_category'];
+            $selection      = wpsl_get_term_ids( sanitize_text_field( wp_unslash( $category_param ) ) );
         } else {
             $selection = $this->settings->get( 'search', 'category_default' );
         }
@@ -333,7 +357,8 @@ class Filters {
                     $selected_id = $selection[$key];
                 }
             } else {
-                $selected_id = $selection[0];
+                // The list is empty when the requested category doesn't exist.
+                $selected_id = isset( $selection[0] ) ? $selection[0] : '';
             }
         } else {
             $selected_id = $selection;
@@ -359,75 +384,14 @@ class Filters {
 
     /**
      * Create a dropdown that lists all unique values that
-     * below to the passed meta key.
+     * belong to the passed meta key. Kept for backwards compatibility, wpsl_create_meta_filter() does the work.
      *
      * @since  3.0.0
-     * @param  array $args The meta key we use to collect the data for
+     * @param  array $args See wpsl_create_meta_filter()
      * @return string $filter
      */
     public function custom_meta_filter( $args ) {
-        $filter      = '';
-        $columns     = 3;
-        $meta_values = $this->location_utils->get_unique_meta_values( $args['meta_key'] );
-
-        if ( $meta_values ) {
-            if ( $args['type'] == 'dropdown' ) {
-                $filter = "\t\t\t\t" . '<div id="' . esc_attr( $args['meta_key'] ) . '">' . "\r\n";
-
-                if ( $args['label'] ) {
-                    $filter .= "\t\t\t\t\t" . '<label for="' . esc_attr( $args['meta_key'] ) . '">' . esc_html( $args['label'] ) . '</label>' . "\r\n";
-                }
-
-                $filter .= "\t\t\t\t\t" . '<select id="' . esc_attr( $args['meta_key'] ) . '" class="wpsl-dropdown wpsl-custom-dropdown" name="' . esc_attr( $args['meta_key'] ) . '">';
-
-                foreach ( $meta_values as $k => $meta_value ) {
-                    $selected = ( $meta_value == $args['selected'] ) ? 'selected="selected"' : '';
-                    $filter .= "\t\t\t\t\t\t" . '<option value="' .  esc_attr( $meta_value ) . '"' . $selected . '>' . esc_html( $meta_value ) . '</option>';
-                }
-
-                $filter .= '</select>';
-                $filter .= '</div>';
-            } else if ( $args['type'] == 'checkbox' ) {
-
-                if ( isset( $args['columns'] ) && absint( $args['columns'] ) ) {
-                    $columns = $args['columns'];
-                }
-
-                // The AJAX param key the checked values are assigned to. Defaults to the meta key.
-                $data_name = isset( $args['name'] ) && $args['name'] !== '' ? $args['name'] : $args['meta_key'];
-
-                $filter  = '<ul id="wpsl-checkbox-filter" class="wpsl-custom-checkboxes wpsl-checkbox-' . $columns . '-columns"';
-                $filter .= ' data-name="' . esc_attr( $data_name ) . '"';
-
-                /**
-                 * When a search type is set, the JS routes the selected values
-                 * through location[<type>] + types=<type> so a built-in
-                 * Types::<type>_search_args handler ( e.g. country / state )
-                 * picks them up. Without it the values are sent as a flat
-                 * data-name param instead.
-                 */
-                if ( ! empty( $args['search_type'] ) ) {
-                    $filter .= ' data-search-type="' . esc_attr( $args['search_type'] ) . '"';
-                }
-
-                $filter .= '>';
-
-                foreach ( $meta_values as $k => $meta_value ) {
-                    $selected = ( $meta_value == $args['selected'] ) ? 'checked="checked"' : '';
-
-                    $filter .= '<li>';
-                    $filter .= '<label>';
-                    $filter .= '<input type="checkbox" value="' . esc_attr( $meta_value ) . '" ' . $selected . ' />';
-                    $filter .= esc_html( $meta_value);
-                    $filter .= '</label>';
-                    $filter .= '</li>';
-                }
-
-                $filter .= '</ul>';
-            }
-        }
-
-        return $filter;
+        return wpsl_create_meta_filter( $args );
     }
 
     /**
@@ -498,6 +462,34 @@ class Filters {
         $result = (bool) $this->settings->get( 'search', 'results_dropdown' );
         
         return $result;
+    }
+
+    /**
+     * Check if the search results list is hidden, so only the search bar and the map are shown.
+     *
+     * The list stays in the page, hidden with CSS ( .wpsl-hide-list on
+     * #wpsl-wrap ), because the JS reads and fills it. Panel templates
+     * ( the vertical one ) keep the list, so the option is ignored there.
+     *
+     * @since  3.1.0
+     * @return bool True when the list is hidden.
+     */
+    public function is_results_list_hidden() {
+        $atts        = $this->get_shortcodes()->atts;
+        $template_id = ( isset( $atts['template'] ) && $atts['template'] ) ? $atts['template'] : $this->settings->get( 'appearance', 'template_id' );
+        $details     = wpsl_get_service( 'template_loader' )->get_details( $template_id );
+
+        if ( ! empty( $details['has_panel'] ) ) {
+            return false;
+        }
+
+        // Shortcode attribute takes priority over settings page value (not empty string)
+        if ( array_key_exists( 'results_list', $this->get_shortcodes()->atts ) && $this->get_shortcodes()->atts['results_list'] !== '' ) {
+            return ! filter_var( $this->get_shortcodes()->atts['results_list'], FILTER_VALIDATE_BOOLEAN );
+        }
+
+        // Fall back to settings page value
+        return (bool) $this->settings->get( 'search', 'hide_results_list' );
     }
 
     /**
@@ -577,7 +569,7 @@ class Filters {
                 $aria_selected = $checked ? 'true' : 'false';
 
                 $output .= '<li class="' . esc_attr( $css_class ) . '" aria-selected="' . $aria_selected . '">';
-                $output .= '<label><input class="' . esc_attr( $css_class ) . '" type="checkbox" value="' . esc_attr( $category->term_id ) . '" ' . $checked . '>' . esc_html( $category->name ) . '</label>';
+                $output .= '<label><input class="' . esc_attr( $css_class ) . '" type="checkbox" value="' . esc_attr( $category->term_id ) . '" ' . $checked . '>' . $this->category_dot( $category ) . esc_html( $category->name ) . '</label>';
 
                 if ( $subcategories ) {
                     $output .= $subcategories;

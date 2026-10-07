@@ -228,14 +228,14 @@ export const editor = {
                         }
                     }
 
-                    // A ready-made HTML notice (Google, Mapbox or OSM geocode errors)
-                    // already matches the settings page structure, so render it as-is.
+                    // Ready-made geocode-error HTML matching the settings page structure,
+                    // so rendered as-is; convert() would turn the escaped error text into markup.
                     if ( typeof response.notice_html === 'string' && response.notice_html.length ) {
                         noticeOptions.__unstableHTML = true;
 
                         wp.data.dispatch( 'core/notices' ).createNotice(
                             'error',
-                            editor.convert( response.notice_html ),
+                            response.notice_html,
                             noticeOptions
                         );
 
@@ -340,7 +340,17 @@ export const editor = {
 
         // The shared converter only runs on the settings form, so the
         // exclude-from-results checkbox needs its toggle slider created here.
-        wpslSharedFuncs.createToggleSliders( jQuery( '#wpsl-exclude-closed' ) );
+        wpslSharedFuncs.createToggleSliders( jQuery( '#wpsl-exclude-closed, #wpsl-featured' ) );
+
+        // The position only applies to a featured location.
+        jQuery( '#wpsl-featured' ).on( 'change', function() {
+            if ( jQuery( this ).is( ':checked' ) ) {
+                jQuery( '.wpsl-featured-options' ).removeClass( 'wpsl-hide' );
+            } else {
+                jQuery( '.wpsl-featured-options' ).addClass( 'wpsl-hide' );
+                jQuery( '#wpsl-featured-position' ).val( '' );
+            }
+        });
 
         // Make the first available date tomorrow.
         startDate.setDate( startDate.getDate() + 1 );

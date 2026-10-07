@@ -77,6 +77,20 @@ final class Exit_Survey {
                 }
             }
 
+            if ( 'not_working' === $reason ) {
+                $sub_reason = isset( $_REQUEST['wpsl_not_working'] ) ? sanitize_key( wp_unslash( $_REQUEST['wpsl_not_working'] ) ) : '';
+
+                // Unknown slugs are dropped.
+                if ( isset( self::get_not_working_reasons()[ $sub_reason ] ) ) {
+                    $args['sub_reason'] = $sub_reason;
+                }
+
+                // Only the opt-in travels in the request, the details are collected here.
+                if ( ! empty( $_REQUEST['wpsl_debug'] ) ) {
+                    $args['debug'] = $this->get_debug_data();
+                }
+            }
+
             $response = wp_remote_post( $this->server, [
                     'method'      => 'POST',
                     'httpversion' => '1.0',
@@ -105,6 +119,65 @@ final class Exit_Survey {
             'wp_map_block'        => 'WP Map Block',
             'wp_maps'             => 'WP Maps',
         ];
+    }
+
+    /**
+     * The options in the dropdown under 'I couldn't get the plugin to work'.
+     *
+     * @since  3.1.0
+     * @return array The reason slug and its label.
+     */
+    public static function get_not_working_reasons() {
+        return [
+            'map_error'      => __( 'The map doesn\'t load or shows an error', 'wp-store-locator' ),
+            'save_location'  => __( 'I can\'t add or save a location', 'wp-store-locator' ),
+            'wrong_location' => __( 'Locations show up in the wrong place', 'wp-store-locator' ),
+            'search_results' => __( 'Search returns no or wrong results', 'wp-store-locator' ),
+            'blank_page'     => __( 'The store locator page is blank', 'wp-store-locator' ),
+            'conflict'       => __( 'It broke my theme\'s layout or conflicts with another plugin', 'wp-store-locator' ),
+            'site_error'     => __( 'It caused a site error or crash', 'wp-store-locator' ),
+            'api_key'        => __( 'Setting up the Google API key was too complicated', 'wp-store-locator' ),
+            'other'          => __( 'Something else', 'wp-store-locator' ),
+        ];
+    }
+
+    /**
+     * The longest status report the survey sends.
+     *
+     * @since 3.1.0
+     */
+    const REPORT_MAX = 12000;
+
+    /**
+     * Collect the technical details a visitor opted in to share.
+     *
+     * The status report from the Tools page, without the 
+     * site address and the start location.
+     *
+     * @since  3.1.0
+     * @return array The details, which are sent with the survey answer.
+     */
+    public function get_debug_data() {
+        $data = [];
+
+        // Only registered on a deactivation that opted in, see the admin service provider.
+        if ( function_exists( 'wpsl_container' ) && wpsl_container()->has( 'status_report' ) ) {
+            $report = wpsl_get_service( 'status_report' )->get_report( null, true );
+
+            if ( strlen( $report ) > self::REPORT_MAX ) {
+                $report = substr( $report, 0, self::REPORT_MAX ) . "\n\n[ truncated ]";
+            }
+
+            $data['report'] = $report;
+        }
+
+        /**
+         * Filter the technical details sent with the exit survey, when the visitor opted in.
+         *
+         * @since 3.1.0
+         * @param array $data The details, the status report under 'report'.
+         */
+        return apply_filters( 'wpsl_exit_survey_debug_data', $data );
     }
 
     /**

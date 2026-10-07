@@ -1651,9 +1651,40 @@ Theme styles used on the customization section
     margin-inline-end: 0;
 }
 
-.wpsl-styled-template-preview #wpsl-wrap .wpsl-checkboxes-enabled [data-filter="category"],
-.wpsl-styled-template-preview #wpsl-wrap .wpsl-checkboxes-enabled [data-filter="category_checkboxes"] {
-    float: none;
+.wpsl-styled-template-preview .wpsl-checkboxes-enabled [data-filter="category"] {
+    flex: 0 0 100%;
+    display: block;
+    width: 100%;
+}
+
+/* The front end spaces the checkbox, dot and name in styles.css, which the admin doesn't load. */
+.wpsl-styled-template-preview #wpsl-search-wrap #wpsl-checkbox-filter label,
+.wpsl-styled-template-preview #wpsl-filter-options .wpsl-filter label {
+    gap: 8px;
+}
+
+.wpsl-styled-template-preview #wpsl-search-wrap #wpsl-checkbox-filter input[type="checkbox"],
+.wpsl-styled-template-preview #wpsl-filter-options .wpsl-filter input[type="checkbox"] {
+    margin: 0;
+}
+
+.wpsl-styled-template-preview #wpsl-search-wrap #wpsl-checkbox-filter input[type="checkbox"],
+.wpsl-styled-template-preview #wpsl-filter-options .wpsl-filter input[type="checkbox"] {
+    -webkit-appearance: revert;
+    appearance: revert;
+    width: revert;
+    min-width: revert;
+    height: revert;
+    border: revert;
+    border-radius: revert;
+    background: revert;
+    box-shadow: revert;
+    outline: revert;
+}
+
+.wpsl-styled-template-preview #wpsl-search-wrap #wpsl-checkbox-filter input[type="checkbox"]:checked::before,
+.wpsl-styled-template-preview #wpsl-filter-options .wpsl-filter input[type="checkbox"]:checked::before {
+    content: none;
 }
 
 .wpsl-styled-template-preview .wpsl-select-wrap {
@@ -2266,6 +2297,19 @@ Theme styles used on the customization section
     color: var(--wpsl-listing-icons-color, #999);
 }
 
+#wpsl-appearance-preview #wpsl-stores li.wpsl-featured [class*="wpsl-icon-"]::before {
+    color: var(--wpsl-listing-featured-icon, var(--wpsl-listing-icons-color, #999));
+}
+
+#wpsl-appearance-preview.wpsl-preview-featured #wpsl-wrap #wpsl-result-list,
+#wpsl-appearance-preview.wpsl-preview-featured #wpsl-wrap #wpsl-panel {
+    background-image: linear-gradient( var(--wpsl-listing-featured-background, rgba(128, 128, 128, 0.04)), var(--wpsl-listing-featured-background, rgba(128, 128, 128, 0.04)) );
+}
+
+#wpsl-appearance-preview.wpsl-preview-featured #wpsl-wrap #wpsl-result-list li.wpsl-featured {
+    background: transparent;
+}
+
 #wpsl-appearance-preview .wpsl-map-style-wrap [class*="wpsl-icon-"]::before {
     color: var(--wpsl-popup-icons-color, #999);
 }
@@ -2657,7 +2701,8 @@ Theme styles used on the customization section
 }
 
 #wpsl-dimensions-tab input[type=text],
-#wpsl-dimensions-tab input[type=number] {
+#wpsl-dimensions-tab input[type=number],
+#wpsl-search-results-tab .wpsl-input-with-unit input[type=number] {
     width: 110px;
     padding-right: 46px;
 }
@@ -2767,6 +2812,35 @@ Theme styles used on the customization section
     align-self: center;
 }
 
+#wpsl-appearance-form #wpsl-search-results-tab,
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab > p,
+#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option > p,
+#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector {
+    margin: 0;
+}
+
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector {
+    min-height: 38px;
+    padding: 0;
+}
+
+#wpsl-settings-content #wpsl-appearance-form #wpsl-theme-styles-tab p.wpsl-featured-none {
+    display: block;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option p #wpsl-category-custom-color + .wpsl-color-picker-wrapper {
+    margin-inline-start: 0;
+}
+
 #wpsl-settings-content #wpsl-appearance-form #wpsl-theme-styles-tab p.wpsl-no-flex:not([style*="display:none"]):not([style*="display: none"]),
 #wpsl-settings-content #wpsl-appearance-form #wpsl-button-styles-tab p.wpsl-button-styles-options:not([style*="display:none"]):not([style*="display: none"]) {
     display: flex !important;
@@ -2785,4 +2859,9 @@ Theme styles used on the customization section
 #wpsl-content-wrap #wpsl-theme-styles-tab #wpsl-submit-style-info {
     flex: 0 0 auto;
     margin-inline-start: 0;
+}
+
+/* The example categories in the preview follow the "Show categories?" toggle. */
+#wpsl-appearance-preview.wpsl-hide-categories .wpsl-categories {
+    display: none;
 }

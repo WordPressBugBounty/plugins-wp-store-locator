@@ -128,6 +128,16 @@ class Service_Loader {
                             break;
                         }
                     }
+
+                    /*
+                     * The blocks render the same shortcodes, but only inside the
+                     * content. Without them here a classic theme has printed <body>
+                     * by then, so the page missed the wpsl-v3-css class and the
+                     * stylesheets loaded in the footer.
+                     */
+                    if ( ! $needed && function_exists( 'has_block' ) ) {
+                        $needed = has_block( 'wpsl/store-locator', $post ) || has_block( 'wpsl/store-map', $post );
+                    }
                 }
             }
         }

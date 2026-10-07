@@ -46,6 +46,24 @@ if ( ! defined( 'ABSPATH' ) ) {
             </select>
         </p>
         <p>
+            <label for="wpsl-hide-start-marker"><?php esc_html_e( 'Hide the start marker?', 'wp-store-locator' ); ?>
+                <span class="wpsl-info">
+                    <span class="wpsl-info-text wpsl-hide">
+                        <?php
+                        echo wp_kses_post(
+                            sprintf(
+                                /* translators: %s: line breaks. */
+                                __( 'No marker is placed at the searched location, only the nearby stores are shown. %sThis also removes the "Directions" link.', 'wp-store-locator' ),
+                                '<br><br>'
+                            )
+                        );
+                        ?>
+                    </span>
+                </span>
+            </label>
+            <input type="checkbox" value="" <?php checked( ! empty( $section_settings['hide_start_marker'] ), true ); ?> name="wpsl_markers[hide_start_marker]" id="wpsl-hide-start-marker">
+        </p>
+        <p>
             <label for="wpsl-start-marker-on-top"><?php esc_html_e( 'Show start marker on top of store markers?', 'wp-store-locator' ); ?>
                 <span class="wpsl-info">
                     <span class="wpsl-info-text wpsl-hide">
