@@ -86,6 +86,32 @@ class Manager {
     private $styles_enqueued = false;
 
     /**
+     * The style handles ensure_styles() added to the queue.
+     *
+     * @since 3.1.1
+     * @var   array
+     */
+    private $style_handles = [];
+
+    /**
+     * Whether the body classes reached the page, through the body_class
+     * filter or the inline script that late_assets() prints.
+     *
+     * @since 3.1.1
+     * @var   bool
+     */
+    private $body_classes_added = false;
+
+    /**
+     * The style tags late_assets() printed with a shortcode, for the
+     * fallback script of the shortcodes rendered after it.
+     *
+     * @since 3.1.1
+     * @var   string
+     */
+    private $late_styles = '';
+
+    /**
      * Class constructor
      *
      * @since 3.0.0
@@ -107,6 +133,7 @@ class Manager {
         $this->state = $state;
         
         add_filter( 'body_class', [ $this, 'add_frontend_body_class' ] );
+        add_filter( 'do_shortcode_tag', [ $this, 'prepend_late_assets' ], 10, 2 );
     }
 
     /**
@@ -117,7 +144,19 @@ class Manager {
      * @return array Modified body classes
      */
     public function add_frontend_body_class( $classes ) {
-        $classes[] = 'wpsl-v3';
+        $this->body_classes_added = true;
+
+        return array_merge( $classes, $this->get_body_classes() );
+    }
+
+    /**
+     * The classes the front-end adds to the body.
+     *
+     * @since  3.1.1
+     * @return array The class names
+     */
+    private function get_body_classes() {
+        $classes = [ 'wpsl-v3' ];
 
         // Conditionally add wpsl-v3-css class - only if NOT disabled
         if ( ! $this->settings->get( 'tools', 'disable_v3_css' ) ) {
@@ -125,6 +164,87 @@ class Manager {
         }
 
         return $classes;
+    }
+
+    /**
+     * Put the late assets in front of the locator shortcode output.
+     *
+     * The blocks render through do_shortcode() as well, so this covers them.
+     *
+     * @since  3.1.1
+     * @param  string|false $output The shortcode output
+     * @param  string       $tag    The shortcode name
+     * @return string|false The shortcode output
+     */
+    public function prepend_late_assets( $output, $tag ) {
+        if ( ! in_array( $tag, [ 'wpsl', 'wpsl_map', 'wpsl_address', 'wpsl_hours' ], true ) || ! is_string( $output ) || '' === trim( $output ) ) {
+            return $output;
+        }
+
+        return $this->late_assets() . $output;
+    }
+
+    /**
+     * The stylesheets and body classes a shortcode added after the head.
+     *
+     * When the asset detector misses a locator ( a theme template, page builder
+     * or widget renders it ), the shortcode enqueues the styles after the head
+     * printed. WordPress then prints them in the footer, or since 6.9 moves them
+     * to the head through an output buffer, and a cache or optimization plugin
+     * that ends that buffer drops them. Printed here with the markup instead,
+     * they don't depend on either. The body_class filter also ran before the
+     * shortcode registered it, so the body classes are added with a script.
+     *
+     * @since  3.1.1
+     * @return string The style tags and script, or an empty string
+     */
+    public function late_assets() {
+        if ( ! did_action( 'wp_print_styles' ) ) {
+            return '';
+        }
+
+        $markup  = '';
+        $handles = array_diff( $this->style_handles, wp_styles()->done );
+
+        if ( $handles ) {
+            ob_start();
+            wp_styles()->do_items( array_values( $handles ) );
+            $styles = ob_get_clean();
+
+            $markup            .= $styles;
+            $this->late_styles .= $styles;
+        } elseif ( '' !== $this->late_styles ) {
+
+            /*
+             * The styles went out with an earlier shortcode in this request. When
+             * that output was thrown away ( a plugin that renders the content
+             * into a buffer to read it ), they never reached the page and are
+             * marked as printed, so add the ones that are missing. On a page
+             * that has them, this changes nothing.
+             */
+            return wp_get_inline_script_tag(
+                '(function(){var t=document.createElement("template");t.innerHTML=' . wp_json_encode( $this->late_styles, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';Array.prototype.slice.call(t.content.children).forEach(function(n){if(n.id&&!document.getElementById(n.id)){document.head.appendChild(n);}});document.body.classList.add(' . implode( ',', array_map( 'wp_json_encode', $this->get_body_classes() ) ) . ');})();',
+                [
+                    'data-no-optimize' => '1',
+                    'data-cfasync'     => 'false',
+                ]
+            );
+        }
+
+        if ( ! $this->body_classes_added ) {
+            $this->body_classes_added = true;
+
+            // Kept out of LiteSpeed's and Cloudflare's script deferring, which would hold it until the visitor interacts.
+            $markup .= wp_get_inline_script_tag(
+                'document.body.classList.add(' . implode( ',', array_map( 'wp_json_encode', $this->get_body_classes() ) ) . ');',
+                [
+                    'data-no-optimize' => '1',
+                    'data-cfasync'     => 'false',
+                ]
+            );
+        }
+
+        return $markup;
     }
 
     /**
@@ -160,7 +280,11 @@ class Manager {
 
         $this->styles_enqueued = true;
 
+        $queued = wp_styles()->queue;
+
         $this->enqueue_styles();
+
+        $this->style_handles = array_diff( wp_styles()->queue, $queued );
     }
 
     /**
@@ -262,6 +386,73 @@ class Manager {
     }
 
     /**
+     * Warn when the browser runs a wpsl.min.js from another build.
+     *
+     * A CDN that ignores the ?ver= query string ( CloudFront's default cache
+     * policy ), a full page cache or a script optimizer can keep serving the
+     * previous wpsl.min.js after an update, while the page and its settings
+     * come from the new version. The two don't fit together, so the locator
+     * breaks in ways that look like a plugin bug: no results, settings that
+     * seem ignored, "Cannot read properties of undefined" errors.
+     *
+     * webpack writes the build id to wpsl.asset.php, and the bundle stores the
+     * same id in window.wpsl.build. The check runs here, after the bundle,
+     * and not in it, so it also catches a bundle from before 3.1.1 ( which has
+     * window.wpsl.api but no build ). It runs right after the bundle, before
+     * the map boots, so the warning precedes the errors the mixed files cause.
+     * Only when a script optimizer deferred the bundle does it wait for the
+     * load event. A bundle that never ran leaves no window.wpsl.api and is
+     * ignored: there is nothing to compare.
+     *
+     * The warning is logged for every visitor, so it also ends up in console
+     * output a site owner sends to support. Only users who can purge the caches
+     * get a notice in the locator.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    private function add_build_check() {
+        $build = wpsl_get_build_id();
+
+        if ( ! $build ) {
+            return;
+        }
+
+        $doc_url = 'https://wpstorelocator.co/document/clear-cdn-cache-after-update/';
+        $notice  = '';
+
+        if ( current_user_can( 'manage_options' ) ) {
+            $notice = '<div class="wpsl-inline-notice" role="status">' .
+                '<div class="wpsl-inline-notice-body">' .
+                    '<p>' . esc_html__( 'Your browser received WP Store Locator scripts from a different plugin version than the one installed. A CDN, page cache or script optimizer is serving outdated files, which stops the store locator from working correctly. Purge those caches to fix it.', 'wp-store-locator' ) . '</p>' .
+                    '<p class="wpsl-inline-notice-cta"><a href="' . esc_url( $doc_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'How to clear the cache', 'wp-store-locator' ) . '</a></p>' .
+                    '<p class="wpsl-inline-notice-meta">' . esc_html__( 'Only administrators see this notice.', 'wp-store-locator' ) . '</p>' .
+                '</div>' .
+                '<button type="button" class="wpsl-inline-notice-close" aria-label="' . esc_attr__( 'Dismiss', 'wp-store-locator' ) . '">' . wpsl_get_svg_icon( 'cross' ) . '</button>' .
+            '</div>';
+        }
+
+        $json = JSON_HEX_TAG | JSON_UNESCAPED_SLASHES;
+
+        $script = '(function() {' .
+            'var expected = ' . wp_json_encode( $build, $json ) . ', notice = ' . wp_json_encode( $notice, $json ) . ';' .
+            'function check() {' .
+                'var wpsl = window.wpsl, search;' .
+                'if ( ! wpsl || ! wpsl.api || wpsl.build === expected ) { return; }' .
+                'console.warn( "WP Store Locator: the installed plugin is build " + expected + ", but the browser received scripts from " + ( wpsl.build ? "build " + wpsl.build : "a version before 3.1.1" ) + ". A CDN, page cache or script optimizer is serving outdated files, which breaks the store locator. Purge those caches. See " + ' . wp_json_encode( $doc_url, $json ) . ' );' .
+                'search = document.querySelector( "#wpsl-wrap .wpsl-search" );' .
+                'if ( notice && search && ! search.querySelector( ".wpsl-inline-notice" ) ) {' .
+                    'search.insertAdjacentHTML( "beforeend", notice );' .
+                    'search.querySelector( ".wpsl-inline-notice-close" ).addEventListener( "click", function() { this.parentNode.remove(); } );' .
+                '}' .
+            '}' .
+            'if ( window.wpsl && window.wpsl.api || document.readyState === "complete" ) { check(); } else { window.addEventListener( "load", check ); }' .
+        '})();';
+
+        wp_add_inline_script( 'wpsl', $script, 'after' );
+    }
+
+    /**
      * Enqueue the required frontend scripts.
      *
      * @since  3.0.0
@@ -283,8 +474,10 @@ class Manager {
         // Register the scripts
         wp_enqueue_script( 'wpsl', WPSL_URL . $js_path, [ 'jquery', 'wp-hooks' ], WPSL_VERSION_NUM, true );
 
-        // Add type="module" only for source files in development mode
-        if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
+        // A built bundle gets the build check, the source files in development mode get type="module".
+        if ( ! defined( 'SCRIPT_DEBUG' ) || ! SCRIPT_DEBUG ) {
+            $this->add_build_check();
+        } else {
             add_filter( 'script_loader_tag', function( $tag, $handle ) {
                 if ( 'wpsl' === $handle ) {
                     /*
@@ -712,11 +905,8 @@ class Manager {
         }
 
         // If we only show the category filters, then we use this class to hide the input button.
-        if ( $category_enabled && $search['category_filter_only'] ) {
+        if ( $template_filters->is_category_filter_only() ) {
             $classes[] = 'wpsl-cat-autosubmit';
-        }
-
-        if ( $category_enabled && $search['category_filter_only'] ) {
             $classes[] = 'wpsl-cat-filter-only';
         }
 

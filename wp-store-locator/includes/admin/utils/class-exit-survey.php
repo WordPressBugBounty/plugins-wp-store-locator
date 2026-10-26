@@ -22,6 +22,28 @@ final class Exit_Survey {
     protected $server = 'https://feedback.wpstorelocator.co/api';
 
     /**
+     * The reasons the survey offers.
+     *
+     * @since 3.1.1
+     */
+    const REASONS = [ 'not_working', 'too_complicated', 'better_plugin', 'missing_feature', 'temporary_deactivation', 'other' ];
+
+    /**
+     * The reasons that can ask to be contacted, and have the longer text box.
+     *
+     * @since 3.1.1
+     */
+    const CONTACT_REASONS = [ 'not_working', 'too_complicated' ];
+
+    /**
+     * The longest feedback text, and the longer limit for pasted error messages.
+     *
+     * @since 3.1.1
+     */
+    const FEEDBACK_MAX      = 1000;
+    const FEEDBACK_MAX_LONG = 4000;
+
+    /**
      * Constructor
      *
      * @since 2.2.240
@@ -29,77 +51,138 @@ final class Exit_Survey {
     public function __construct() {
         global $pagenow;
 
-        if ( 'plugins.php' != $pagenow ) {
-            return;
-        }
-
         if ( ! apply_filters( 'wpsl_exit_survey_is_live_site', $this->is_live_site() ) ) {
             return;
         }
 
-        add_action( 'deactivate_' . WPSL_BASENAME, [ $this, 'deactivate' ] );
-        add_action( 'admin_enqueue_scripts',       [ $this, 'enqueue_scripts' ] );
-        add_action( 'admin_footer',                [ $this, 'load_survey' ] );
-    }
+        // The answer is posted here before the deactivation link is followed, see wpsl-exit-survey.js.
+        if ( wp_doing_ajax() ) {
+            add_action( 'wp_ajax_wpsl_exit_survey', [ $this, 'ajax_submit' ] );
 
-    /**
-     * Runs when the WP Store Locator
-     * plugin is deactivated.
-     */
-    public function deactivate() {
-        if ( empty( $_REQUEST['wpsl_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['wpsl_nonce'] ) ), 'wpsl_survey_nonce' ) ) {
             return;
         }
 
-        $reason   = isset( $_REQUEST['wpsl_deactivation_reason'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['wpsl_deactivation_reason'] ) ) : '';
-        $feedback = isset( $_REQUEST['wpsl_deactivation_feedback'] ) ? sanitize_textarea_field( wp_unslash( $_REQUEST['wpsl_deactivation_feedback'] ) ) : '';
-
-        if ( $reason ) {
-            $args = [
-                'reason'   => $reason,
-                'feedback' => $feedback
-            ];
-
-            // Unknown slugs are dropped, the free text name only travels with 'other'.
-            if ( 'better_plugin' === $reason ) {
-                $competitor = isset( $_REQUEST['wpsl_competitor'] ) ? sanitize_key( wp_unslash( $_REQUEST['wpsl_competitor'] ) ) : '';
-
-                if ( 'other' === $competitor ) {
-                    $args['competitor'] = $competitor;
-
-                    $competitor_other = isset( $_REQUEST['wpsl_competitor_other'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['wpsl_competitor_other'] ) ) : '';
-
-                    if ( $competitor_other ) {
-                        $args['competitor_other'] = $competitor_other;
-                    }
-                } else if ( isset( self::get_competitors()[ $competitor ] ) ) {
-                    $args['competitor'] = $competitor;
-                }
-            }
-
-            if ( 'not_working' === $reason ) {
-                $sub_reason = isset( $_REQUEST['wpsl_not_working'] ) ? sanitize_key( wp_unslash( $_REQUEST['wpsl_not_working'] ) ) : '';
-
-                // Unknown slugs are dropped.
-                if ( isset( self::get_not_working_reasons()[ $sub_reason ] ) ) {
-                    $args['sub_reason'] = $sub_reason;
-                }
-
-                // Only the opt-in travels in the request, the details are collected here.
-                if ( ! empty( $_REQUEST['wpsl_debug'] ) ) {
-                    $args['debug'] = $this->get_debug_data();
-                }
-            }
-
-            $response = wp_remote_post( $this->server, [
-                    'method'      => 'POST',
-                    'httpversion' => '1.0',
-                    'blocking'    => true,
-                    'body'        => $args,
-                    'user-agent'  => 'WPSL/' . WPSL_VERSION_NUM . ''
-                ]
-            );
+        if ( 'plugins.php' != $pagenow ) {
+            return;
         }
+
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
+        add_action( 'admin_footer',          [ $this, 'load_survey' ] );
+    }
+
+    /**
+     * Send the survey answer to the feedback server.
+     *
+     * Posted from the survey before the plugin is deactivated. Until 3.1.1
+     * the answer traveled in the deactivation URL, which would leave an email
+     * address in the site's access logs and the browser history.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    public function ajax_submit() {
+        check_ajax_referer( 'wpsl_survey_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            wp_send_json_error( null, 403 );
+        }
+
+        $reason = isset( $_POST['reason'] ) ? sanitize_key( wp_unslash( $_POST['reason'] ) ) : '';
+
+        if ( ! in_array( $reason, self::REASONS, true ) ) {
+            wp_send_json_error( null, 400 );
+        }
+
+        $max      = in_array( $reason, self::CONTACT_REASONS, true ) ? self::FEEDBACK_MAX_LONG : self::FEEDBACK_MAX;
+        $feedback = isset( $_POST['feedback'] ) ? sanitize_textarea_field( wp_unslash( $_POST['feedback'] ) ) : '';
+
+        $args = [
+            'reason'   => $reason,
+            'feedback' => mb_substr( $feedback, 0, $max ),
+        ];
+
+        // Unknown slugs are dropped, the free text name only travels with 'other'.
+        if ( 'better_plugin' === $reason ) {
+            $competitor = isset( $_POST['competitor'] ) ? sanitize_key( wp_unslash( $_POST['competitor'] ) ) : '';
+
+            if ( 'other' === $competitor ) {
+                $args['competitor'] = $competitor;
+
+                $competitor_other = isset( $_POST['competitor_other'] ) ? sanitize_text_field( wp_unslash( $_POST['competitor_other'] ) ) : '';
+
+                if ( $competitor_other ) {
+                    $args['competitor_other'] = mb_substr( $competitor_other, 0, 100 );
+                }
+            } else if ( isset( self::get_competitors()[ $competitor ] ) ) {
+                $args['competitor'] = $competitor;
+            }
+        }
+
+        if ( 'not_working' === $reason ) {
+            $sub_reason = isset( $_POST['sub_reason'] ) ? sanitize_key( wp_unslash( $_POST['sub_reason'] ) ) : '';
+
+            // Unknown slugs are dropped.
+            if ( isset( self::get_not_working_reasons()[ $sub_reason ] ) ) {
+                $args['sub_reason'] = $sub_reason;
+            }
+
+            // Only the opt-in travels in the request, the details are collected here.
+            if ( ! empty( $_POST['debug'] ) ) {
+                $args['debug'] = $this->get_debug_data();
+            }
+        }
+
+        // Only sent when the user ticked "You can email me about this".
+        if ( in_array( $reason, self::CONTACT_REASONS, true ) && ! empty( $_POST['email'] ) ) {
+            $email = sanitize_email( wp_unslash( $_POST['email'] ) );
+
+            if ( is_email( $email ) ) {
+                $args['email'] = $email;
+            }
+        }
+
+        $response = wp_remote_post( $this->server, [
+            'timeout'    => 5,
+            'body'       => $args,
+            'headers'    => [ 'Accept' => 'application/json' ],
+            'user-agent' => 'WPSL/' . WPSL_VERSION_NUM,
+        ] );
+
+        $code = wp_remote_retrieve_response_code( $response );
+
+        if ( is_wp_error( $response ) || $code < 200 || $code >= 300 ) {
+            wp_send_json_error();
+        }
+
+        wp_send_json_success();
+    }
+
+    /**
+     * The "You can email me about this" checkbox and its email field.
+     *
+     * The field holds the email of the logged-in user, which can be changed.
+     * Nothing is sent unless the checkbox is ticked.
+     *
+     * @since  3.1.1
+     * @param  string $id A unique part for the field ids, one per reason.
+     * @return void
+     */
+    public static function contact_fields( $id ) {
+        $user  = wp_get_current_user();
+        $email = ( $user && $user->exists() ) ? $user->user_email : '';
+        ?>
+        <div class="wpsl-survey-contact">
+            <label class="wpsl-survey-contact-toggle" for="wpsl-survey-contact-<?php echo esc_attr( $id ); ?>">
+                <input type="checkbox" class="wpsl-survey-contact-check" id="wpsl-survey-contact-<?php echo esc_attr( $id ); ?>" value="1">
+                <?php esc_html_e( 'You can email me about this', 'wp-store-locator' ); ?>
+            </label>
+            <div class="wpsl-survey-contact-email">
+                <label class="screen-reader-text" for="wpsl-survey-email-<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Email address', 'wp-store-locator' ); ?></label>
+                <input type="email" class="wpsl-survey-email" id="wpsl-survey-email-<?php echo esc_attr( $id ); ?>" maxlength="254" value="<?php echo esc_attr( $email ); ?>" data-default="<?php echo esc_attr( $email ); ?>">
+                <p class="wpsl-survey-hint"><?php esc_html_e( 'We only use it to reply about this feedback.', 'wp-store-locator' ); ?></p>
+            </div>
+        </div>
+        <?php
     }
 
     /**

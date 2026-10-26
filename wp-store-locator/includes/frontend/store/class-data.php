@@ -286,6 +286,13 @@ class Data {
              */
             if ( ! $wpsl_settings['ux']['hide_distance'] && isset( $store->distance ) && is_numeric( $store->distance ) ) {
                 $store_meta['distance'] = number_format( (float) $store->distance, 1, '.', '' );
+
+                // Under 1 km or 0.1 mi the rounded distance reads 0.0, so the listing shows meters or feet.
+                $short_distance = $this->get_short_distance( (float) $store->distance );
+
+                if ( $short_distance ) {
+                    $store_meta['distance_short'] = $short_distance;
+                }
             }
 
             /**
@@ -304,6 +311,46 @@ class Data {
         $all_stores = $this->sort_featured_first( $all_stores );
 
         return $all_stores;
+    }
+
+    /**
+     * A distance below 1 km or 0.1 mi in meters or feet.
+     *
+     * The 'distance' value has one decimal, so a location around the corner
+     * shows as 0.0 km. The listing template shows this value instead when it
+     * prints the distance unit from the data ( wpsl-search.js ). Rounded to
+     * 10, and never below 10, a location on the searched spot is still 10 m.
+     *
+     * @since  3.1.1
+     * @param  float      $distance The distance in the unit of the search.
+     * @return array|null $short    'value' and 'unit' ( m or ft ), or null for a longer distance.
+     */
+    private function get_short_distance( $distance ) {
+
+        // The same unit the search query used, see Search::find_nearby_locations().
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public search parameter, not a form submission
+        $unit = ( isset( $_GET['distance_unit'] ) && in_array( $_GET['distance_unit'], [ 'km', 'mi' ], true ) ) ? $_GET['distance_unit'] : wpsl_get_distance_unit();
+
+        if ( 'mi' === $unit ) {
+            if ( $distance >= 0.1 ) {
+                return null;
+            }
+
+            $value = $distance * 5280;
+            $short = 'ft';
+        } else {
+            $value = $distance * 1000;
+            $short = 'm';
+
+            if ( round( $value / 10 ) * 10 >= 1000 ) {
+                return null;
+            }
+        }
+
+        return [
+            'value' => (int) max( 10, round( $value / 10 ) * 10 ),
+            'unit'  => $short,
+        ];
     }
 
     /**
@@ -431,6 +478,17 @@ class Data {
             $extras['fax']   = esc_attr( sanitize_text_field( get_post_meta( $store_id, 'wpsl_fax', true ) ) );
             $extras['email'] = sanitize_email( get_post_meta( $store_id, 'wpsl_email', true ) );
             $extras['url']   = esc_url( get_post_meta( $store_id, 'wpsl_url', true ) );
+        }
+
+        // The social media links, when the landing page marker popup is one of their locations.
+        if ( in_array( 'landing_page_marker_popup', isset( $ux['social_links'] ) ? (array) $ux['social_links'] : [], true ) ) {
+            foreach ( wpsl_get_social_fields() as $field ) {
+                if ( ! empty( $field['name'] ) && is_string( $field['name'] ) ) {
+                    $social_value = get_post_meta( $store_id, 'wpsl_' . $field['name'], true );
+
+                    $extras[ $field['name'] ] = is_string( $social_value ) ? esc_url( $social_value ) : '';
+                }
+            }
         }
 
         // Post content / description.

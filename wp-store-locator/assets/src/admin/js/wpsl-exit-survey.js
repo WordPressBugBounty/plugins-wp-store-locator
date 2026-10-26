@@ -4,18 +4,22 @@
  * @since 2.2.240
  */
 ( function( $ ) {
-    const surveyOptions = ['not_working', 'better_plugin', 'missing_feature', 'temporary_deactivation', 'other'];
+    const surveyOptions = ['not_working', 'too_complicated', 'better_plugin', 'missing_feature', 'temporary_deactivation', 'other'];
     const $surveySupportLinks = $( '.wpsl-survey-support-links' );
     const $exitSurvey = $( '#wpsl-exit-survey' );
     const $competitor = $( '.wpsl-survey-competitor' );
     const $competitorSelect = $( '#wpsl-survey-competitor' );
     const $competitorOther = $( '#wpsl-survey-competitor-other' );
     const $notWorking = $( '.wpsl-survey-not-working' );
+    const $complicated = $( '.wpsl-survey-complicated' );
+    const $submitButton = $exitSurvey.find( 'footer .button-primary' );
 
-    let params, currentUrl, feedback, selectedReason, competitor, notWorkingReason;
+    // How long the answer may take to send before the plugin is deactivated anyway.
+    const sendTimeout = 6000;
+
+    let currentUrl;
 
     $( '#deactivate-wp-store-locator' ).on( 'click', function() {
-        params = '';
         currentUrl = $( this ).attr( 'href' );
 
         MicroModal.show( 'wpsl-exit-survey', {
@@ -25,10 +29,17 @@
         $exitSurvey.find( 'input[type=radio], input[type=checkbox]' ).prop( 'checked', false );
         $exitSurvey.find( 'input[type=text], select, textarea' ).val( '' );
 
-        $( '.wpsl-survey-support-links, .wpsl-exit-survey-suggestions' ).hide();
+        // The email fields start with the logged-in user's address again.
+        $exitSurvey.find( '.wpsl-survey-email' ).each( function() {
+            $( this ).val( $( this ).data( 'default' ) );
+        });
+
+        $( '.wpsl-survey-support-links, .wpsl-exit-survey-suggestions, .wpsl-survey-contact-email' ).hide();
         $notWorking.hide();
+        $complicated.hide();
         $competitor.hide();
         $competitorOther.hide();
+        $submitButton.prop( 'disabled', false );
 
         // Set the correct href value for the 'Skip & Deactivate' link.
         $( '#wpsl-skip-survey' ).attr( 'href', currentUrl );
@@ -39,12 +50,16 @@
             $exitSurvey.find( '.wpsl-exit-survey-suggestions' ).hide();
             $surveySupportLinks.hide();
             $notWorking.hide();
+            $complicated.hide();
             $competitor.hide();
 
             switch ( $( this ).val() ) {
                 case 'not_working':
                     $notWorking.show();
                     $surveySupportLinks.show();
+                    break;
+                case 'too_complicated':
+                    $complicated.show();
                     break;
                 case 'better_plugin':
                     $competitor.show();
@@ -56,51 +71,36 @@
             }
         });
 
+        // The email field only shows, and is only sent, when the user agrees to be contacted.
+        $exitSurvey.find( '.wpsl-survey-contact-check' ).on( 'change', function() {
+            $( this ).closest( '.wpsl-survey-contact' ).find( '.wpsl-survey-contact-email' ).toggle( $( this ).is( ':checked' ) );
+        });
+
         // Only ask for the plugin name when it is not in the list.
         $competitorSelect.on( 'change', function() {
             $competitorOther.toggle( $( this ).val() === 'other' );
         });
 
-        // Deactivate, carrying the reason and feedback in the URL parameters.
-        $exitSurvey.find( 'footer .button-primary' ).on( 'click', function() {
-            selectedReason = $exitSurvey.find( 'input[type=radio]:checked' );
+        // Send the answer, then deactivate. A failed or slow request never blocks the deactivation.
+        $submitButton.on( 'click', function() {
+            const data = wpslCollectAnswer();
 
-            if ( $.inArray( selectedReason.val(), surveyOptions ) >= 0 ) {
-                params = '&wpsl_deactivation_reason=' + selectedReason.val();
+            if ( ! data ) {
+                window.location.href = currentUrl;
 
-                if ( selectedReason.val() === 'better_plugin' ) {
-                    competitor = $competitorSelect.val();
-                    feedback   = $( '#wpsl-survey-competitor-feedback' ).val();
-
-                    if ( competitor ) {
-                        params = params + '&wpsl_competitor=' + encodeURIComponent( competitor );
-
-                        if ( competitor === 'other' && $competitorOther.val().trim() ) {
-                            params = params + '&wpsl_competitor_other=' + encodeURIComponent( $competitorOther.val().trim() );
-                        }
-                    }
-                } else if ( selectedReason.val() === 'not_working' ) {
-                    notWorkingReason = $( '#wpsl-survey-not-working-reason' ).val();
-                    feedback         = $( '#wpsl-survey-not-working-feedback' ).val();
-
-                    if ( notWorkingReason ) {
-                        params = params + '&wpsl_not_working=' + encodeURIComponent( notWorkingReason );
-                    }
-
-                    // Only the opt-in is sent from here, the details are collected on the server.
-                    if ( $( '#wpsl-survey-debug' ).is( ':checked' ) ) {
-                        params = params + '&wpsl_debug=1';
-                    }
-                } else {
-                    feedback = selectedReason.parent( 'li' ).find( 'input[type=text]' ).val();
-                }
-
-                if ( feedback ) {
-                    params = params + '&wpsl_deactivation_feedback=' + encodeURIComponent( feedback.trim() );
-                }
+                return false;
             }
 
-            window.location.href = currentUrl + params + '&wpsl_nonce=' + $( '#wpsl-survey-nonce' ).val();
+            $submitButton.prop( 'disabled', true );
+
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: data,
+                timeout: sendTimeout
+            }).always( function() {
+                window.location.href = currentUrl;
+            });
 
             return false;
         });
@@ -109,11 +109,82 @@
     });
 
     /**
+     * Collect the answer for the selected reason.
+     *
+     * @returns {object|null} The request data, or null when no reason is selected.
+     */
+    function wpslCollectAnswer() {
+        const $selected = $exitSurvey.find( 'input[type=radio]:checked' );
+        const reason    = $selected.val();
+
+        if ( $.inArray( reason, surveyOptions ) === -1 ) {
+            return null;
+        }
+
+        const data = {
+            action: 'wpsl_exit_survey',
+            nonce: $( '#wpsl-survey-nonce' ).val(),
+            reason: reason
+        };
+
+        let feedback = '',
+            $contact = $();
+
+        if ( reason === 'better_plugin' ) {
+            const competitor = $competitorSelect.val();
+
+            feedback = $( '#wpsl-survey-competitor-feedback' ).val();
+
+            if ( competitor ) {
+                data.competitor = competitor;
+
+                if ( competitor === 'other' && $competitorOther.val().trim() ) {
+                    data.competitor_other = $competitorOther.val().trim();
+                }
+            }
+        } else if ( reason === 'not_working' ) {
+            const notWorkingReason = $( '#wpsl-survey-not-working-reason' ).val();
+
+            feedback = $( '#wpsl-survey-not-working-feedback' ).val();
+            $contact = $notWorking.find( '.wpsl-survey-contact' );
+
+            if ( notWorkingReason ) {
+                data.sub_reason = notWorkingReason;
+            }
+
+            // Only the opt-in is sent from here, the details are collected on the server.
+            if ( $( '#wpsl-survey-debug' ).is( ':checked' ) ) {
+                data.debug = 1;
+            }
+        } else if ( reason === 'too_complicated' ) {
+            feedback = $( '#wpsl-survey-complicated-feedback' ).val();
+            $contact = $complicated.find( '.wpsl-survey-contact' );
+        } else {
+            feedback = $selected.parent( 'li' ).find( 'input[type=text]' ).val();
+        }
+
+        if ( feedback && feedback.trim() ) {
+            data.feedback = feedback.trim();
+        }
+
+        if ( $contact.find( '.wpsl-survey-contact-check' ).is( ':checked' ) ) {
+            const email = $contact.find( '.wpsl-survey-email' ).val().trim();
+
+            if ( email ) {
+                data.email = email;
+            }
+        }
+
+        return data;
+    }
+
+    /**
      * Unbind the survey listeners when the modal closes.
      */
     function wpslUnbindSurveyListeners() {
         $exitSurvey.find( 'input[type=radio]' ).off();
-        $exitSurvey.find( 'footer .button-primary' ).off();
+        $exitSurvey.find( '.wpsl-survey-contact-check' ).off();
+        $submitButton.off();
         $competitorSelect.off();
     }
 

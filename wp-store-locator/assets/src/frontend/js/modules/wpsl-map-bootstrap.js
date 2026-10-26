@@ -149,6 +149,10 @@ export const mapBootstrap = {
         // takes the place of autolocate and autoload. A widget submission wins over the link.
         const urlSearch = config.search.widgetEnabled ? '' : helpers.search.getUrlSearchValue();
 
+        // What a failed location attempt falls back to, also after a click
+        // on "Use my current location" with auto-locate disabled.
+        geolocation.showDefault = mapBootstrap.autoLoad;
+
         // Check if we need to autolocate the user,
         // or autoload the store locations.
         if ( ! config.search.widgetEnabled && ! urlSearch ) {

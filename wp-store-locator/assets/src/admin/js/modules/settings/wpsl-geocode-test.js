@@ -373,7 +373,8 @@ export const geocodeResponseTest = {
                     restrictionMessage = restrictionMessage + ' ' + additionalRestrictions;
                 }
 
-                $strongElem.after( '<span class="wpsl-restriction-warning-' + state.mapService + '">' + resultsWarning + ' ' + restrictionMessage + '.</span>' );
+                // The warning is escaped on the server, the country names are translations from the checkbox labels.
+                $strongElem.after( '<span class="wpsl-restriction-warning-' + state.mapService + '">' + resultsWarning + ' ' + sharedHelpers.escapeHtml( restrictionMessage ) + '.</span>' );
 
                 state.countryRestriction = {
                     requestParams: requestParams,

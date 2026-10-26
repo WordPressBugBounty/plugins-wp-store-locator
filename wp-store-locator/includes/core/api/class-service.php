@@ -551,6 +551,9 @@ class Service {
          */
         if ( $is_online ) {
             $meta_fields = [ 'url', 'email', 'phone', 'fax', 'thumb', 'online' ];
+
+            // The social media links ( 3.1.1 ), none while that option is off.
+            $meta_fields = array_merge( $meta_fields, array_column( wpsl_get_social_fields(), 'name' ) );
         }
 
         if ( ! $is_online || defined( 'REST_REQUEST' ) && REST_REQUEST ) {

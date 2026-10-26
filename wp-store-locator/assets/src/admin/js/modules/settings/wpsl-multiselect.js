@@ -143,8 +143,13 @@ export const multiselect = {
      * @returns {void}
      */
     renderPlaceholder( $container, $contentElement ) {
-        const placeholder = $container.find( 'button' ).data( 'placeholder' );
-        $contentElement.append( `<span class="wpsl-multiselect-placeholder">${placeholder}</span>` );
+        // Set as text, the placeholder is a translation.
+        const placeholder = document.createElement( 'span' );
+
+        placeholder.className   = 'wpsl-multiselect-placeholder';
+        placeholder.textContent = $container.find( 'button' ).data( 'placeholder' );
+
+        $contentElement.append( placeholder );
     },
     
     /**

@@ -3,6 +3,8 @@ import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
+import { groupWindow } from '../../../modules/wpsl-group-window.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { api } from './wpsl-api.js';
 
@@ -15,6 +17,14 @@ import { api } from './wpsl-api.js';
  */
 const WPSL_MAX_ZINDEX          = 2147483647;
 const WPSL_CLUSTER_BASE_ZINDEX = 1000000;
+
+/**
+ * The z-index the start marker gets with "start marker on top" and no
+ * clusters. Mirrors the value set in legacy.create() / advanced.create().
+ *
+ * @since 3.1.1
+ */
+const WPSL_START_ZINDEX = 9999;
 
 /**
  * The map the results list belongs to. Later indexes are [wpsl_map]
@@ -59,6 +69,23 @@ function wpslRenderClusterTemplate( template, vars ) {
     return String( template ).replace( /\$\{(\w+)\}/g, function( match, key ) {
         return vars.hasOwnProperty( key ) ? vars[key] : match;
     });
+}
+
+/**
+ * The number of locations in a cluster. A marker shared by the locations
+ * at one address counts once for each of them.
+ *
+ * @since  3.1.1
+ * @param  {array}  clusterMarkers The markers in the cluster
+ * @param  {number} count          The number of markers, used when the list is missing
+ * @return {number}
+ */
+function wpslLocationCount( clusterMarkers, count ) {
+    if ( ! Array.isArray( clusterMarkers ) ) {
+        return count;
+    }
+
+    return clusterMarkers.reduce( ( total, marker ) => total + ( marker && marker._wpslGroup ? marker._wpslGroup.length : 1 ), 0 );
 }
 
 /**
@@ -182,6 +209,25 @@ export const markers = {
         // The route's stop markers open the same info window as the marker they stand in for.
         createdMarker._wpslMarkerData = markerData;
 
+        // A marker that stands for every location at its address. The lead's
+        // own data goes first, as filtered by wpslMarkerData.
+        const group = markerGroups.members( markerData.id, mapIndex );
+
+        if ( group ) {
+
+            // _wpslGroup holds the locations shown now, see applyShownGroup().
+            createdMarker._wpslGroupAll = [ markerData ].concat( group.slice( 1 ) );
+            createdMarker._wpslGroup    = createdMarker._wpslGroupAll;
+
+            const title = groupWindow.markerTitle( createdMarker._wpslGroup );
+
+            if ( typeof createdMarker.setTitle === 'function' ) {
+                createdMarker.setTitle( title );
+            } else {
+                createdMarker.title = title;
+            }
+        }
+
         slData.provider.markers.active[mapIndex].push( createdMarker );
 
         if ( markerData.draggable ) {
@@ -216,6 +262,17 @@ export const markers = {
                     // Make sure no marker is set to active on the clicked map.
                     self.restoreActiveMarkers( currentMap._wpslMapIndex );
 
+                    // A shared marker opens on the location a search result asked for, see openOn().
+                    // With one of its locations left by wpsl.api.showLocations(), it opens on that one alone.
+                    const shownGroup = createdMarker._wpslGroup || null;
+                    const group      = shownGroup && shownGroup.length > 1 ? shownGroup : null;
+                    const single     = shownGroup && shownGroup.length === 1 ? shownGroup[0] : markerData;
+
+                    createdMarker._wpslGroupOpen  = group && typeof createdMarker._wpslGroupStart === 'number' ? createdMarker._wpslGroupStart : null;
+                    createdMarker._wpslGroupStart = null;
+
+                    const shownData = group ? group[ createdMarker._wpslGroupOpen || 0 ] : single;
+
                     if ( helpers.markers.maybeSetActivemarker( markerData.id, !! ( markerData.locationMarkerUrlActive || markerData.categoryMarkerUrlActive ) ) ) {
                         self.setActive( createdMarker, markerData );
                     }
@@ -225,13 +282,13 @@ export const markers = {
                         // Make sure streetview is available before showing the option to use it.
                         if ( config.ux.markerStreetView ) {
                             api.streetView.checkStatus( latLng, function() {
-                                infoWindow.setContent( createdMarker, markerData, map );
+                                infoWindow.setContent( createdMarker, single, map );
                             });
                         } else {
-                            infoWindow.setContent( createdMarker, markerData, map );
+                            infoWindow.setContent( createdMarker, single, map );
                         }
                     } else {
-                        infoWindow.setContent( createdMarker, markerData, map );
+                        infoWindow.setContent( createdMarker, single, map );
                     }
 
                     google.maps.event.clearListeners( infoWindow.current, 'domready' );
@@ -242,6 +299,14 @@ export const markers = {
                         infoWindow.applyRoundedButtonDimensions();
 
                         infoWindow.actions( createdMarker, currentMap );
+
+                        if ( group ) {
+                            groupWindow.bind( jQuery( currentMap.getDiv() ).find( '.wpsl-group-window' ), {
+                                stores: group,
+                                marker: createdMarker,
+                                map: currentMap
+                            });
+                        }
 
                         // Pan the info window back inside the map if it ends up
                         // above the container. 'idle' waits out pan/zoom
@@ -259,11 +324,16 @@ export const markers = {
                             }
                         });
 
-                        // Focus the close button only for keyboard-initiated interactions.
+                        // Move focus into the info window only for keyboard-initiated interactions:
+                        // its first link or button, such as an add-on's, else the close button.
                         // Mouse clicks and hovers should not shift focus to the info window.
                         if ( slData.markers.keyboardTriggered ) {
+                            const controls = helpers.infoWindowControls( $mapDiv.find( '.wpsl-info-window' ).closest( '.gm-style-iw-d' ).get( 0 ) );
                             const closeButton = jQuery( '.gm-ui-hover-effect[aria-label="Close"]' );
-                            if ( closeButton.length ) {
+
+                            if ( controls.length ) {
+                                controls[0].focus();
+                            } else if ( closeButton.length ) {
                                 closeButton.focus();
                             }
 
@@ -273,7 +343,7 @@ export const markers = {
 
                     markers.current = createdMarker;
 
-                    wp.hooks.doAction( 'wpslMarkerClicked', createdMarker, markerData, map );
+                    wp.hooks.doAction( 'wpslMarkerClicked', createdMarker, shownData, map );
                 };
             }( map, infoWindow, api ) ) );
         } else {
@@ -335,7 +405,7 @@ export const markers = {
             };
 
             if ( config.markers.startOnTop ) {
-                let startZIndex = 9999;
+                let startZIndex = WPSL_START_ZINDEX;
 
                 if ( config.markers.markerClusters ) {
                     // Use the CSS z-index ceiling exactly; clusters stay below it so the
@@ -388,7 +458,7 @@ export const markers = {
             };
 
             if ( config.markers.startOnTop ) {
-                let startZIndex = 9999;
+                let startZIndex = WPSL_START_ZINDEX;
 
                 if ( config.markers.markerClusters ) {
                     // Use the CSS z-index ceiling exactly. The cluster renderer keeps
@@ -636,7 +706,103 @@ export const markers = {
         // window is already open, so the offset has to follow the new artwork.
         infoWindow.reanchor( marker, mapIndex );
 
+        // Locations at the same address stack their markers. Without this the
+        // active one can sit underneath another marker.
+        this.lift( marker, 'active' );
+
         slData.provider.markers.current = marker;
+    },
+
+    /**
+     * The z-index for a lifted marker: above every other location marker, but
+     * below the start marker when "start marker on top" is enabled.
+     *
+     * @since  3.1.1
+     * @return {number} The z-index
+     */
+    getLiftedZIndex: function() {
+        if ( config.markers.startOnTop ) {
+            return ( config.markers.markerClusters ? WPSL_MAX_ZINDEX : WPSL_START_ZINDEX ) - 1;
+        }
+
+        return WPSL_MAX_ZINDEX;
+    },
+
+    /**
+     * Raise a marker above the others, for example while it is active or bounces.
+     *
+     * Each reason is tracked on its own, so a hover that ends ( bounce ) doesn't
+     * lower a marker that is still active from a click, and the other way round.
+     * The original z-index is kept and put back once no reason is left.
+     *
+     * @since  3.1.1
+     * @param  {object} marker The marker to raise
+     * @param  {string} reason Why the marker is raised, 'active' or 'bounce'
+     * @return {void}
+     */
+    lift: function( marker, reason ) {
+        if ( ! marker ) {
+            return;
+        }
+
+        if ( ! marker._wpslLifts ) {
+            marker._wpslLifts = new Set();
+        }
+
+        if ( marker._wpslLifts.size === 0 ) {
+            marker._wpslBaseZIndex = this.getZIndex( marker );
+            this.setZIndex( marker, this.getLiftedZIndex() );
+        }
+
+        marker._wpslLifts.add( reason );
+    },
+
+    /**
+     * Drop one reason for raising a marker, see lift(). The marker gets its
+     * original z-index back when it was the last reason.
+     *
+     * @since  3.1.1
+     * @param  {object} marker The marker to lower
+     * @param  {string} reason The reason passed to lift()
+     * @return {void}
+     */
+    lower: function( marker, reason ) {
+        if ( ! marker || ! marker._wpslLifts || ! marker._wpslLifts.delete( reason ) ) {
+            return;
+        }
+
+        if ( marker._wpslLifts.size === 0 ) {
+            this.setZIndex( marker, marker._wpslBaseZIndex );
+            delete marker._wpslBaseZIndex;
+        }
+    },
+
+    /**
+     * Read the z-index of a legacy or Advanced marker.
+     *
+     * @since  3.1.1
+     * @param  {object} marker The marker
+     * @return {number|null|undefined} The z-index, empty when Google decides the order
+     */
+    getZIndex: function( marker ) {
+        return ( typeof marker.getZIndex === 'function' ) ? marker.getZIndex() : marker.zIndex;
+    },
+
+    /**
+     * Set the z-index of a legacy or Advanced marker. An empty value hands the
+     * order back to Google Maps, which stacks markers by latitude.
+     *
+     * @since  3.1.1
+     * @param  {object}                marker The marker
+     * @param  {number|null|undefined} zIndex The z-index
+     * @return {void}
+     */
+    setZIndex: function( marker, zIndex ) {
+        if ( typeof marker.setZIndex === 'function' ) {
+            marker.setZIndex( zIndex );
+        } else {
+            marker.zIndex = ( typeof zIndex === 'number' ) ? zIndex : null;
+        }
     },
 
     /**
@@ -677,6 +843,8 @@ export const markers = {
             // Hovering another search result restores this marker while its
             // own window can still be open, so the offset follows it back.
             infoWindow.reanchor( marker, recordMapIndex );
+
+            this.lower( marker, 'active' );
         };
 
         if ( typeof mapIndex === 'number' ) {
@@ -706,6 +874,9 @@ export const markers = {
      */
     removeAll: function() {
         const activeMarkers = slData.provider.markers.active[ RESULTS_MAP_INDEX ] || [];
+
+        markerGroups.clear( RESULTS_MAP_INDEX );
+
         if ( activeMarkers.length > 0 ) {
             jQuery.each( activeMarkers, function( i ) {
                 const marker = activeMarkers[i];
@@ -809,8 +980,10 @@ export const markers = {
         if ( config.markers.cluster.style === 'interpolation' ) {
             renderer = {
                 palette: d3.interpolateRgb( clusterConfig.lowDensityColor, clusterConfig.highDensityColor ),
-                render( { count, position }, stats ) {
-                    const color    = this.palette( count / stats.clusters.markers.max );
+                render( { count, markers: clusterMarkers, position }, stats ) {
+                    count = wpslLocationCount( clusterMarkers, count );
+
+                    const color    = this.palette( Math.min( 1, count / stats.clusters.markers.max ) );
                     const template = ( clusterConfig.templates && clusterConfig.templates.interpolation ) || WPSL_DEFAULT_CLUSTER_TEMPLATES.interpolation;
                     const svg      = wpslRenderClusterTemplate( template.svg, {
                         color,
@@ -832,7 +1005,9 @@ export const markers = {
             }
         } else {
             renderer = {
-                render( { count, position }, stats, map ) {
+                render( { count, markers: clusterMarkers, position }, stats, map ) {
+                    count = wpslLocationCount( clusterMarkers, count );
+
                     const color    = count > Math.max( 10, stats.clusters.markers.mean ) ? clusterConfig.highDensityColor : clusterConfig.lowDensityColor;
                     const template = ( clusterConfig.templates && clusterConfig.templates.default ) || WPSL_DEFAULT_CLUSTER_TEMPLATES.default;
                     const svg      = wpslRenderClusterTemplate( template.svg, {
@@ -927,6 +1102,265 @@ export const markers = {
     },
 
     /**
+     * Whether a marker is on the map, not hidden in a cluster.
+     *
+     * @since  3.1.1
+     * @param  {object} marker A legacy or Advanced marker.
+     * @return {boolean}
+     */
+    isOnMap: function( marker ) {
+        return marker.element ? !! marker.map : !! ( marker.getMap && marker.getMap() );
+    },
+
+    /**
+     * The marker that shows a location: its own, or the one it shares with
+     * the other locations at its address.
+     *
+     * @since  3.1.1
+     * @param  {number} storeId  The location id
+     * @param  {number} mapIndex The map index
+     * @return {object|undefined} The marker
+     */
+    findMarker: function( storeId, mapIndex = RESULTS_MAP_INDEX ) {
+        const list   = ( slData.provider.markers.active && slData.provider.markers.active[ mapIndex ] ) || [];
+        const leadId = markerGroups.leadId( storeId, mapIndex );
+
+        return list.find( ( item ) => item && item.storeId === leadId );
+    },
+
+    /**
+     * Make the next click on a shared marker open on this location.
+     *
+     * @since  3.1.1
+     * @param  {object} marker   The marker
+     * @param  {number} storeId  The location id
+     * @param  {number} mapIndex The map index
+     * @return {void}
+     */
+    openOn: function( marker, storeId, mapIndex = RESULTS_MAP_INDEX ) {
+        if ( marker && marker._wpslGroup && marker._wpslGroup.length > 1 ) {
+            marker._wpslGroupStart = markerGroups.shownIndexOf( storeId, mapIndex );
+        }
+    },
+
+    /**
+     * Point a shared marker at the locations shown now, see
+     * wpsl.api.showLocations(): its title, info window and cluster count
+     * leave the hidden ones out.
+     *
+     * @since  3.1.1
+     * @param  {object} marker   The marker
+     * @param  {number} mapIndex The map index
+     * @return {void}
+     */
+    applyShownGroup: function( marker, mapIndex ) {
+        if ( ! marker || ! marker._wpslGroupAll ) {
+            return;
+        }
+
+        const group = markerGroups.shownOf( marker._wpslGroupAll, mapIndex );
+
+        if ( ! group.length ) {
+            return;
+        }
+
+        marker._wpslGroup = group;
+
+        const title = group.length > 1 ? groupWindow.markerTitle( group ) : helpers.decodeHtmlEntity( group[0].store );
+
+        if ( typeof marker.setTitle === 'function' ) {
+            marker.setTitle( title );
+        } else {
+            marker.title = title;
+        }
+    },
+
+    /**
+     * Pan to a store's marker on one map, reveal it from a cluster and open
+     * it like a click. Used by wpsl.api.focusLocation().
+     *
+     * @since  3.1.1
+     * @param  {number} storeId  The store ID.
+     * @param  {number} mapIndex The map index.
+     * @param  {object} options  options.zoom: zoom to at least this level.
+     * @return {boolean} Whether the marker was found.
+     */
+    focus: function( storeId, mapIndex, options = {} ) {
+        const map    = slData.maps[ mapIndex ];
+        const marker = this.findMarker( storeId, mapIndex );
+
+        if ( ! map || ! marker ) {
+            return false;
+        }
+
+        // A newer focus on this map makes the callbacks of this one stale.
+        const token = {};
+
+        map._wpslFocusToken = token;
+
+        const clusters   = !! ( map._wpslClusterEnabled && config.markers.cluster );
+        const revealZoom = clusters ? Number( config.markers.cluster.zoom ) + 1 : 0;
+        const clustered  = clusters && ! this.isOnMap( marker );
+        const zoom       = map.getZoom();
+        let target       = zoom;
+
+        // options.zoom is a minimum: a clustered marker still gets revealed.
+        if ( typeof options.zoom === 'number' ) {
+            target = Math.max( options.zoom, clustered ? revealZoom : 0 );
+        } else if ( clustered ) {
+            target = Math.max( zoom, revealZoom );
+        }
+
+        map.panTo( marker.position || marker.getPosition() );
+
+        if ( target !== zoom ) {
+            map.setZoom( target );
+        }
+
+        const open = () => {
+            if ( map._wpslFocusToken !== token ) {
+                return;
+            }
+
+            const active = document.activeElement;
+
+            // Closing the info window returns keyboard focus to the caller's
+            // element, as it does for the store locator's result list.
+            if ( active && active !== document.body && ! map.getDiv().contains( active ) ) {
+                slData.markers.focusSourceElement = active;
+            }
+
+            this.openOn( marker, storeId, mapIndex );
+            this.fireClick( marker );
+        };
+
+        // A marker on the map stays there, unless zooming out pulls it into a cluster.
+        if ( this.isOnMap( marker ) && ! ( clusters && target < zoom ) ) {
+            open();
+
+            return true;
+        }
+
+        /*
+         * The clusterer redraws on 'idle'. That never fires when nothing moved,
+         * so a timer backs it up; whichever comes first goes on, the other
+         * does nothing.
+         */
+        let settled  = false;
+        let listener = null;
+        let fallback = 0;
+
+        const settle = () => {
+            if ( settled ) {
+                return;
+            }
+
+            settled = true;
+            window.clearTimeout( fallback );
+            google.maps.event.removeListener( listener );
+
+            if ( map._wpslFocusToken !== token ) {
+                return;
+            }
+
+            // A zoom out left the marker in a cluster, so zoom in until it shows.
+            if ( clusters && ! this.isOnMap( marker ) && map.getZoom() < revealZoom ) {
+                map.setZoom( revealZoom );
+                google.maps.event.addListenerOnce( map, 'idle', open );
+            } else {
+                open();
+            }
+        };
+
+        listener = google.maps.event.addListenerOnce( map, 'idle', settle );
+        fallback = window.setTimeout( settle, 1000 );
+
+        return true;
+    },
+
+    /**
+     * Close the open info window on one map and restore its active markers,
+     * as a click on the map does. Used by wpsl.api.closePopups().
+     *
+     * @since  3.1.1
+     * @param  {number} mapIndex The map index.
+     * @return {boolean} Whether the map exists.
+     */
+    closePopups: function( mapIndex ) {
+        if ( ! slData.maps[ mapIndex ] ) {
+            return false;
+        }
+
+        // The same per-map lookup as the map's click handler in wpsl-map.js.
+        const ownInfoWindow = infoWindow.active.length ? infoWindow.active[ mapIndex ] : infoWindow.current;
+
+        if ( ownInfoWindow ) {
+            ownInfoWindow.close();
+        }
+
+        this.restoreActiveMarkers( mapIndex );
+
+        return true;
+    },
+
+    /**
+     * Show only the passed locations on a map, or all of them again, see
+     * wpsl.api.showLocations(). Hidden markers leave the clusterer too, so
+     * the cluster counts match what's shown. The start marker stays.
+     *
+     * @since  3.1.1
+     * @param  {array|null} ids      Location ids, null for all.
+     * @param  {number}     mapIndex The map index.
+     * @param  {object}     options  options.fitBounds: fit the map to the shown markers.
+     * @return {boolean} Whether the map exists.
+     */
+    showLocations: function( ids, mapIndex, options = {} ) {
+        const map  = slData.maps[ mapIndex ];
+        const list = ( this.active && this.active[ mapIndex ] ) || null;
+
+        if ( ! map || ! Array.isArray( list ) ) {
+            return false;
+        }
+
+        const clusterer = this.cluster && this.cluster[ mapIndex ];
+        const shown     = [];
+        const hidden    = [];
+
+        list.forEach( ( marker ) => {
+            if ( ! marker || ! marker.storeId ) {
+                return;
+            }
+
+            ( ! ids || markerGroups.showsAny( marker.storeId, ids, mapIndex ) ? shown : hidden ).push( marker );
+        });
+
+        this.closePopups( mapIndex );
+
+        markerGroups.setShown( ids, mapIndex );
+        shown.forEach( ( marker ) => this.applyShownGroup( marker, mapIndex ) );
+
+        if ( clusterer ) {
+            const inClusterer = clusterer.markers || [];
+
+            clusterer.removeMarkers( hidden.filter( ( marker ) => inClusterer.indexOf( marker ) !== -1 ), true );
+            clusterer.addMarkers( shown.filter( ( marker ) => inClusterer.indexOf( marker ) === -1 ), true );
+            clusterer.render();
+        } else {
+            // Legacy google.maps.Marker only hides via setMap(); AdvancedMarkerElement uses the map property.
+            const place = ( marker, target ) => ( typeof marker.setMap === 'function' ? marker.setMap( target ) : ( marker.map = target ) );
+
+            hidden.forEach( ( marker ) => place( marker, null ) );
+            shown.forEach( ( marker ) => place( marker, map ) );
+        }
+
+        if ( options.fitBounds && shown.length ) {
+            this.fitBounds( this.createLatLngBounds( shown ), map );
+        }
+
+        return true;
+    },
+
+    /**
      * Swap the hovered marker to its active icon so the bounce highlights it.
      *
      * @since  3.0.0
@@ -935,6 +1369,9 @@ export const markers = {
      */
     setActiveOnHover: function( storeId ) {
         const activeMarkers = slData.provider.markers.active[ RESULTS_MAP_INDEX ] || [];
+
+        // A location at a shared address highlights the marker it shares.
+        storeId = markerGroups.leadId( storeId, RESULTS_MAP_INDEX );
 
         for ( let i = 0, len = activeMarkers.length; i < len; i++ ) {
             if ( activeMarkers[i].storeId === storeId ) {
@@ -969,9 +1406,18 @@ export const markers = {
     bounce: function( storeId, status ) {
         const activeMarkers = slData.provider.markers.active[ RESULTS_MAP_INDEX ] || [];
 
+        storeId = markerGroups.leadId( storeId, RESULTS_MAP_INDEX );
+
         for ( let i = 0, len = activeMarkers.length; i < len; i++ ) {
             if ( activeMarkers[i].storeId === storeId ) {
                 const marker = activeMarkers[i];
+
+                // Keep the bouncing marker visible when another one covers it.
+                if ( status === 'start' ) {
+                    this.lift( marker, 'bounce' );
+                } else {
+                    this.lower( marker, 'bounce' );
+                }
 
                 // Advanced Marker - use CSS class on element
                 if ( marker.element ) {
@@ -1073,14 +1519,12 @@ export const markers = {
         } else if ( config.ux.markerEffect === 'info_window' ) {
             jQuery( '#wpsl-stores' ).on( 'mouseenter.wpslHover', 'li', function( e ) {
                 const storeId = jQuery( e.currentTarget ).data( 'store-id' );
-                const activeMarkers = slData.provider.markers.active[ RESULTS_MAP_INDEX ] || [];
+                const marker  = this.findMarker( storeId );
 
-                for ( let i = 0; i < activeMarkers.length; i++ ) {
-                    if ( activeMarkers[i].storeId === storeId ) {
-                        slData.maps[0].setCenter( activeMarkers[i].position );
-                        this.fireClick( activeMarkers[i] );
-                        break;
-                    }
+                if ( marker ) {
+                    slData.maps[0].setCenter( marker.position );
+                    this.openOn( marker, storeId );
+                    this.fireClick( marker );
                 }
             }.bind( this ) );
         }
@@ -1105,10 +1549,13 @@ export const markers = {
             markerClusterLen = slData.provider.markers.cluster[mapIndex].clusters.length;
         }
 
+        const leadId = markerGroups.leadId( storeId, mapIndex );
+
         for ( let i = 0; i < activeMarkers.length; i++ ) {
             const marker = activeMarkers[i];
-            if ( marker.storeId === storeId ) {
+            if ( marker.storeId === leadId ) {
                 helpers.map.setCenter( marker.position );
+                this.openOn( marker, storeId, mapIndex );
                 this.fireClick( marker );
 
                 // Check if marker clusters are active.
@@ -1218,11 +1665,20 @@ export const markers = {
              * location's title, or the store's own info window.
              */
             marker.addListener( clickEvent, ()=> {
-                const source = resultMarkers.find( ( resultMarker ) => resultMarker.storeId === marker.storeId );
+
+                // A location at a shared address has no result marker of its own, the shared one stands in.
+                const leadId = markerGroups.leadId( marker.storeId, RESULTS_MAP_INDEX );
+                const source = resultMarkers.find( ( resultMarker ) => resultMarker.storeId === leadId );
                 let infoWindowData;
 
                 if ( marker.storeId === 0 ) {
-                    infoWindowData = ( stopDetails && stopDetails.startAddress && sharedHelpers.escapeHtml( stopDetails.startAddress ) ) || ( source && source.title ) || marker.title;
+
+                    // A marker title is plain text ( the decoded start label ), the window takes HTML.
+                    infoWindowData = ( stopDetails && stopDetails.startAddress && sharedHelpers.escapeHtml( stopDetails.startAddress ) ) || sharedHelpers.escapeHtml( ( source && source.title ) || marker.title );
+                } else if ( markerGroups.isFollower( marker.storeId, RESULTS_MAP_INDEX ) ) {
+
+                    // The route goes to this location, so its window shows only this location.
+                    infoWindowData = markerGroups.store( marker.storeId, RESULTS_MAP_INDEX );
                 } else {
                     infoWindowData = ( source && source._wpslMarkerData ) || ( stopDetails && stopDetails.endAddress && sharedHelpers.escapeHtml( stopDetails.endAddress ) );
                 }

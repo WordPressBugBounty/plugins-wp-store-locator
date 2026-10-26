@@ -51,6 +51,16 @@ if ( ! defined( 'ABSPATH' ) ) {
             <label for="wpsl-run-fitbounds"><?php esc_html_e( 'Auto adjust the zoom level to make sure all markers are visible?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'This runs after a search is made, and makes sure all the returned locations are visible in the viewport.', 'wp-store-locator' ); ?></span></span></label>
             <input type="checkbox" value="" <?php checked( $section_settings['run_fitbounds'], true ); ?> name="wpsl_map[run_fitbounds]" id="wpsl-run-fitbounds">
         </p>
+        <p>
+            <label for="wpsl-radius-circle"><?php esc_html_e( 'Draw the search radius circle?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Draws a circle around the searched location with the size of the selected search radius. It is shown after a search for an address or the location of the visitor, not after a name or category search.', 'wp-store-locator' ); ?></span></span></label>
+            <input type="checkbox" value="" <?php checked( ! empty( $section_settings['radius_circle'] ), true ); ?> name="wpsl_map[radius_circle]" id="wpsl-radius-circle" class="wpsl-has-conditional-option">
+        </p>
+        <div class="wpsl-conditional-option" <?php if ( empty( $section_settings['radius_circle'] ) ) { echo 'style="display:none;"'; } ?>>
+            <p>
+                <label for="wpsl-radius-circle-color"><?php esc_html_e( 'Circle color', 'wp-store-locator' ); ?></label>
+                <input type="text" class="wpsl-color-field" id="wpsl-radius-circle-color" name="wpsl_map[radius_circle_color]" value="<?php echo esc_attr( ! empty( $section_settings['radius_circle_color'] ) ? $section_settings['radius_circle_color'] : '#2271b1' ); ?>" data-default="#2271b1">
+            </p>
+        </div>
         <p class="wpsl-api-gmaps" <?php if ( $settings_manager->get( 'api', 'active_map_service' ) != 'gmaps' ) { echo 'style="display:none"'; } ?>>
             <label for="wpsl-streetview"><?php esc_html_e( 'Show the street view controls?', 'wp-store-locator' ); ?></label>
             <input type="checkbox" value="" <?php checked( $section_settings['streetview'], true ); ?> name="wpsl_map[streetview]" id="wpsl-streetview">

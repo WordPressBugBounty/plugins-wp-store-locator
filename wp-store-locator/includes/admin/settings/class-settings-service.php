@@ -52,6 +52,15 @@ class Settings_Service {
             case 'max_results':
                 $error_msg = esc_html__( 'The max results field needs a default value set between square brackets, for example [25],50,75,100. The default value has been restored.', 'wp-store-locator' );
                 break;
+            case 'social_platform_duplicate':
+                $error_msg = esc_html__( 'A social media platform can only be added once.', 'wp-store-locator' );
+                break;
+            case 'social_field_label_empty':
+                $error_msg = esc_html__( 'A social media field of the type Other needs a name.', 'wp-store-locator' );
+                break;
+            case 'social_field_name_taken':
+                $error_msg = esc_html__( 'A social media field has the same name as an existing field, or a name that is reserved. Change its label, or remove the existing field first.', 'wp-store-locator' );
+                break;
             case 'max_results_empty':
                 $error_msg = esc_html__( 'The max results field cannot be empty, the default value has been restored.', 'wp-store-locator' );
                 break;

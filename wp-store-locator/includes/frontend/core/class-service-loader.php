@@ -106,8 +106,8 @@ class Service_Loader {
      *
      * Only singular requests can be judged from post content. Everything else
      * ( archives, home, 404, feeds ) falls to Assets\Manager::ensure_styles(),
-     * which still enqueues the styles when a shortcode does run - just late
-     * enough to print in the footer.
+     * which still enqueues the styles when a shortcode does run, and
+     * Assets\Manager::late_assets() prints them with its output.
      *
      * @since  3.0.0
      * @return bool
@@ -131,9 +131,9 @@ class Service_Loader {
 
                     /*
                      * The blocks render the same shortcodes, but only inside the
-                     * content. Without them here a classic theme has printed <body>
-                     * by then, so the page missed the wpsl-v3-css class and the
-                     * stylesheets loaded in the footer.
+                     * content. Without them here a classic theme has printed the
+                     * head by then, so the stylesheets and body classes would only
+                     * arrive with the block output.
                      */
                     if ( ! $needed && function_exists( 'has_block' ) ) {
                         $needed = has_block( 'wpsl/store-locator', $post ) || has_block( 'wpsl/store-map', $post );

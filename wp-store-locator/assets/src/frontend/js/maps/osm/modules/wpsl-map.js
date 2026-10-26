@@ -1,6 +1,7 @@
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { mapBootstrap } from '../../../modules/wpsl-map-bootstrap.js';
+import { fireMapReady } from '../../../modules/wpsl-map-ready.js';
 import { eventHandlers } from '../../../modules/wpsl-event-handlers.js';
 import { buttons } from '../../../modules/wpsl-buttons.js';
 import { markers } from './wpsl-markers.js';
@@ -201,6 +202,13 @@ export const map = {
             markers.layer           = markers.storeLocator.layer;
             markers.currentMapIndex = markers.storeLocator.mapIndex;
         }
+
+        // At the end of create(), so a [wpsl_map]'s markers are on the map.
+        const readyMap = slData.maps[ mapIndex ];
+
+        readyMap.whenReady( () => {
+            fireMapReady( readyMap, mapIndex, readyMap.getContainer() );
+        } );
 
         this.mapControlIcons();
     },

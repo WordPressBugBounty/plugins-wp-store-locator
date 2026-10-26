@@ -283,6 +283,61 @@ function wpsl_get_regions() {
 }
 
 /**
+ * Country name / iso code lookup, for matching a stored country name.
+ *
+ * Holds both the name in the site language and the English one: the stored
+ * country is what the geocoder or an import wrote, and that is often English
+ * on a translated site. When the two lists give a name to different codes,
+ * the site language wins. Entities in the region list ( Antigua &amp; Barbuda )
+ * are decoded, a stored name holds the plain character.
+ *
+ * @since  3.1.1
+ * @return array Lowercase country name => uppercase ISO 3166-1 alpha-2 code
+ */
+function wpsl_get_country_codes_by_name() {
+    $lookup = [];
+
+    $untranslated = function( $translation, $text ) {
+        return $text;
+    };
+
+    foreach ( [ false, true ] as $english ) {
+        if ( $english ) {
+            add_filter( 'gettext_wp-store-locator', $untranslated, PHP_INT_MAX, 2 );
+        }
+
+        $regions = wpsl_get_regions();
+
+        if ( $english ) {
+            remove_filter( 'gettext_wp-store-locator', $untranslated, PHP_INT_MAX );
+        }
+
+        foreach ( $regions as $name => $code ) {
+            $name = wpsl_normalize_country_name( $name );
+
+            if ( $code && $name !== '' && ! isset( $lookup[ $name ] ) ) {
+                $lookup[ $name ] = strtoupper( $code );
+            }
+        }
+    }
+
+    return $lookup;
+}
+
+/**
+ * Normalize a country name for a case-insensitive comparison.
+ *
+ * @since  3.1.1
+ * @param  string $name The country name
+ * @return string The decoded, trimmed and lowercase name
+ */
+function wpsl_normalize_country_name( $name ) {
+    $name = trim( html_entity_decode( (string) $name, ENT_QUOTES, 'UTF-8' ) );
+
+    return function_exists( 'mb_strtolower' ) ? mb_strtolower( $name, 'UTF-8' ) : strtolower( $name );
+}
+
+/**
  * Check if the active map provider
  * supports restricting the API request
  * to multiple countries.

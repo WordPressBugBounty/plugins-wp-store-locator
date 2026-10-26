@@ -4,6 +4,7 @@ import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
 import { responseHandlers } from '../../../modules/wpsl-response-handlers.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
 import { markers } from './wpsl-markers.js';
 import { buttons } from '../../../modules/wpsl-buttons.js';
 
@@ -37,14 +38,37 @@ export const api = {
                 delete args.fullSearch;
             }
 
+            // The countries set through the wpsl_geocode_components filter.
+            let filterCountries = [];
+
             // Check if we need to set the geocode component restrictions.
             if ( typeof config.api.geocodeComponents !== 'undefined' && ! jQuery.isEmptyObject( config.api.geocodeComponents ) ) {
-                requestArgs.componentRestrictions = config.api.geocodeComponents;
+                requestArgs.componentRestrictions = jQuery.extend( {}, config.api.geocodeComponents );
 
                 if ( typeof requestArgs.componentRestrictions.postalCode !== 'undefined' ) {
                     requestArgs.componentRestrictions.postalCode = jQuery( '#wpsl-search-input' ).val();
                 } else {
                     requestArgs.address = jQuery( '#wpsl-search-input' ).val();
+                }
+
+                // The wpsl_geocode_components filter can set the country to a list
+                // of countries, but the Geocoder only accepts one ( an array makes
+                // it throw before the request is sent ). A single country is used
+                // as is, more go through geocodeInCountries().
+                if ( Array.isArray( requestArgs.componentRestrictions.country ) ) {
+                    filterCountries = requestArgs.componentRestrictions.country
+                        .filter( country => typeof country === 'string' && country )
+                        .map( country => country.toUpperCase() );
+
+                    if ( filterCountries.length === 1 ) {
+                        requestArgs.componentRestrictions.country = filterCountries[0];
+                    } else {
+                        delete requestArgs.componentRestrictions.country;
+
+                        if ( jQuery.isEmptyObject( requestArgs.componentRestrictions ) ) {
+                            delete requestArgs.componentRestrictions;
+                        }
+                    }
                 }
             } else {
                 requestArgs.address = jQuery( '#wpsl-search-input' ).val();
@@ -55,6 +79,12 @@ export const api = {
             // ranks them first, a place in another country is still found.
             if ( slData.visitorCountry && ! config.api.region && ! config.api.restrict && ! ( requestArgs.componentRestrictions && requestArgs.componentRestrictions.country ) ) {
                 requestArgs.region = slData.visitorCountry;
+            }
+
+            if ( filterCountries.length > 1 ) {
+                this.geocodeInCountries( requestArgs, filterCountries, args );
+
+                return;
             }
 
             // Google's componentRestrictions only accepts a single country, so an
@@ -133,6 +163,53 @@ export const api = {
             wp.hooks.doAction( 'wpslGeocodeFinished', args, response );
 
             search.prepare( args );
+        },
+
+        /**
+         * Geocode a search restricted to several countries by the
+         * wpsl_geocode_components filter.
+         *
+         * Trying the countries in turn picks the wrong place for a name that
+         * exists in each of them, "Cork" restricted to the UK is an exact match
+         * for Coagh. So the search first runs without a country, and its result
+         * is used when it lies in one of the countries. Otherwise each country
+         * is tried in turn.
+         *
+         * @since 3.1.1
+         * @param {object} requestArgs The Geocoder request arguments, without a country
+         * @param {Array}  countries   The ISO country codes, in order of preference
+         * @param {object} args        The search arguments passed along on success
+         * @return {void}
+         */
+        geocodeInCountries: function( requestArgs, countries, args ) {
+            const self = this;
+            const openArgs = jQuery.extend( true, {}, requestArgs );
+
+            // Rank matches in the visitor's country first when it's one of the
+            // countries, otherwise in the first country.
+            if ( ! openArgs.region || countries.indexOf( openArgs.region.toUpperCase() ) === -1 ) {
+                openArgs.region = countries[0];
+            }
+
+            self.sendGeocodeRequest( openArgs, args, function( status, response ) {
+                if ( status === google.maps.GeocoderStatus.OK && ! response[0].partial_match ) {
+                    const country = response[0].address_components.find( component => component.types.indexOf( 'country' ) !== -1 );
+
+                    // In one of the countries - let the default handler run it.
+                    if ( country && countries.indexOf( country.short_name.toUpperCase() ) !== -1 ) {
+                        return false;
+                    }
+                }
+
+                // A real error ( quota, denied, ... ) - let the default handler report it.
+                if ( status !== google.maps.GeocoderStatus.OK && status !== google.maps.GeocoderStatus.ZERO_RESULTS ) {
+                    return false;
+                }
+
+                self.geocodeWithCountryFallback( requestArgs, countries, args );
+
+                return true;
+            });
         },
 
         /**
@@ -460,12 +537,15 @@ export const api = {
                 zoomLevel: slData.maps[0].getZoom()
             };
 
+            // A location at a shared address is on the marker it shares.
+            const destinationId = markerGroups.leadId( this.storeId, 0 );
+
             // Find the latlng that belongs to the start and end point.
             for ( let i = 0; i < len; i++ ) {
                 const marker = activeMarkers[i];
                 if ( marker.storeId === 0 ) {
                     originLatLng = marker.position;
-                } else if ( marker.storeId === this.storeId ) {
+                } else if ( marker.storeId === destinationId ) {
                     destinationLatLng = marker.position;
                 }
             
@@ -1022,10 +1102,10 @@ export const api = {
                 helpers.panel.maybeCloseFilters();
 
                 await place.fetchFields({
-                    fields: ['formattedAddress', 'location'],
+                    fields: ['formattedAddress', 'location', 'types', 'addressComponents'],
                 });
 
-                slData.autoCompleteLatLng = place.location;
+                helpers.search.setAutoCompletePlace( place.location, autocomplete.getFullSearch( place ) );
 
                 jQuery( '#wpsl-search-input' ).val( place.formattedAddress );
                 jQuery( '.wpsl-autocomplete-search-results' ).hide();
@@ -1035,6 +1115,44 @@ export const api = {
                 if ( config.search.autoSubmitAutoComplete ) {
                     jQuery( '#wpsl-search-btn' ).trigger( 'click' );
                 }
+            },
+
+            /**
+             * The full search data for a picked country or state.
+             *
+             * The same "Name,CODE" query filterResponse() builds from a
+             * Geocoder response, taken from the place's own address component.
+             *
+             * @since  3.1.1
+             * @param  {object} place google.maps.places.Place with types and addressComponents.
+             * @return {object|undefined} type and query, or undefined for any other place.
+             */
+            getFullSearch: function( place ) {
+                const types = Array.isArray( place.types ) ? place.types : [];
+
+                let type;
+
+                if ( types.indexOf( 'country' ) !== -1 ) {
+                    type = 'country';
+                } else if ( types.indexOf( 'administrative_area_level_1' ) !== -1 ) {
+                    type = 'state';
+                }
+
+                if ( ! type || ! Array.isArray( place.addressComponents ) ) {
+                    return;
+                }
+
+                const componentType = ( type === 'country' ) ? 'country' : 'administrative_area_level_1';
+                const component     = place.addressComponents.find( ( item ) => Array.isArray( item.types ) && item.types.indexOf( componentType ) !== -1 );
+
+                if ( ! component || ! component.longText ) {
+                    return;
+                }
+
+                return {
+                    type: type,
+                    query: component.longText + ( component.shortText ? ',' + component.shortText : '' )
+                };
             },
 
             /**
@@ -1087,6 +1205,11 @@ export const api = {
                     // then it will break it. So we have to remove it.
                     const { postalCode, ...componentRestrictions } = options.componentRestrictions;
                     options.componentRestrictions = componentRestrictions;
+
+                    // The Autocomplete accepts a list of up to 5 countries.
+                    if ( Array.isArray( options.componentRestrictions.country ) ) {
+                        options.componentRestrictions.country = options.componentRestrictions.country.slice( 0, 5 );
+                    }
                 }
 
                 // Check if we need to restrict the autocomplete data.

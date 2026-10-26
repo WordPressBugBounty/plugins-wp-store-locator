@@ -69,7 +69,8 @@ export const onboarding = {
      * @returns {void}
      */
     setVars: function() {
-        const selectedMapService = jQuery( '#wpsl-selected-map-service' ).val() || wpslSettings.api.provider;
+        // The map service step has radio buttons instead of the hidden field.
+        const selectedMapService = jQuery( '#wpsl-selected-map-service' ).val() || jQuery( '#wpsl-onboarding-map-service input[type=radio]:checked' ).val() || wpslSettings.api.provider;
 
         this.selectedService = selectedMapService;
         this.$startLocation = jQuery( '#wpsl-start-location' );
@@ -215,28 +216,67 @@ export const onboarding = {
             return false;
         });
     
-        jQuery( '#wpsl-onboarding-map-service img' ).on( 'click', ( event ) => {
-            const $img = jQuery( event.currentTarget );
-            const selectedService = $img.attr('data-name');
+        jQuery( '#wpsl-onboarding-map-service' ).on( 'change', 'input[type=radio]', ( event ) => {
+            this.selectedService = event.currentTarget.value;
+            this.updateContinueLabel();
+        });
 
-            jQuery( '#wpsl-selected-map-service' ).val( selectedService );
-            
-            this.selectedService = selectedService;
-
-            jQuery( '.wpsl-flex-box' ).removeClass( 'wpsl-selected-provider' );
-            $img.parent( 'div' ).addClass( 'wpsl-selected-provider' );
+        jQuery( '.wpsl-copy-shortcode' ).on( 'click', ( event ) => {
+            this.copyShortcode( jQuery( event.currentTarget ) );
         });
     },
 
     /**
-     * Set the active provider based on the selected service.
+     * Name the picked map service on the button that closes the step.
      *
-     * @since   3.0.0
+     * @since   3.1.1
      * @returns {void}
      */
-    setActiveProvider: function() {
-        jQuery( '#wpsl-onboarding-map-service .wpsl-flex-box' ).removeClass( 'wpsl-selected-provider' );
-        jQuery( '#wpsl-onboarding-map-service .wpsl-onboarding-' + this.selectedService + '-provider' ).addClass( 'wpsl-selected-provider' );
+    updateContinueLabel: function() {
+        const serviceName = wpslOnboardingL10n.serviceNames[ this.selectedService ];
+
+        if ( serviceName ) {
+            jQuery( '#wpsl-onboarding-continue' ).val( wpslOnboardingL10n.continueWith.replace( '%s', serviceName ) );
+        }
+    },
+
+    /**
+     * Copy the shortcode on the closing step, and confirm it on the button.
+     *
+     * @since   3.1.1
+     * @param   {object} $button The clicked copy button.
+     * @returns {void}
+     */
+    copyShortcode: function( $button ) {
+        const $label = $button.find( 'span' );
+        const text   = $button.data( 'copy' );
+
+        const confirmCopy = () => {
+            if ( ! $button.data( 'label' ) ) {
+                $button.data( 'label', $label.text() );
+            }
+
+            $label.text( wpslOnboardingL10n.copied );
+
+            clearTimeout( $button.data( 'timer' ) );
+            $button.data( 'timer', setTimeout( () => $label.text( $button.data( 'label' ) ), 2000 ) );
+        };
+
+        // The Clipboard API only exists on HTTPS, so an HTTP admin copies the old way.
+        if ( navigator.clipboard ) {
+            navigator.clipboard.writeText( text ).then( confirmCopy );
+        } else {
+            const $field = jQuery( '<textarea readonly>' ).val( text ).css( { position: 'fixed', top: 0, opacity: 0 } ).appendTo( 'body' );
+
+            $field.trigger( 'select' );
+
+            if ( document.execCommand( 'copy' ) ) {
+                confirmCopy();
+            }
+
+            $field.remove();
+            $button.trigger( 'focus' );
+        }
     },
 
     /**

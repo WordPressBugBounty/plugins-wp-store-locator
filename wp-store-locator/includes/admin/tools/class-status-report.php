@@ -147,6 +147,11 @@ class Status_Report {
         $return .= 'Permalinks: ' . ( $permalinks ? $permalinks : 'plain' ) . "\n\n";
 
         $return .= '-- Server Environment' . "\n\n";
+
+        if ( ! $this->show_server_details() ) {
+            return $return . 'Only shown to network administrators.' . "\n";
+        }
+
         $return .= 'PHP version: ' . PHP_VERSION . "\n";
         $return .= 'MySQL version: ' . $wpdb->db_version() . "\n";
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Server variable, sanitized with sanitize_text_field
@@ -158,6 +163,29 @@ class Status_Report {
         $return .= 'cURL: ' . ( function_exists( 'curl_init' ) ? 'Supported' : 'Not Supported' ) . "\n";
 
         return $return;
+    }
+
+    /**
+     * Whether the report shows the server details ( PHP, MySQL and web server
+     * versions, limits, error display ).
+     *
+     * On a multisite only a network administrator sees them, as with core's
+     * Site Health: a site administrator runs one site on a server they don't
+     * manage.
+     *
+     * @since  3.1.1
+     * @return bool
+     */
+    public function show_server_details() {
+        $show = ! is_multisite() || is_super_admin();
+
+        /**
+         * Filter whether the status report shows the server details.
+         *
+         * @since 3.1.1
+         * @param bool $show False for a site administrator on a multisite.
+         */
+        return (bool) apply_filters( 'wpsl_status_report_server_details', $show );
     }
 
     /**
@@ -174,7 +202,12 @@ class Status_Report {
         $return .= 'Map provider: ' . $active_map_service . "\n";
         $return .= 'Map style: ' . $this->get_map_style( $active_map_service ) . "\n";
 
-        if ( $active_map_service == 'gmaps' ) {
+        /*
+         * The live check asks Google, whose error for an IP-restricted key names
+         * the server's IP address. An anonymous report ( the exit survey ) uses
+         * the stored key status from get_key_details() below instead.
+         */
+        if ( $active_map_service == 'gmaps' && ! $anonymous ) {
             // Use a class method instead of global function if possible
             if ( function_exists( 'wpsl_check_gmaps_key_status' ) ) {
                 $return .= 'Server API key status: ' . wpsl_check_gmaps_key_status() . "\n";
@@ -207,6 +240,7 @@ class Status_Report {
         }
 
         $return .= 'Run fitbounds: ' . $this->check_settings_status( 'map', 'run_fitbounds' ) . "\n";
+        $return .= 'Search radius circle: ' . $this->check_settings_status( 'map', 'radius_circle' ) . "\n";
         $return .= 'Template: ' . $this->settings->get( 'appearance', 'template_id' ) . "\n";
         $return .= $this->get_template_details();
         $return .= 'Start marker: ' . $this->settings->get( 'markers', 'start_marker' ) . "\n";
@@ -214,6 +248,7 @@ class Status_Report {
         $return .= 'Store marker: ' . $this->settings->get( 'markers', 'store_marker' ) . "\n";
         $return .= 'Active store marker: ' . $this->settings->get( 'markers', 'active_marker' ) . "\n";
         $return .= 'Marker clusters: ' . $this->check_settings_status( 'markers', 'marker_clusters' ) . "\n";
+        $return .= 'One marker per address: ' . $this->check_settings_status( 'markers', 'group_colocated' ) . "\n";
         $return .= 'Debug: ' . $this->check_settings_status( 'tools', 'debug' ) . "\n";
         $return .= $this->get_alert_details();
         $return .= $this->get_upgrade_details();

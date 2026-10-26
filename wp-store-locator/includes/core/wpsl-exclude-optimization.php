@@ -216,6 +216,7 @@ function wpsl_litespeed_optimize_js_excludes( $exclude_list ) {
     $exclude_list[] = 'underscore.min.js';
     $exclude_list[] = $js_base . 'frontend/js/wpsl' . $min .'.js';
     $exclude_list[] = 'wpsl-js-extra';
+    $exclude_list[] = 'var wpslSettings'; // Inline scripts are matched by content, and before WP 6.9 wpsl-js-extra isn't in it ( 3.1.1 ).
     $exclude_list[] = 'wpsl-js-before'; // The section templates ( wpslTemplateSections ).
 
     // Exclude files based on the active map provider (frontend-only scripts)
@@ -254,33 +255,97 @@ add_filter( 'litespeed_optimize_js_excludes', 'wpsl_litespeed_optimize_js_exclud
 add_filter( 'litespeed_optm_gm_js_exc',       'wpsl_litespeed_optimize_js_excludes' ); //see https://docs.litespeedtech.com/lscache/lscwp/pageopt/#guest-mode-js-excludes
 
 /**
- * Prevent LiteSpeed Cache from combining or delaying wp-hooks,
- * which would make wp.hooks undefined when wpsl.js runs as a module.
- * 
- * Applies when JS combine or defer/delay is enabled (aggressive preset and above).
+ * Keep LiteSpeed Cache away from the scripts the store locator needs.
  *
- * @since 3.0.0
- * @param string $tag    The script tag.
- * @param string $handle The script handle.
+ * With "Load JS Delayed" LiteSpeed holds back every script it doesn't
+ * exclude until the first scroll or click. The exclude list above matches
+ * by URL, or by content for inline scripts, so it misses scripts like
+ * wp-hooks, the map library and the Google Maps bootstrap. wpsl.js then
+ * runs on DOM ready without them ( "wp is not defined" ) and no results load.
+ *
+ * LiteSpeed skips any script tag with data-no-optimize, so it's added to
+ * WPSL's own scripts, the WordPress scripts they depend on, and their
+ * inline scripts ( wpslSettings, the template sections and the Google
+ * Maps bootstrap ).
+ *
+ * @since  3.1.1
+ * @param  string $handle The script handle.
+ * @return bool Whether LiteSpeed Cache has to leave the handle alone.
+ */
+function wpsl_litespeed_skips_handle( $handle ) {
+    if ( ! defined( 'LSCWP_V' ) || ! wp_script_is( 'wpsl' ) ) {
+        return false;
+    }
+
+    $shared_handles = [ 'jquery-core', 'jquery-migrate', 'wp-hooks', 'underscore', 'jquery-ui-core', 'jquery-ui-tabs' ];
+
+    return strpos( $handle, 'wpsl' ) === 0 || in_array( $handle, $shared_handles, true );
+}
+
+/**
+ * Add data-no-optimize to the script tags of the handles LiteSpeed Cache
+ * has to leave alone. Before WP 6.4 $tag also holds the inline before /
+ * after scripts.
+ *
+ * @since  3.1.1
+ * @param  string $tag    The script tag.
+ * @param  string $handle The script handle.
  * @return string The modified script tag.
  */
-function wpsl_prevent_wp_hooks_optimization( $tag, $handle ) {
-    if ( 'wp-hooks' === $handle && wpsl_is_litespeed_js_optimization_enabled() ) {
-        return str_replace( '<script ', '<script data-no-optimize="1" ', $tag );
+function wpsl_litespeed_no_optimize_tag( $tag, $handle ) {
+    if ( wpsl_litespeed_skips_handle( $handle ) ) {
+        $tag = preg_replace( '/<script(?![^>]*\sdata-no-optimize)(?=[\s>])/', '<script data-no-optimize="1"', $tag );
     }
 
     return $tag;
 }
 
-add_filter( 'script_loader_tag', 'wpsl_prevent_wp_hooks_optimization', 10, 2 );
+add_filter( 'script_loader_tag', 'wpsl_litespeed_no_optimize_tag', 10, 2 );
+
+/**
+ * Add data-no-optimize to the inline scripts ( {handle}-js-extra, -before
+ * and -after ) of the handles LiteSpeed Cache has to leave alone.
+ *
+ * @since  3.1.1
+ * @param  array $attributes The inline script attributes.
+ * @return array The modified attributes.
+ */
+function wpsl_litespeed_no_optimize_inline( $attributes ) {
+    if ( isset( $attributes['id'] ) && preg_match( '/^(.+)-js-(?:extra|before|after)$/', $attributes['id'], $match ) && wpsl_litespeed_skips_handle( $match[1] ) ) {
+        $attributes['data-no-optimize'] = '1';
+    }
+
+    return $attributes;
+}
+
+add_filter( 'wp_inline_script_attributes', 'wpsl_litespeed_no_optimize_inline' );
+
+/**
+ * Kept for code that called it: replaced by wpsl_litespeed_no_optimize_tag(),
+ * which covers wp-hooks and the other scripts the store locator needs.
+ *
+ * @since      3.0.0
+ * @deprecated 3.1.1 Use wpsl_litespeed_no_optimize_tag().
+ * @param  string $tag    The script tag.
+ * @param  string $handle The script handle.
+ * @return string The modified script tag.
+ */
+function wpsl_prevent_wp_hooks_optimization( $tag, $handle ) {
+    _deprecated_function( __FUNCTION__, '3.1.1', 'wpsl_litespeed_no_optimize_tag()' );
+
+    return wpsl_litespeed_no_optimize_tag( $tag, $handle );
+}
 
 /**
  * Check if LiteSpeed Cache JS combine or defer/delay is active.
  *
- * @since 3.0.0
+ * @since      3.0.0
+ * @deprecated 3.1.1 WPSL no longer needs it, see wpsl_litespeed_skips_handle().
  * @return bool
  */
 function wpsl_is_litespeed_js_optimization_enabled() {
+    _deprecated_function( __FUNCTION__, '3.1.1' );
+
     if ( ! is_plugin_active( 'litespeed-cache/litespeed-cache.php' ) ) {
         return false;
     }

@@ -129,7 +129,8 @@ export const infoWindow = {
                 }
             });
             
-            const contentLinks = Array.from( popup.querySelectorAll( '.mapboxgl-popup-content a[href]' ) );
+            // The popup's links and buttons, such as a shared popup's list of locations or an add-on's button.
+            const contentLinks = helpers.infoWindowControls( popup.querySelector( '.mapboxgl-popup-content' ) );
             const firstContentLink = contentLinks[0];
             if ( firstContentLink ) {
                 firstContentLink.focus();
@@ -200,16 +201,17 @@ export const infoWindow = {
 
             closeButton._wpslKeydownHandlers.push( handleCloseButtonKeydown );
             
-            contentLinks.forEach( function( link, index ) {
-                if ( index > 0 ) {
-                    link.addEventListener( 'keydown', handleEscapeKey );
-                    
-                    if ( ! link._wpslKeydownHandlers ) {
-                        link._wpslKeydownHandlers = [];
-                    }
-                    
-                    link._wpslKeydownHandlers.push( handleEscapeKey );
+            // The buttons of a shared popup close it on Escape too.
+            const escapeTargets = contentLinks.slice( 1 ).concat( Array.from( popup.querySelectorAll( '.wpsl-group-nav button' ) ) );
+
+            escapeTargets.forEach( function( link ) {
+                link.addEventListener( 'keydown', handleEscapeKey );
+
+                if ( ! link._wpslKeydownHandlers ) {
+                    link._wpslKeydownHandlers = [];
                 }
+
+                link._wpslKeydownHandlers.push( handleEscapeKey );
             });
             
             closeButton.addEventListener( 'click', () => {
@@ -284,6 +286,11 @@ export const infoWindow = {
 
         jQuery( '.wpsl-info-actions a' ).on( 'click', function( e ) {
             const maxZoom = config.map.autoZoomLevel;
+
+            // More details, and any link a template adds, opens as a normal link.
+            if ( ! jQuery( this ).is( '.wpsl-directions, .wpsl-zoom-here' ) ) {
+                return true;
+            }
 
             e.stopImmediatePropagation();
 

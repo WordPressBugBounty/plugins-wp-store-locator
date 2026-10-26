@@ -84,8 +84,20 @@ $radius_text    = $panel_filters->get_default_radius_text();
 $category_shown = ! empty( $wpsl_settings['category_filter'] );
 $radius_shown   = ! empty( $wpsl_settings['radius_dropdown'] );
 
-$baseline_buttons  = '<button type="button" id="wpsl-show-filters" data-filter="category" data-nested-label="' . esc_attr( $categories_label ) . '"' . ( $category_shown ? '' : ' style="display: none;"' ) . '><div><span>' . esc_html( $i18n->get_translation( 'show_filters_label', __( 'Show filters', 'wp-store-locator' ) ) ) . '</span></div>' . $dropdown_icon . '</button>';
-$baseline_buttons .= '<button type="button" id="wpsl-show-radius" data-filter="radius"' . ( $radius_shown ? '' : ' style="display: none;"' ) . '><div><span>' . esc_html( $radius_text ) . '</span></div>' . $dropdown_icon . '</button>';
+/*
+ * Only the enabled filters get a button, as on the front end. A hidden button
+ * stayed the last child, so the one before it kept the separator border
+ * ( filters.css ) next to the panel's own border.
+ */
+$baseline_buttons = '';
+
+if ( $category_shown ) {
+    $baseline_buttons .= '<button type="button" id="wpsl-show-filters" data-filter="category" data-nested-label="' . esc_attr( $categories_label ) . '"><div><span>' . esc_html( $i18n->get_translation( 'show_filters_label', __( 'Show filters', 'wp-store-locator' ) ) ) . '</span></div>' . $dropdown_icon . '</button>';
+}
+
+if ( $radius_shown ) {
+    $baseline_buttons .= '<button type="button" id="wpsl-show-radius" data-filter="radius"><div><span>' . esc_html( $radius_text ) . '</span></div>' . $dropdown_icon . '</button>';
+}
 
 $baseline_options  = '<div data-id="wpsl-show-filters" style="">' . $categories_mock . $filter_actions_mock . '</div>';
 $baseline_options .= '<div data-id="wpsl-show-radius" style="display: none;">' . $radius_mock . '</div>';

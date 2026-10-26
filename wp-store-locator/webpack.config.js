@@ -2,6 +2,26 @@ const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 
 /*
+ * Writes the id of this build to frontend/js/wpsl.asset.php. The front-end
+ * bundle carries the same id ( __webpack_hash__ ), so a CDN or cache that
+ * serves an older wpsl.min.js under the new ?ver= shows up as a mismatch.
+ * See assets/src/frontend/js/modules/wpsl-build-check.js.
+ */
+class WpslBuildIdPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.webpack;
+
+    compiler.hooks.thisCompilation.tap('WpslBuildIdPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap({ name: 'WpslBuildIdPlugin', stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
+        const php = "<?php defined( 'ABSPATH' ) || exit;\n\nreturn [ 'build' => '" + compilation.hash.slice(0, 8) + "' ];\n";
+
+        compilation.emitAsset('frontend/js/wpsl.asset.php', new sources.RawSource(php));
+      });
+    });
+  }
+}
+
+/*
  * JavaScript only. Stylesheets are minified by tools/build-css.js and the
  * editor blocks by wp-scripts ( see package.json ).
  */
@@ -77,6 +97,10 @@ module.exports = {
       }
     ]
   },
+
+  plugins: [
+    new WpslBuildIdPlugin(),
+  ],
 
   optimization: {
     chunkIds: 'named',

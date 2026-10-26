@@ -24,7 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     <?php endforeach; ?>
                                 </select>
                                 <label for="wpsl-survey-not-working-feedback"><?php esc_html_e( 'What happened?', 'wp-store-locator' ); ?></label>
-                                <textarea id="wpsl-survey-not-working-feedback" rows="3" maxlength="1000"></textarea>
+                                <textarea id="wpsl-survey-not-working-feedback" rows="4" maxlength="<?php echo esc_attr( \WPSL\Admin\Utils\Exit_Survey::FEEDBACK_MAX_LONG ); ?>" aria-describedby="wpsl-survey-not-working-hint"></textarea>
+                                <p class="wpsl-survey-hint" id="wpsl-survey-not-working-hint"><?php esc_html_e( 'Error messages help us most. Open the browser console (F12, then Console) on the page that doesn\'t work, or your site\'s PHP error log, and paste the errors that mention WP Store Locator or wpsl.', 'wp-store-locator' ); ?></p>
                                 <label class="wpsl-survey-debug" for="wpsl-survey-debug">
                                     <input type="checkbox" id="wpsl-survey-debug" value="1">
                                     <?php esc_html_e( 'Include technical details to help us debug', 'wp-store-locator' ); ?>
@@ -39,13 +40,26 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <li><?php esc_html_e( 'The WP Store Locator alerts that are showing, such as a conflicting plugin', 'wp-store-locator' ); ?></li>
                                         <li><?php esc_html_e( 'The number of locations and categories', 'wp-store-locator' ); ?></li>
                                     </ul>
-                                    <p><strong><?php esc_html_e( 'Your site address, your stores and any personal data are not included.', 'wp-store-locator' ); ?></strong></p>
+                                    <p><strong><?php esc_html_e( 'Your site address and your stores are not included.', 'wp-store-locator' ); ?></strong> <?php esc_html_e( 'Your email address is only sent when you tick "You can email me about this".', 'wp-store-locator' ); ?></p>
                                 </details>
+                                <?php \WPSL\Admin\Utils\Exit_Survey::contact_fields( 'not-working' ); ?>
                             </div>
                             <p class="wpsl-survey-support-links">
                                 <a class="button-primary" href="https://wpstorelocator.co/support" target="_blank"><?php esc_html_e( 'Open Support Ticket', 'wp-store-locator' ); ?></a>
                                 <a class="button-primary" href="https://wpstorelocator.co/documentation" target="_blank"><?php esc_html_e( 'Documentation', 'wp-store-locator' ); ?></a>
                             </p>
+                        </li>
+                        <li>
+                            <input type="radio" id="wpsl-too-complicated" name="survey-reason" value="too_complicated">
+                            <label for="wpsl-too-complicated"><?php esc_html_e( 'It\'s too complicated to set up or use' , 'wp-store-locator' ); ?></label>
+                            <div class="wpsl-survey-complicated">
+                                <label for="wpsl-survey-complicated-feedback"><?php esc_html_e( 'What was confusing or took too long?', 'wp-store-locator' ); ?></label>
+                                <textarea id="wpsl-survey-complicated-feedback" rows="4" maxlength="<?php echo esc_attr( \WPSL\Admin\Utils\Exit_Survey::FEEDBACK_MAX_LONG ); ?>"></textarea>
+                                <?php \WPSL\Admin\Utils\Exit_Survey::contact_fields( 'complicated' ); ?>
+                                <p class="wpsl-survey-complicated-links">
+                                    <a class="button-primary" href="https://wpstorelocator.co/documentation" target="_blank"><?php esc_html_e( 'Documentation', 'wp-store-locator' ); ?></a>
+                                </p>
+                            </div>
                         </li>
                         <li>
                             <input type="radio" id="wpsl-better-plugin" name="survey-reason" value="better_plugin">

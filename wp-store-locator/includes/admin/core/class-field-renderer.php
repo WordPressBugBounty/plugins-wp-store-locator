@@ -127,12 +127,12 @@ class Field_Renderer {
         $saved_value = $this->get_store_meta( $args['key'] );
 
         // If there is no existing meta value, check if a prefilled value exists for the input field.
-        if ( ! $saved_value ) {
+        if ( self::is_blank( $saved_value ) ) {
             $saved_value = $this->get_prefilled_field_data( $args['key'] );
         }
 
         // If there's still no value, fall back to the custom field's configured default.
-        if ( ! $saved_value && isset( $args['data']['default'] ) ) {
+        if ( self::is_blank( $saved_value ) && isset( $args['data']['default'] ) ) {
             $saved_value = $args['data']['default'];
         }
 
@@ -141,10 +141,19 @@ class Field_Renderer {
             $args['data']['type'] = 'text';
         }
 
+        // A social media field shows the platform icon in front of the label, and a hint of what to enter.
+        $icon        = '';
+        $placeholder = '';
+
+        if ( ! empty( $args['data']['platform'] ) && is_string( $args['data']['platform'] ) ) {
+            $icon        = wpsl_social_icon_svg( $args['data']['platform'] );
+            $placeholder = ( 'whatsapp' === $args['data']['platform'] ) ? 'https://wa.me/1234567890' : 'https://';
+        }
+
         ?>
         <p>
-            <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo esc_html( $args['data']['label'] ) . ' ' . $this->is_required_field( $args['data'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?></label>
-            <input id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?> type="<?php echo esc_attr( $args['data']['type'] ); ?>" name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" value="<?php echo esc_attr( $saved_value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>" />
+            <label for="wpsl-<?php echo esc_attr( $args['key'] ); ?>"><?php echo $icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static svg markup built by wpsl_social_icon_svg() ?><?php echo esc_html( $args['data']['label'] ) . ' ' . $this->is_required_field( $args['data'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?></label>
+            <input id="wpsl-<?php echo esc_attr( $args['key'] ); ?>" <?php echo $this->set_required_class( $args['data'] ); ?> type="<?php echo esc_attr( $args['data']['type'] ); ?>" name="wpsl[<?php echo esc_attr( $args['key'] ); ?>]" value="<?php echo esc_attr( $saved_value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>"<?php if ( '' !== $placeholder ) { echo ' placeholder="' . esc_attr( $placeholder ) . '"'; } ?> />
         </p>
         <?php
     }
@@ -180,7 +189,7 @@ class Field_Renderer {
         }
 
         // If there is no existing meta value, check if a prefilled value exists for the textarea.
-        if ( ! $saved_value ) {
+        if ( self::is_blank( $saved_value ) ) {
             $prefilled_value = $this->get_prefilled_field_data( $args['key'] );
 
             if ( isset( $prefilled_value['textarea'] ) ) {
@@ -189,7 +198,7 @@ class Field_Renderer {
         }
 
         // If there's still no value, fall back to the custom field's configured default.
-        if ( ! $saved_value && isset( $args['data']['default'] ) ) {
+        if ( self::is_blank( $saved_value ) && isset( $args['data']['default'] ) ) {
             $saved_value = $args['data']['default'];
         }
         ?>
@@ -324,9 +333,23 @@ class Field_Renderer {
 
         $store_meta = get_post_meta( $post->ID, 'wpsl_' . $key, true );
 
-        if ( $store_meta ) {
+        if ( ! self::is_blank( $store_meta ) ) {
             return $store_meta;
         }
+    }
+
+    /**
+     * Whether a field value is missing.
+     *
+     * Strict, so a saved "0" counts as a value: a loose check showed it as an
+     * empty field, and saving the store then deleted it.
+     *
+     * @since  3.1.1
+     * @param  mixed $value The value.
+     * @return bool
+     */
+    public static function is_blank( $value ) {
+        return null === $value || false === $value || '' === $value || [] === $value;
     }
 
     /**

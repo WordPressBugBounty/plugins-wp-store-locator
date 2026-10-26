@@ -4,6 +4,7 @@ import { sharedHelpers } from '../../../common/wpsl-shared-helpers.js';
 import { search } from './wpsl-search.js';
 import { filters } from './wpsl-filters.js';
 import { responseHandlers } from './wpsl-response-handlers.js';
+import { radiusCircle } from './wpsl-radius-circle.js';
 
 /*
  * Placeholders a data source may legitimately leave out. Mirrors the list
@@ -216,6 +217,9 @@ export const helpers = {
             } else {
                 provider.shapes.hide( map );
             }
+
+            // The circle around the searched location goes with them.
+            radiusCircle.setVisible( visible );
         },
 
         /**
@@ -410,9 +414,10 @@ export const helpers = {
                 // Add More Details link if CTA details is enabled
                 // An emptied "More details" label leaves the link out.
                 if ( config.ux.ctaDetailsButton && wpslLabels.moreDetails ) {
-                    let storeUrl = url || permalink;
+                    // "More details target": the website first, or the local page first.
+                    let storeUrl = ( config.ux.ctaDetailsTarget === 'landing_page' ) ? ( permalink || url ) : ( url || permalink );
                     if ( storeUrl ) {
-                        moreDetails = `<a class="wpsl-details${config.ux.ctaDetailsClass}" target="_blank" href="${storeUrl}">${sharedHelpers.escapeHtml( wpslLabels.moreDetails )}</a>`;
+                        moreDetails = `<a class="wpsl-details${config.ux.ctaDetailsClass}" target="_blank" rel="noopener" href="${storeUrl}">${sharedHelpers.escapeHtml( wpslLabels.moreDetails )}</a>`;
                     }
                 }
 
@@ -558,7 +563,7 @@ export const helpers = {
 
             // _.template compiles to `with ( data )`, so a placeholder the
             // data lacks is a ReferenceError that kills the popup.
-            const windowContent = _.template( template )( _.defaults( _.extend( {}, infoWindowData ), optionalPlaceholders ) );
+            const windowContent = sharedHelpers.unlinkEmptyHrefs( _.template( template )( _.defaults( _.extend( {}, infoWindowData ), optionalPlaceholders ) ) );
 
             return windowContent;
         },
@@ -763,6 +768,45 @@ export const helpers = {
             }
 
             return { lat: lat, lng: lng };
+        },
+
+        /**
+         * Store a place picked from the autocomplete.
+         *
+         * Its coordinates skip the geocode request, and with it the check for
+         * a whole country or state in maybeGetFullSearchData(). So the picked
+         * place brings that data itself, and the Search button uses it when
+         * these coordinates are still the ones it searches with.
+         *
+         * @since   3.1.1
+         * @param   {object|string}    latLng     The coordinates, '' when unknown.
+         * @param   {object|undefined} fullSearch type ( country / state ) and query, for a whole country or state.
+         * @returns {void}
+         */
+        setAutoCompletePlace: function( latLng, fullSearch ) {
+            slData.autoCompleteLatLng     = latLng;
+            slData.autoCompleteFullSearch = ( latLng && fullSearch && fullSearch.query ) ? { latLng: latLng, fullSearch: fullSearch } : null;
+        },
+
+        /**
+         * The country / state data of the picked autocomplete place, when the
+         * full search option applies to the search that is about to run.
+         *
+         * @since   3.1.1
+         * @returns {object|undefined} type and query, as maybeGetFullSearchData() sets them.
+         */
+        getAutoCompleteFullSearch: function() {
+            const picked = slData.autoCompleteFullSearch;
+
+            if ( ! picked || picked.latLng !== slData.autoCompleteLatLng ) {
+                return;
+            }
+
+            if ( ! config.search.fullSearch || jQuery( '#wpsl-country' ).length ) {
+                return;
+            }
+
+            return picked.fullSearch;
         },
 
         /**
@@ -1266,6 +1310,58 @@ export const helpers = {
         },
 
         /**
+         * The location data with the optional fields it lacks set to ''.
+         *
+         * _.template compiles to `with ( data )`, so a field the data lacks is a
+         * ReferenceError, and the location is left out of the results. A section
+         * customized while "Create landing pages?" was on still prints
+         * <%= permalink %> after it is turned off, which emptied the result
+         * list. The info windows already render this way.
+         *
+         * @since   3.1.1
+         * @param   {object} locationDetails The location data object.
+         * @returns {object} A copy with the missing optional fields filled in.
+         */
+        withOptionalPlaceholders: function( locationDetails ) {
+
+            /*
+             * Not distance and distance_unit: the listing template checks
+             * typeof distance ( a search without one, such as a category
+             * search, prints no distance ) and typeof distance_unit ( to fall
+             * back to the configured unit ). An empty placeholder would print
+             * an empty distance, or "48.2" without its km.
+             */
+            return _.defaults( _.extend( {}, locationDetails ), _.omit( optionalPlaceholders, 'distance', 'distance_unit' ) );
+        },
+
+        /**
+         * The location data for the listing template, with a short distance in m or ft.
+         *
+         * The server rounds the distance to one decimal, so a location under
+         * 1 km or 0.1 mi away read 0.0. It sends distance_short for those
+         * ( Data::get_short_distance() ), which replaces the distance and its
+         * unit here. Only in a copy: the location data itself keeps the
+         * distance in km or mi for other code.
+         *
+         * @since   3.1.1
+         * @param   {object}  locationDetails   The location data object.
+         * @param   {boolean} showsDistanceUnit Whether the template prints distance_unit.
+         * @returns {object}  The location data to render.
+         */
+        withShortDistance: function( locationDetails, showsDistanceUnit ) {
+            const short = locationDetails.distance_short;
+
+            if ( ! showsDistanceUnit || ! short || typeof short !== 'object' || ! /^(m|ft)$/.test( short.unit ) ) {
+                return locationDetails;
+            }
+
+            return Object.assign( {}, locationDetails, {
+                distance:      parseInt( short.value, 10 ),
+                distance_unit: short.unit
+            });
+        },
+
+        /**
          * Check if a location has data for more info fields.
          *
          * @since   3.0.0
@@ -1713,19 +1809,45 @@ export const helpers = {
     },
 
     /**
-     * Decode HTML entities.
+     * Decode HTML entities, named ones such as &amp; as well as numeric ones,
+     * for text that is used as plain text: marker titles and accessible names.
      *
-     * @link	https://gist.github.com/CatTail/4174511
+     * A textarea's value is its markup with every entity decoded, and nothing
+     * in it is parsed as HTML or runs.
+     *
      * @since	2.0.4
+     * @since	3.1.1 Decodes named entities too, so "Bakker &amp; Zn" reads "Bakker & Zn".
      * @param	{string} str The string to decode.
      * @returns {string}     The string with the decoded HTML entities.
      */
     decodeHtmlEntity: function( str ) {
         if ( str ) {
-            return str.replace( /&#(\d+);/g, function( match, dec ) {
-                return String.fromCharCode( dec );
-            });
+            const textarea = document.createElement( 'textarea' );
+
+            textarea.innerHTML = str;
+
+            return textarea.value;
         }
+    },
+
+    /**
+     * The controls in an open info window that can take its first keyboard
+     * focus: links and buttons, such as an add-on's button, in document order.
+     * A location carousel's own previous, next and "All locations" buttons
+     * don't count, and neither do controls of the locations it isn't showing.
+     *
+     * @since	3.1.1
+     * @param	{Element|null} content The info window's content element.
+     * @returns {Element[]}            The controls, empty when there are none.
+     */
+    infoWindowControls: function( content ) {
+        if ( ! content ) {
+            return [];
+        }
+
+        const selector = 'a[href], button:not([disabled]):not([hidden]):not(.wpsl-group-prev):not(.wpsl-group-next):not(.wpsl-group-all)';
+
+        return Array.from( content.querySelectorAll( selector ) ).filter( ( control ) => ! control.closest( '[inert]' ) );
     },
 
     /**

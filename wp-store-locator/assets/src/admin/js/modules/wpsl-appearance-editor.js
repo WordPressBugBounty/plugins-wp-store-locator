@@ -115,6 +115,7 @@ export const appearanceEditor = {
                 jQuery( '.wpsl-tab-header' ).addClass( 'wpsl-hidden' );
                 jQuery( '.wpsl-tab-footer' ).hide();
                 jQuery( '.wpsl-customize-btn' ).trigger( 'focus' );
+                this.announceTab( targetId );
                 return;
             }
 
@@ -129,6 +130,7 @@ export const appearanceEditor = {
             this.updateTabHeader( targetId );
 
             this.onTabChange( targetId );
+            this.announceTab( targetId );
         } );
 
         jQuery( document ).on( 'click', '.wpsl-back-button', ( e ) => {
@@ -155,7 +157,23 @@ export const appearanceEditor = {
             jQuery( '.wpsl-tab-footer' ).hide();
 
             jQuery( '#wpsl-appearance-tabs a' ).first().trigger( 'focus' );
+
+            this.announceTab( '' );
         } );
+    },
+
+    /**
+     * Tell add-ons which Appearance item is open, see the
+     * 'wpsl_appearance_tabs' filter in class-manager.php.
+     *
+     * @since 3.1.1
+     * @param {string} tabId The panel id with '#', or '' when the menu shows.
+     * @returns {void}
+     */
+    announceTab( tabId ) {
+        if ( window.wp && wp.hooks ) {
+            wp.hooks.doAction( 'wpslAppearanceTabChange', tabId );
+        }
     },
 
     /**
@@ -169,7 +187,7 @@ export const appearanceEditor = {
 
         /*
          * A link from another admin page can open a tab too, with the tab id
-         * as the hash: page=wpsl_appearance#wpsl-search-results-tab. The hash
+         * as the hash: page=wpsl_appearance#wpsl-result-card-tab. The hash
          * is cleared once used, so a reload shows the menu again.
          */
         if ( ! tabId && /^#wpsl-[a-z-]+-tab$/.test( window.location.hash ) ) {

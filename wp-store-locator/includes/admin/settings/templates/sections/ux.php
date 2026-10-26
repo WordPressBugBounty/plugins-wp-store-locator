@@ -33,6 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
             <div class="wpsl-multiselect-option">
                 <?php echo $ui->get_multiselect_list( 'description' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>
             </div>
+
+            <?php /* The links only exist while the social media group is on. Hidden, the saved places still post with the form. */ ?>
+            <div class="wpsl-multiselect-option wpsl-social-links-option"<?php if ( ! $settings_manager->get( 'editor', 'social_media' ) ) { echo ' style="display:none;"'; } ?>>
+                <?php echo $ui->get_multiselect_list( 'social_links' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>
+            </div>
         </div>
 
         <div class="wpsl-conditional-option" <?php if ( ! $section_settings['show_contact_details'] ) { echo 'style="display:none;"'; } ?>>

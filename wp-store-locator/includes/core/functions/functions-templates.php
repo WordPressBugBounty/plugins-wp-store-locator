@@ -252,7 +252,8 @@ function wpsl_get_address_formats() {
  * Since 3.0 the styles only load on requests that render locator markup,
  * detected from the queried post's content. A theme, page builder or widget
  * that renders [wpsl] from somewhere else should call this on
- * 'wp_enqueue_scripts' so the styles print in the head instead of the footer.
+ * 'wp_enqueue_scripts' so the styles print in the head instead of with the
+ * shortcode output.
  *
  * @since  3.0.0
  * @return void

@@ -75,6 +75,9 @@ class Service_Loader {
         'wpsl_home_create_page'         => [ 'home' ],
         'wpsl_home_mark_placed'         => [ 'home' ],
         'wpsl_home_geolocation_policy'  => [ 'home' ],
+        'wpsl_quick_setup_save'         => [ 'quick_setup' ],
+        'wpsl_quick_setup_state'        => [ 'quick_setup' ],
+        'wpsl_quick_setup_flush'        => [ 'quick_setup' ],
     ];
 
     /**
@@ -141,6 +144,11 @@ class Service_Loader {
 
         if ( wp_doing_ajax() ) {
             $contexts[] = 'ajax';
+
+            // The deactivation survey posts its answer before the plugin is deactivated.
+            if ( isset( $_POST['action'] ) && 'wpsl_exit_survey' === sanitize_key( wp_unslash( $_POST['action'] ) ) ) {
+                $contexts[] = 'exit_survey';
+            }
         }
 
         if ( 'admin-post.php' === $pagenow ) {
@@ -306,6 +314,7 @@ class Service_Loader {
             'tools'        => [ 'includes/admin/tools/import-export-settings.php' ],
             'store_edit'   => [ 'includes/admin/tools/data-export.php' ],
             'plugins'      => [ 'includes/admin/utils/class-exit-survey.php' ],
+            'exit_survey'  => [ 'includes/admin/utils/class-exit-survey.php' ],
             'unknown_wpsl' => [
                 'includes/admin/tools/import-export-settings.php',
                 'includes/admin/tools/data-export.php',

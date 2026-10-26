@@ -22,6 +22,41 @@ use WPSL\Frontend\Store\Data as StoreData;
 class Search {
 
     /**
+     * The most values one restriction field ( restrictions[city]=a,b,c ) or
+     * location field of a types search takes, each one is an OR condition.
+     * Extra values are dropped.
+     *
+     * Room for every ISO country code: the settings page country restriction,
+     * a [wpsl country="..."] list and the country checkbox filter send all
+     * their countries in one field.
+     *
+     * @since 3.1.1
+     */
+    const MAX_RESTRICTION_VALUES = 250;
+
+    /**
+     * The longest restriction value, in characters. A longer one is cut.
+     *
+     * @since 3.1.1
+     */
+    const MAX_RESTRICTION_LENGTH = 100;
+
+    /**
+     * The most category ids a search filters on. Extra ids are dropped.
+     *
+     * @since 3.1.1
+     */
+    const MAX_CATEGORY_IDS = 100;
+
+    /**
+     * The most category ids a search filters on with "all categories
+     * required", each one is a JOIN. Extra ids are dropped.
+     *
+     * @since 3.1.1
+     */
+    const MAX_REQUIRED_CATEGORY_IDS = 20;
+
+    /**
      * Settings manager instance
      *
      * @since 3.0.0
@@ -263,14 +298,15 @@ class Search {
 
         // Check if we need to filter the results by category.
         if ( isset( $args['filter'] ) && $args['filter'] ) {
-            $term_ids = array_map( 'absint', explode( ',', wpsl_normalize_category_filter( $args['filter'] ) ) );
+            $term_ids = wpsl_get_category_filter_ids( $args['filter'], self::MAX_CATEGORY_IDS );
 
             /**
              * See if we only need to return locations
              * that are assigned to all categories or not.
              */
             if ( $wpsl_settings['search']['all_categories_required'] ) {
-                $post_ids = $this->location_utils->get_post_ids_by_terms( $term_ids );
+                // Every id is a JOIN in that query.
+                $post_ids = $this->location_utils->get_post_ids_by_terms( array_slice( $term_ids, 0, self::MAX_REQUIRED_CATEGORY_IDS ) );
 
                 /**
                  * If no location is assigned to all the selected categories,
@@ -313,6 +349,9 @@ class Search {
          */
         $overfetch_factor = $this->i18n->is_wpml_compatible() ? $this->i18n->get_language_count() : 1;
         $php_limit        = null;
+
+        // Featured locations first, so the result limit never cuts one that matches the search.
+        $featured_first = $this->featured_first_sql();
 
         // The restrictions are always passed as an array, ignore other formats.
         if ( isset( $args['restrictions'] ) && ! is_array( $args['restrictions'] ) ) {
@@ -389,7 +428,7 @@ class Search {
                 }
             }
 
-            $sql_parts->sort = 'ORDER BY distance ' . $limit;
+            $sql_parts->sort = 'ORDER BY ' . $featured_first . 'distance ' . $limit;
         } else if ( isset( $args['type'] ) && $args['type'] == 'nearest' ) {
             $sql_parts->sort = 'ORDER BY distance ASC LIMIT 1';
         } else {
@@ -399,8 +438,12 @@ class Search {
              * The approximate location of a visitor is the centre of their
              * city at best. A small radius around it would leave out the
              * locations the visitor is actually close to.
+             *
+             * Only while the approximate location can be used at all. The
+             * flag comes from the public request, and without the tier no
+             * search is made from an approximate location.
              */
-            if ( ! empty( $args['approximate'] ) ) {
+            if ( ! empty( $args['approximate'] ) && \WPSL\Core\Map\Visitor_Location::is_enabled() ) {
                 /**
                  * Filter the smallest radius used for a search from the
                  * approximate location of the visitor.
@@ -420,7 +463,7 @@ class Search {
             $limits = $this->set_sql_limits( $args, $placeholder_values, $overfetch_factor );
             $placeholder_values = $limits['placeholder'];
 
-            $sql_parts->sort = 'HAVING distance < %d ORDER BY distance ' . $limits['sql'];
+            $sql_parts->sort = 'HAVING distance < %d ORDER BY ' . $featured_first . 'distance ' . $limits['sql'];
 
             if ( $overfetch_factor > 1 ) {
                 $php_limit = [
@@ -466,6 +509,7 @@ class Search {
                 {$sql_parts->closed_filter_join}
                   WHERE posts.post_type = 'wpsl_stores'
                     AND posts.post_status = 'publish'
+                    AND posts.post_password = ''
                     {$sql_parts->restriction_match}
                     {$sql_parts->closed_filter_match}
                     {$sql_parts->group_by} {$sql_parts->sort}";
@@ -484,6 +528,33 @@ class Search {
         $results = $this->process_results( $stores );
 
         return $results;
+    }
+
+    /**
+     * The ORDER BY part that puts featured locations before the others.
+     *
+     * The result limit is applied in SQL and the featured locations are only
+     * moved to the top afterwards ( Data::sort_featured_first() ), so ordering
+     * by distance alone could cut a featured location that is just as close
+     * as the last one that fits. Sorting on it here keeps every featured
+     * location that matches the search, and the rest of the limit is filled
+     * with the nearest other locations.
+     *
+     * Empty when no location is featured, so other sites run the query as before.
+     *
+     * @since  3.1.1
+     * @return string The ORDER BY expression followed by a comma, or ''.
+     */
+    private function featured_first_sql() {
+        global $wpdb;
+
+        $location_utils = wpsl_get_service( 'location_utils' );
+
+        if ( ! $location_utils || ! method_exists( $location_utils, 'featured_exists' ) || ! $location_utils->featured_exists() ) {
+            return '';
+        }
+
+        return "EXISTS ( SELECT 1 FROM {$wpdb->postmeta} AS featured WHERE featured.post_id = posts.ID AND featured.meta_key = 'wpsl_featured' AND featured.meta_value = '1' ) DESC, ";
     }
 
     /**
@@ -590,14 +661,16 @@ class Search {
      */
     public function set_sql_limits( $args, $placeholder_values, $overfetch_factor = 1 ) {
         // absint() the offset so a negative page can't produce invalid SQL ( LIMIT -5, .. ).
-        $offset = ( isset( $args['page'] ) && isset( $args['max_results'] ) ) ? absint( $args['page'] ) : 0;
-        $count  = $this->template_filters->check_store_filter( $args, 'max_results' );
+        $offset = ( isset( $args['page'] ) && isset( $args['max_results'] ) && is_scalar( $args['page'] ) ) ? absint( $args['page'] ) : 0;
+
+        // absint() the count too, a negative max_results gave LIMIT 0, -5.
+        $count = absint( $this->template_filters->check_store_filter( $args, 'max_results' ) );
 
         $limits = [
             'sql'         => 'LIMIT 0, %d',
             'placeholder' => $placeholder_values,
             'offset'      => $offset,
-            'count'       => absint( $count )
+            'count'       => $count
         ];
 
         if ( $overfetch_factor > 1 ) {
@@ -606,7 +679,7 @@ class Search {
              * in the result set, so an SQL offset would skip an unpredictable
              * number of real stores. The offset is applied after the dedupe.
              */
-            $limits['placeholder'][] = ( $offset + absint( $count ) ) * $overfetch_factor;
+            $limits['placeholder'][] = ( $offset + $count ) * $overfetch_factor;
         } else if ( $offset ) {
             $limits['sql'] = 'LIMIT %d, %d';
             array_push( $limits['placeholder'], $offset, $count );
@@ -684,15 +757,33 @@ class Search {
         }
 
         /*
+         * The names prepare_sql_restrictions() added for the ISO codes read
+         * the country meta too, but match it exactly: as a LIKE, Niger would
+         * find the stores in Nigeria and Sudan the ones in South Sudan.
+         */
+        $country_names = ( isset( $fields['iso'], $meta_fields['country'] ) && ! empty( $restrictions['country_name'] ) ) ? array_values( (array) $restrictions['country_name'] ) : [];
+
+        foreach ( $country_names as $name ) {
+            $groups['country']['conditions'][] = 'post_country.meta_value = %s';
+            $groups['country']['values'][]     = $name;
+        }
+
+        $join_fields = array_keys( $fields );
+
+        if ( $country_names && ! isset( $fields['country'] ) ) {
+            $join_fields[] = 'country';
+        }
+
+        /*
          * With both the name and the code in play either one may match, so
          * neither meta row may be required: a store without an ISO code row
          * still has to be found by its country name. Every other field keeps
          * its INNER JOIN.
          */
-        $either_country = isset( $fields['country'], $fields['iso'] );
+        $either_country = isset( $fields['iso'] ) && in_array( 'country', $join_fields, true );
         $join           = '';
 
-        foreach ( array_keys( $fields ) as $field ) {
+        foreach ( $join_fields as $field ) {
             $join_type = ( $either_country && in_array( $field, [ 'country', 'iso' ], true ) ) ? 'LEFT JOIN' : 'INNER JOIN';
             $alias     = 'post_' . esc_sql( $field );
 
@@ -732,7 +823,7 @@ class Search {
                 continue;
             }
 
-            $values = array_map( 'trim', explode( ',', $values ) );
+            $values = self::limit_values( $values );
 
             /**
              * Assign the field names that we will use in the SQl query to the
@@ -774,7 +865,83 @@ class Search {
             $restrictions = array_reverse( $restrictions );
         }
 
+        /*
+         * An ISO code also finds a store by its country name. Only the code
+         * used to count, so a store without the wpsl_country_iso meta ( a CSV
+         * import, or a geocode that returned no address components ) never
+         * showed up in a search restricted to its country.
+         */
+        if ( ! empty( $restrictions['iso'] ) ) {
+            $country_names = $this->get_country_names( $restrictions['iso'] );
+
+            if ( $country_names ) {
+                $restrictions['country_name'] = $country_names;
+            }
+        }
+
         return $restrictions;
+    }
+
+    /**
+     * Split a comma separated restriction value, without empty values.
+     *
+     * Each value becomes an OR condition, so the list stops at
+     * MAX_RESTRICTION_VALUES and a value at MAX_RESTRICTION_LENGTH
+     * characters. An empty value matched every store as LIKE '%%', which
+     * undid the rest of the country restriction.
+     *
+     * @since  3.1.1
+     * @param  string $values Comma separated values.
+     * @return array  The trimmed values.
+     */
+    public static function limit_values( $values ) {
+        $values = array_values( array_filter( array_map( 'trim', explode( ',', (string) $values ) ), 'strlen' ) );
+        $values = array_slice( $values, 0, self::MAX_RESTRICTION_VALUES );
+
+        return array_map( function( $value ) {
+            return mb_substr( $value, 0, self::MAX_RESTRICTION_LENGTH );
+        }, $values );
+    }
+
+    /**
+     * The country names that belong to a list of ISO codes.
+     *
+     * Both the name in the site language and the English one: the stored
+     * country is what the geocoder or an import wrote, and that is often
+     * English on a translated site. Entities in the region list ( Antigua
+     * &amp; Barbuda ) are decoded, a stored name holds the plain character.
+     *
+     * @since  3.1.1
+     * @param  array $codes ISO 3166-1 alpha-2 codes, in any case.
+     * @return array The country names, without duplicates.
+     */
+    private function get_country_names( $codes ) {
+        $codes = array_map( 'strtolower', $codes );
+        $names = [];
+
+        $untranslated = function( $translation, $text ) {
+            return $text;
+        };
+
+        foreach ( [ false, true ] as $english ) {
+            if ( $english ) {
+                add_filter( 'gettext_wp-store-locator', $untranslated, PHP_INT_MAX, 2 );
+            }
+
+            $regions = wpsl_get_regions();
+
+            if ( $english ) {
+                remove_filter( 'gettext_wp-store-locator', $untranslated, PHP_INT_MAX );
+            }
+
+            foreach ( $regions as $name => $code ) {
+                if ( $code && in_array( $code, $codes, true ) ) {
+                    $names[] = html_entity_decode( $name, ENT_QUOTES, 'UTF-8' );
+                }
+            }
+        }
+
+        return array_values( array_unique( $names ) );
     }
 
     /**

@@ -444,7 +444,7 @@ export const createDropdowns = function( helpers, config ) {
                         'tabindex':          '0'
                     } )
                     .addClass( 'wpsl-selected-item' )
-                    .text( $selected.text() )
+                    .append( jQuery( '<span class="wpsl-selected-label"></span>' ).text( $selected.text() ) )
                     .prepend( sharedHelpers.categoryDot( $selected.attr( 'data-color' ) ) );
 
                 $this.$dropdownElem.before( $button );
@@ -784,8 +784,11 @@ export const alignSearchColumns = function() {
             }
         }
 
-        const fieldWidth = $field ? $field.outerWidth() : 0;
-        const target     = Math.max( fieldWidth, $catDropdown.outerWidth() );
+        // Clearing the width above leaves the dropdown on the search input
+        // width the settings emit. A long category name wraps onto a second
+        // line ( styles.css ) instead of widening the dropdown and the field.
+        const fieldWidth  = $field ? $field.outerWidth() : 0;
+        const target      = Math.max( fieldWidth, $catDropdown.outerWidth() );
 
         if ( target ) {
             $catDropdown.css( 'min-width', Math.ceil( target ) + 'px' );

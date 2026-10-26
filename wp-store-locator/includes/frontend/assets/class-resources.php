@@ -190,7 +190,7 @@ class Resources {
                     'fullSearch'             => $this->maybe_enable_fullsearch( $base_settings['api'] ),
                     'autoLoad'               => $this->get_setting( 'map', 'autoload' ),
                     'autoloadHideDetails'    => $this->get_setting( 'map', 'autoload_start_latlng' ),
-                    'categoryFilterOnly'     => $this->get_setting( 'search', 'category_filter_only' ),
+                    'categoryFilterOnly'     => $this->template_filters->is_category_filter_only(),
                     'distanceUnit'           => wpsl_get_distance_unit(),
                     // The route is shown in the results list, so a hidden list sends the visitor to the map provider instead.
                     'directionRedirect'      => $this->get_setting( 'ux', 'direction_redirect' ) || $this->template_filters->is_results_list_hidden(),
@@ -219,6 +219,8 @@ class Resources {
                     'templateId'            => $this->get_active_template_id(),
                     'ctaButtons'            => ! empty( $this->settings['appearance']['cta']['enabled'] ),
                     'ctaDetailsButton'      => ! empty( $this->settings['appearance']['cta']['details'] ),
+                    // Only a site with local pages can link to one first.
+                    'ctaDetailsTarget'      => ( ! empty( $this->settings['local_pages']['permalinks'] ) && isset( $this->settings['appearance']['cta']['details_target'] ) && $this->settings['appearance']['cta']['details_target'] === 'landing_page' ) ? 'landing_page' : 'website',
                     'markerEffect'          => $this->get_setting( 'ux', 'marker_effect' ),
                     'markerStreetView'      => $this->get_setting( 'ux', 'marker_streetview' ),
                     'markerZoomTo'          => $this->get_setting( 'ux', 'marker_zoom_to' ),
@@ -293,6 +295,12 @@ class Resources {
              */
             if ( current_user_can( 'manage_options' ) ) {
                 $sl_settings['userCanManage'] = 1;
+            }
+
+            $section_sync_notice = $this->section_sync_notice();
+
+            if ( $section_sync_notice ) {
+                $sl_settings['sectionSyncNotice'] = $section_sync_notice;
             }
 
             if ( $this->get_setting( 'api', 'active_map_service' ) === 'osm' ) {
@@ -468,7 +476,7 @@ class Resources {
                      */
                     $default_stadia_layers = $this->get_setting( 'search', 'force_postalcode' )
                         ? [ 'postalcode' ]
-                        : [ 'locality', 'localadmin', 'borough' ];
+                        : [ 'locality', 'localadmin', 'borough', 'region', 'country' ];
 
                     /**
                      * Filter the layers used for the Stadia Maps autocomplete request.
@@ -671,6 +679,46 @@ class Resources {
     }
 
     /**
+     * The notice about a customized template section that is out of sync.
+     *
+     * A section customized in the Section Editor keeps its own code when the
+     * settings change, so a setting can stop reaching the search results or
+     * info windows, or a store name can link to a landing page that no longer
+     * exists. Wp-admin only flags this on the Appearance page. On the store
+     * locator page the user who can edit the sections gets this notice, with
+     * a link to the Sync settings dialog; the front-end shows it in the
+     * search box.
+     *
+     * @since  3.1.1
+     * @return string The notice markup, or an empty string when there is nothing to show.
+     */
+    public function section_sync_notice() {
+        if ( ! \WPSL\Admin\Settings\Section_Editor::current_user_can_edit() ) {
+            return '';
+        }
+
+        // The analyzer is only in the container in wp-admin. It takes the settings service, $this->settings holds the values.
+        $analyzer = new \WPSL\Core\Templates\Section_Analyzer( wpsl_get_service( 'wpsl_settings' ), $this->template_sections, $this->i18n );
+        $labels   = $analyzer->get_out_of_sync_feature_labels( $this->get_active_template_id() );
+
+        if ( empty( $labels ) ) {
+            return '';
+        }
+
+        $sync_url = admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_settings&wpsl-compare=1#wpsl-section-editor' );
+
+        return '<div class="wpsl-inline-notice wpsl-section-sync-notice" role="status">' .
+            '<div class="wpsl-inline-notice-body">' .
+                /* translators: %s: comma separated list of the parts that are out of sync, e.g. landing page link, opening hours */
+                '<p>' . esc_html( sprintf( __( 'A customized template section of this store locator is out of sync with the settings ( %s ), so the search results or the info windows don\'t show what the settings ask for.', 'wp-store-locator' ), implode( ', ', $labels ) ) ) . '</p>' .
+                '<p class="wpsl-inline-notice-cta"><a href="' . esc_url( $sync_url ) . '">' . esc_html__( 'Review differences', 'wp-store-locator' ) . '</a></p>' .
+                '<p class="wpsl-inline-notice-meta">' . esc_html__( 'Only administrators see this notice.', 'wp-store-locator' ) . '</p>' .
+            '</div>' .
+            '<button type="button" class="wpsl-inline-notice-close" aria-label="' . esc_attr__( 'Dismiss', 'wp-store-locator' ) . '">' . wpsl_get_svg_icon( 'cross' ) . '</button>' .
+        '</div>';
+    }
+
+    /**
      * Get the marker cluster title label.
      *
      * Used on its own for the store page localization, and is also included
@@ -713,6 +761,14 @@ class Resources {
             'apply'             => $this->i18n->get_js_translation( 'apply_label', esc_html__( 'Apply', 'wp-store-locator' ) ),
             /* translators: %d: number of markers in the cluster */
             'clusterTitle'      => esc_html__( 'Cluster of %d markers', 'wp-store-locator' ),
+            'groupHeader'       => $this->i18n->get_js_translation( 'group_header_label', esc_html__( '{number} locations at this address', 'wp-store-locator' ) ),
+            'groupPrev'         => esc_html__( 'Previous location', 'wp-store-locator' ),
+            'groupNext'         => esc_html__( 'Next location', 'wp-store-locator' ),
+            'groupAll'          => esc_html__( 'All locations', 'wp-store-locator' ),
+            /* translators: 1: the position of the location in the info window, 2: the number of locations in it */
+            'groupSlide'        => esc_html__( '%1$d of %2$d', 'wp-store-locator' ),
+            /* translators: 1: the name of the first location at an address, 2: the number of other locations at it */
+            'groupMarkerTitle'  => esc_html__( '%1$s and %2$d more at this address', 'wp-store-locator' ),
             /* translators: 1: line breaks */
             'technicalProblem'  => sprintf( esc_html__( 'Due to a technical problem this function is currently unavailable.%1$s Please try again later.', 'wp-store-locator' ), '</br></br>' ),
             'moreDetails'       => $this->i18n->get_js_translation( 'more_details_label', esc_html__( 'More details', 'wp-store-locator' ) ),
@@ -935,6 +991,14 @@ class Resources {
         $map_settings['tabAnchor']       = $this->maps_manager->get_map_tab_anchor();
         $map_settings['tabAnchorReturn'] = apply_filters( 'wpsl_map_tab_anchor_return', false );
         $map_settings['fitBounds']       = $this->get_setting( 'map', 'run_fitbounds', '1' );
+
+        // The circle around the searched location, see wpsl-radius-circle.js.
+        $radius_circle_color = sanitize_hex_color( (string) $this->get_setting( 'map', 'radius_circle_color', '' ) );
+
+        $map_settings['radiusCircle'] = [
+            'enabled' => (bool) $this->get_setting( 'map', 'radius_circle', false ),
+            'color'   => $radius_circle_color ? $radius_circle_color : '#2271b1',
+        ];
 
         if ( $map_service == 'mapbox' ) {
             $map_settings['style'] = wpsl_active_mapbox_style();
@@ -1235,7 +1299,12 @@ class Resources {
                 }
             }
         }
-        
+
+        // The social media links count as more info data too.
+        if ( isset( $ux['social_links'] ) && in_array( 'more_info', (array) $ux['social_links'], true ) ) {
+            $found_fields = array_merge( $found_fields, array_column( wpsl_get_social_fields(), 'name' ) );
+        }
+
         return $found_fields;
     }
 

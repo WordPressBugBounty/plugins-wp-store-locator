@@ -111,6 +111,29 @@ class Sanitizer {
     }
 
     /**
+     * Remove the [] from all but the first default value in a dropdown list,
+     * so "5,[25],[50]" is saved as "5,[25],50". The search and the dropdown
+     * both use the first one as the default.
+     *
+     * @since  3.1.1
+     * @param  string $value The comma separated dropdown values.
+     * @return string The dropdown values with one default.
+     */
+    private function keep_first_default( $value ) {
+        $default_found = false;
+
+        return preg_replace_callback( '/\[([^\]]*)\]/', function( $match ) use ( &$default_found ) {
+            if ( $default_found ) {
+                return $match[1];
+            }
+
+            $default_found = true;
+
+            return $match[0];
+        }, $value );
+    }
+
+    /**
      * Sanitize country codes from comma-separated string.
      * 
      * @since  3.0.0
@@ -294,7 +317,7 @@ class Sanitizer {
 
         // Check for a valid max results value, otherwise we use the default.
         if ( ! empty( $input['max_results'] ) && strpos( $input['max_results'] , '[' ) !== false ) {
-            $output['max_results'] = sanitize_text_field( $input['max_results'] );
+            $output['max_results'] = $this->keep_first_default( sanitize_text_field( $input['max_results'] ) );
         } else {
             $this->validation_error( empty( $input['max_results'] ) ? 'max_results_empty' : 'max_results' );
 
@@ -303,7 +326,7 @@ class Sanitizer {
 
         // See if a search radius value exist, otherwise we use the default.
         if ( ! empty( $input['search_radius'] ) && strpos( $input['search_radius'] , '[' ) !== false ) {
-            $output['search_radius'] = sanitize_text_field( $input['search_radius'] );
+            $output['search_radius'] = $this->keep_first_default( sanitize_text_field( $input['search_radius'] ) );
         } else {
             $this->validation_error( empty( $input['search_radius'] ) ? 'search_radius_empty' : 'search_radius' );
 
@@ -408,6 +431,12 @@ class Sanitizer {
         // Do we need to run the fitBounds function make the markers fit in the viewport?
         $output['run_fitbounds'] = isset( $input['run_fitbounds'] ) ? 1 : 0;
 
+        // Draw the searched area on the map.
+        $output['radius_circle'] = isset( $input['radius_circle'] ) ? 1 : 0;
+
+        $radius_circle_color           = isset( $input['radius_circle_color'] ) ? sanitize_hex_color( $input['radius_circle_color'] ) : '';
+        $output['radius_circle_color'] = $radius_circle_color ? $radius_circle_color : $this->settings->get_default( 'map', 'radius_circle_color' );
+
         /**
          * Verify that the zoom level is within the valid range of 1 to 12. 
          * If it is outside this range, set it to the default value of 3.
@@ -491,8 +520,12 @@ class Sanitizer {
         $multiselect_options = [
             'contact_details',
             'hours',
-            'description'
+            'description',
+            'social_links'
         ];
+
+        // The landing page places are only offered with the permalinks on, see wpsl_get_multiselect_ux_locations().
+        $landing_page_locations = [ 'landing_page', 'landing_page_marker_popup' ];
 
         foreach ( $multiselect_options as $multiselect_option ) {
             if ( isset( $input[$multiselect_option] ) ) {
@@ -503,6 +536,13 @@ class Sanitizer {
                 }
             } else {
                 $output[$multiselect_option] = [];
+            }
+
+            // Keep the saved landing page places that weren't on the form, a save with the permalinks off doesn't remove them.
+            foreach ( (array) $this->settings->get( 'ux', $multiselect_option ) as $saved_location ) {
+                if ( in_array( $saved_location, $landing_page_locations, true ) && ! array_key_exists( $saved_location, $multiselect_locations ) ) {
+                    $output[$multiselect_option][] = $saved_location;
+                }
             }
         }
 
@@ -545,6 +585,7 @@ class Sanitizer {
 
         $output['hide_start_marker']   = isset( $input['hide_start_marker'] ) ? 1 : 0;
         $output['start_marker_on_top'] = isset( $input['start_marker_on_top'] ) ? 1 : 0;
+        $output['group_colocated']     = isset( $input['group_colocated'] ) ? 1 : 0;
 
         // Runtime marker labels: none / numbers / letters.
         $output['labels'] = \WPSL\Core\Markers\Marker_Label::sanitize_mode( isset( $input['labels'] ) ? $input['labels'] : '' );
@@ -795,6 +836,34 @@ class Sanitizer {
         }
 
         $output['field_manager'] = $field_manager;
+
+        $output['social_media'] = isset( $input['social_media'] ) ? 1 : 0;
+
+        /*
+         * The social media fields are only saved when the form that holds them
+         * was submitted, otherwise a save from somewhere else ( an import, a
+         * partial form ) would wipe the configured list. The block posts also
+         * while it is hidden, so with the option off the stored list is kept as
+         * it is and nothing is validated, a site that never used the feature
+         * gets no errors for it.
+         */
+        $stored        = $this->settings->get_group( 'editor' );
+        $stored_social = isset( $stored['social_fields'] ) && is_array( $stored['social_fields'] ) ? $stored['social_fields'] : null;
+
+        if ( $output['social_media'] && isset( $input['social_fields_submitted'] ) ) {
+            $submitted = isset( $input['social_fields'] ) && is_array( $input['social_fields'] ) ? $input['social_fields'] : [];
+
+            // With the stored list a renamed Other field keeps its name, and so the links on the stores.
+            $social = wpsl_sanitize_social_fields( $submitted, wpsl_social_taken_names( $field_manager ), (array) $stored_social );
+
+            foreach ( $social['errors'] as $error_code ) {
+                $this->validation_error( $error_code );
+            }
+
+            $output['social_fields'] = $social['fields'];
+        } else {
+            $output['social_fields'] = ( null !== $stored_social ) ? $stored_social : wpsl_social_default_fields();
+        }
 
         // Check if we need to delete transients based on editor settings changes
         $this->admin_settings->set_delete_transient_option( 'editor', $output );

@@ -204,6 +204,58 @@ function wpsl_check_upgrade() {
     if ( version_compare( $current_version, WPSL_VERSION_NUM, '==' ) )
         return;
 
+    /*
+     * 3.1.1 puts featured locations first in the search query, and a country
+     * restriction finds stores without an ISO code by their country name.
+     * Cached page-load results from before that can leave out a featured
+     * location, or hold "No results found", so drop them. It also drops
+     * cached results that still hold a password-protected store, or an
+     * online store with its author, excerpt and dates.
+     */
+    if ( $current_version && version_compare( $current_version, '3.1.1', '<' ) && function_exists( 'wpsl_flush_store_cache' ) ) {
+        wpsl_flush_store_cache();
+    }
+
+    /*
+     * A store without an ISO code ( a CSV import, a geocode without address
+     * components ) is now found by its country name, but everything else that
+     * reads the code still misses it. Fill it in from the country name, no
+     * geocode API involved.
+     */
+    if ( $current_version && version_compare( $current_version, '3.1.1', '<' ) ) {
+        wpsl_backfill_country_iso();
+    }
+
+    /*
+     * 3.1.1 shows locations at the same address as one marker. New installs get
+     * it by default, existing sites keep one marker per location until the option
+     * is enabled: code that hooks into the markers may expect one per location.
+     */
+    if ( $current_version && version_compare( $current_version, '3.1.1', '<' ) ) {
+        $marker_settings = get_option( 'wpsl_markers' );
+
+        if ( is_array( $marker_settings ) && ! isset( $marker_settings['group_colocated'] ) ) {
+            $marker_settings['group_colocated'] = 0;
+
+            /*
+             * Through the settings manager: on the Settings page the form
+             * sanitizer is registered on update_option() by then, and it reads
+             * the stored array as POST data ( every saved toggle switches on,
+             * the custom markers reset ).
+             */
+            wpsl_get_service( 'wpsl_settings' )->update( 'markers', $marker_settings );
+        }
+    }
+
+    /*
+     * 3.1.1 adds the Quick setup card to Home. A new install answers it in the
+     * setup wizard; on an updated site it starts hidden for every admin, the
+     * "Quick setup" link at the bottom of Home opens it.
+     */
+    if ( $current_version && version_compare( $current_version, '3.1.1', '<' ) ) {
+        add_option( 'wpsl_quick_setup_default', 'hidden', '', 'no' );
+    }
+
     $wpsl_settings = get_option( 'wpsl_settings' );
 
     // If wpsl_settings doesn't exist, there's nothing to upgrade
@@ -736,6 +788,149 @@ function wpsl_check_upgrade() {
     }
 
     update_option( 'wpsl_version', WPSL_VERSION_NUM, true );
+}
+
+/**
+ * Fill in the missing wpsl_country_iso meta from the stored country name.
+ *
+ * Only for stores whose ISO code is missing or empty, an existing code is
+ * never overwritten. The name has to match a country in wpsl_get_regions(),
+ * in English or the site language, in any case. Unknown names are skipped.
+ * The code is stored in uppercase, like the geocoders write it.
+ *
+ * Runs a few queries per country instead of a few per store, so a large
+ * store list doesn't hold up the request that runs the upgrade.
+ *
+ * @since  3.1.1
+ * @return int The number of stores that got an ISO code
+ */
+function wpsl_backfill_country_iso() {
+
+    /*
+     * The upgrade runs on admin_init, which a store search through admin-ajax.php
+     * also fires, so two requests right after an update can both reach this.
+     * Both would read the same stores and insert their code twice. The lock is
+     * an option, and add_option() only succeeds for one of them. A lock older
+     * than ten minutes is left over from a request that died, and is taken over.
+     */
+    $lock = 'wpsl_country_iso_backfill_lock';
+
+    if ( ! add_option( $lock, time(), '', 'no' ) ) {
+        if ( time() - (int) get_option( $lock ) < 10 * MINUTE_IN_SECONDS ) {
+            return 0;
+        }
+
+        update_option( $lock, time(), 'no' );
+    }
+
+    try {
+        return wpsl_backfill_country_iso_rows();
+    } finally {
+        delete_option( $lock );
+    }
+}
+
+/**
+ * The work of wpsl_backfill_country_iso(), run while it holds the lock.
+ *
+ * @since  3.1.1
+ * @return int The number of stores that got a country code
+ */
+function wpsl_backfill_country_iso_rows() {
+    global $wpdb;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time bulk read, no core function selects posts by a missing meta key.
+    $rows = $wpdb->get_results(
+        "SELECT country.post_id, country.meta_value AS country, iso.meta_id AS iso_id
+           FROM $wpdb->postmeta AS country
+     INNER JOIN $wpdb->posts AS posts ON posts.ID = country.post_id
+      LEFT JOIN $wpdb->postmeta AS iso ON iso.post_id = country.post_id AND iso.meta_key = 'wpsl_country_iso'
+          WHERE posts.post_type = 'wpsl_stores'
+            AND country.meta_key = 'wpsl_country'
+            AND country.meta_value != ''
+            AND ( iso.meta_id IS NULL OR iso.meta_value = '' )
+            AND NOT EXISTS (
+                SELECT 1 FROM $wpdb->postmeta AS filled
+                 WHERE filled.post_id = country.post_id
+                   AND filled.meta_key = 'wpsl_country_iso'
+                   AND filled.meta_value != ''
+            )"
+    );
+
+    if ( ! $rows ) {
+        return 0;
+    }
+
+    $codes  = wpsl_get_country_codes_by_name();
+    $update = []; // Code => IDs of the stores with an empty ISO meta
+    $insert = []; // Code => IDs of the stores without one
+    $seen   = [];
+
+    foreach ( $rows as $row ) {
+        $post_id = (int) $row->post_id;
+        $name    = wpsl_normalize_country_name( $row->country );
+
+        if ( isset( $seen[ $post_id ] ) || ! isset( $codes[ $name ] ) ) {
+            continue;
+        }
+
+        $seen[ $post_id ] = true;
+
+        if ( $row->iso_id ) {
+            $update[ $codes[ $name ] ][] = $post_id;
+        } else {
+            $insert[ $codes[ $name ] ][] = $post_id;
+        }
+    }
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The meta cache is cleared below, only placeholders are interpolated.
+    foreach ( $update as $code => $post_ids ) {
+        foreach ( array_chunk( array_map( 'intval', $post_ids ), 500 ) as $chunk ) {
+            $placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
+
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE $wpdb->postmeta SET meta_value = %s WHERE meta_key = 'wpsl_country_iso' AND meta_value = '' AND post_id IN ( $placeholders )",
+                    array_merge( [ $code ], $chunk )
+                )
+            );
+        }
+    }
+
+    foreach ( $insert as $code => $post_ids ) {
+        foreach ( array_chunk( array_map( 'intval', $post_ids ), 500 ) as $chunk ) {
+            $placeholders = implode( ', ', array_fill( 0, count( $chunk ), '( %d, %s, %s )' ) );
+            $args         = [];
+
+            foreach ( $chunk as $post_id ) {
+                array_push( $args, $post_id, 'wpsl_country_iso', $code );
+            }
+
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT INTO $wpdb->postmeta ( post_id, meta_key, meta_value ) VALUES $placeholders",
+                    $args
+                )
+            );
+        }
+    }
+    // phpcs:enable
+
+    if ( ! $seen ) {
+        return 0;
+    }
+
+    foreach ( array_keys( $seen ) as $post_id ) {
+        wp_cache_delete( $post_id, 'post_meta' );
+    }
+
+    wp_cache_set_posts_last_changed();
+
+    if ( function_exists( 'wpsl_flush_store_cache' ) ) {
+        wpsl_flush_store_cache();
+    }
+
+    return count( $seen );
 }
 
 /*

@@ -8,6 +8,8 @@ import { fieldsCRUD } from './fields-manager/wpsl-fields-crud.js';
 import { groupsCRUD } from './fields-manager/wpsl-groups-crud.js';
 import { fieldsEvents } from './fields-manager/wpsl-fields-events.js';
 import { groupsEvents } from './fields-manager/wpsl-groups-events.js';
+import { socialFields } from './fields-manager/wpsl-social-fields.js';
+import { fieldsTabs } from './fields-manager/wpsl-fields-tabs.js';
 
 /**
  * Manage custom fields / groups. Orchestrates the field manager modules.
@@ -37,6 +39,11 @@ export const fieldsManager = {
         }
 
         this.validateMainFormSubmit();
+
+        socialFields.init();
+
+        // After the form validation, so the open tab is only stored for a form that submits.
+        fieldsTabs.init();
 
         // Make sure the correct field type is set to selected in the dropdown
         jQuery( '.wpsl-field-item select' ).each( function() {
@@ -532,6 +539,7 @@ export const fieldsManager = {
 
                 if ( jQuery.isEmptyObject( groupData ) ) {
                     jQuery( '.wpsl-groups-manager-wrap, .wpsl-groups-header' ).hide();
+                    jQuery( '#wpsl-fields-manager' ).removeClass( 'wpsl-groups-manager-open' );
                     jQuery( '.wpsl-fields-manager-wrap' ).children().hide();
                     jQuery( '.wpsl-fields-manager-wrap, #wpsl-fields-first-group, #wpsl-create-first-group' ).show();
                     jQuery( '.wpsl-field-group-list' ).focus();
@@ -554,6 +562,7 @@ export const fieldsManager = {
                         jQuery( '.wpsl-field-group-list' ).html( optionList );
                         jQuery( '.wpsl-fields-manager-wrap' ).show();
                         jQuery( '.wpsl-groups-manager-wrap, .wpsl-groups-header, .wpsl-fields-list-wrap' ).hide();
+                        jQuery( '#wpsl-fields-manager' ).removeClass( 'wpsl-groups-manager-open' );
 
                         // Restore the previously selected group, or fall back to the first.
                         let activeGroupId = jQuery( '.wpsl-field-group-list' ).val();
@@ -636,7 +645,10 @@ export const fieldsManager = {
             
             if ( hasEmptyGroupName ) {
                 e.preventDefault();
-                
+
+                // The Groups Manager is in the Custom tab.
+                fieldsTabs.show( 'custom', false );
+
                 groupsCRUD.show( fieldsManager.eventListeners );
                 
                 jQuery( '#wpsl-groups-header' ).siblings( '.wpsl-warning.wpsl-defaults' ).remove();

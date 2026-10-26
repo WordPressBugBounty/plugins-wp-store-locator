@@ -2,6 +2,8 @@ import { slData, config } from '../../../modules/wpsl-shared.js';
 import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
+import { groupWindow } from '../../../modules/wpsl-group-window.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { api } from './wpsl-api.js';
 import { map } from './wpsl-map.js';
@@ -44,6 +46,37 @@ function wpslInitFocusModalityTracking() {
  */
 function wpslShouldPanOnFocus() {
     return wpslFocusViaKeyboard && ! wpslSuppressFocusPan;
+}
+
+/**
+ * The number of locations in a cluster. A marker shared by the locations
+ * at one address counts once for each of them.
+ *
+ * @since  3.1.1
+ * @param  {object} cluster The L.MarkerCluster
+ * @return {number}
+ */
+function wpslLocationCount( cluster ) {
+    return cluster.getAllChildMarkers().reduce( ( total, marker ) => total + ( marker._wpslGroup ? marker._wpslGroup.length : 1 ), 0 );
+}
+
+/**
+ * The markercluster default icon, with the number of locations instead of
+ * markers. Only used when locations at one address share a marker.
+ *
+ * @since  3.1.1
+ * @param  {object} cluster The L.MarkerCluster
+ * @return {object} The L.DivIcon
+ */
+function wpslLocationClusterIcon( cluster ) {
+    const count = wpslLocationCount( cluster );
+    const size  = count < 10 ? 'small' : ( count < 100 ? 'medium' : 'large' );
+
+    return new L.DivIcon( {
+        html: '<div><span>' + count + '</span></div>',
+        className: 'marker-cluster marker-cluster-' + size,
+        iconSize: new L.Point( 40, 40 )
+    } );
 }
 
 /**
@@ -127,7 +160,12 @@ export const markers = {
 
         // Don't use clusters if the directions are active on the map
         if ( helpers.markers.clusteringActive( markerSetup.map ) && ( typeof slData.directions === 'object' && ! slData.directions.active ) ) {
-            const clusterOptions = wp.hooks.applyFilters( 'wpslMarkerClusterGroup', config.markers.cluster );
+            let clusterOptions = wp.hooks.applyFilters( 'wpslMarkerClusterGroup', config.markers.cluster );
+
+            // Count locations, not markers, unless the site brought its own cluster icon.
+            if ( markerGroups.enabled() && clusterOptions && typeof clusterOptions.iconCreateFunction !== 'function' ) {
+                clusterOptions = Object.assign( {}, clusterOptions, { iconCreateFunction: wpslLocationClusterIcon } );
+            }
 
             this.layer = new L.markerClusterGroup( clusterOptions );
 
@@ -230,7 +268,7 @@ export const markers = {
             this.layer.on( 'clusteradd', function( e ) {
                 const clusterElement = e.layer.getElement();
                 const clusterLatLng = e.layer.getLatLng();
-                const childCount = e.layer.getChildCount();
+                const childCount = wpslLocationCount( e.layer );
                 
                 setupClusterKeyboard( clusterElement, childCount, clusterLatLng );
             });
@@ -419,11 +457,17 @@ export const markers = {
         const iconProps = this.getIconProps( markerData.markerUrl );
         const mapIcon = L.icon( wp.hooks.applyFilters( 'wpslMapIcon', iconProps ) );
 
+        // A marker that stands for every location at its address. The lead's
+        // own data goes first, as filtered by wpslMarkerData.
+        const groupMembers = markerGroups.members( markerData.id, this.currentMapIndex );
+        const group        = groupMembers ? [ markerData ].concat( groupMembers.slice( 1 ) ) : null;
+        const markerTitle  = group ? groupWindow.markerTitle( group ) : helpers.decodeHtmlEntity( markerData.store );
+
         const markerOptions = {
             clickable: ( visibility ) ? true : false,
             icon: mapIcon,
-            title: helpers.decodeHtmlEntity( markerData.store ),
-            alt: helpers.decodeHtmlEntity( markerData.store ),
+            title: markerTitle,
+            alt: markerTitle,
             draggable: markerData.draggable,
             storeId: markerData.id
         };
@@ -442,6 +486,13 @@ export const markers = {
             marker.options.locationMarkerUrlActive = markerData.locationMarkerUrlActive;
         }
 
+        if ( group ) {
+
+            // _wpslGroup holds the locations shown now, see applyShownGroup().
+            marker._wpslGroupAll = group;
+            marker._wpslGroup    = group;
+        }
+
         // Prevent start marker from receiving keyboard focus
         if ( markerData.id === 0 ) {
             marker.once( 'add', function() {
@@ -458,7 +509,22 @@ export const markers = {
             // popup opens, so the underscore template doesn't run for every
             // store at add time.
             marker.bindPopup( function() {
-                return helpers.template.getInfoWindowTemplate( markerData );
+                const shownGroup = marker._wpslGroup || null;
+
+                if ( shownGroup && shownGroup.length > 1 ) {
+
+                    // Leaflet opens the popup before the marker's own click handler runs,
+                    // so a search result sets the location to open on in advance, see openOn().
+                    if ( typeof marker._wpslGroupStart === 'number' ) {
+                        marker._wpslGroupOpen  = marker._wpslGroupStart;
+                        marker._wpslGroupStart = null;
+                    }
+
+                    return groupWindow.template( shownGroup, typeof marker._wpslGroupOpen === 'number' ? marker._wpslGroupOpen : null );
+                }
+
+                // One location at the address left by wpsl.api.showLocations() opens on its own.
+                return helpers.template.getInfoWindowTemplate( shownGroup ? shownGroup[0] : markerData );
             }, wp.hooks.applyFilters( 'wpslPopupOptions', { minWidth: 150, maxWidth: 360 } ) );
         } else if ( visibility ) {
             marker.bindPopup( markerData.store );
@@ -549,14 +615,15 @@ export const markers = {
                 }
                 
                 const popupLinks = popup.querySelectorAll( '.leaflet-popup-content a' );
-                
+
                 popupLinks.forEach( function( link ) {
                     if ( ! link.hasAttribute( 'tabindex' ) ) {
                         link.setAttribute( 'tabindex', '0' );
                     }
                 });
-                
-                const contentLinks = Array.from( popup.querySelectorAll( '.leaflet-popup-content a[href]' ) );
+
+                // The popup's links and buttons, such as a shared popup's list of locations or an add-on's button.
+                const contentLinks = helpers.infoWindowControls( popup.querySelector( '.leaflet-popup-content' ) );
                 const firstContentLink = contentLinks[0];
 
                 if ( firstContentLink ) {
@@ -612,6 +679,14 @@ export const markers = {
             }, 100 );
 
             infoWindow.actions( marker.getLatLng() );
+
+            if ( marker._wpslGroup && marker._wpslGroup.length > 1 ) {
+                groupWindow.bind( marker.getPopup().getElement(), {
+                    stores: marker._wpslGroup,
+                    marker: marker,
+                    map: slData.maps[ currentMapIndex ]
+                });
+            }
         });
 
         marker.on( 'popupclose', function() {
@@ -619,6 +694,9 @@ export const markers = {
                 popupRepaintTeardown();
                 popupRepaintTeardown = null;
             }
+
+            // The next click on the marker opens on the first location again.
+            marker._wpslGroupOpen = null;
 
             // The element that opened the popup, either a marker or a search result.
             const sourceEl = slData.markers.focusSourceElement;
@@ -768,7 +846,12 @@ export const markers = {
                     markers.setActive( marker, markerData, currentMapIndex );
                 }
 
-                wp.hooks.doAction( 'wpslMarkerClicked', marker, markerData, slData.maps[currentMapIndex] );
+                // A shared marker announces the location its popup opened on. _wpslGroupOpen
+                // is an index in the locations shown now ( wpsl.api.showLocations() ), like the popup.
+                const shownGroup = marker._wpslGroup || null;
+                const shownData  = shownGroup && shownGroup.length > 1 ? shownGroup[ marker._wpslGroupOpen || 0 ] : ( shownGroup && shownGroup.length === 1 ? shownGroup[0] : markerData );
+
+                wp.hooks.doAction( 'wpslMarkerClicked', marker, shownData, slData.maps[currentMapIndex] );
             });
         }
 
@@ -919,6 +1002,8 @@ export const markers = {
     removeAll: function() {
         const mapIndex = this.currentMapIndex;
 
+        markerGroups.clear( mapIndex );
+
         api.directions.removePolyline();
 
         // Close open popups first, or their DOM elements outlive the markers.
@@ -994,6 +1079,12 @@ export const markers = {
             if ( idx !== -1 ) {
                 mapIndex = idx;
             }
+        }
+
+        // Nothing to fit, e.g. a [wpsl_map] whose locations are all unpublished.
+        // Leaflet throws on empty bounds, so keep the configured viewport.
+        if ( ! L.latLngBounds( bounds ).isValid() ) {
+            return;
         }
 
         // Don't fit while the container is 0x0 - the "Hide the map until the
@@ -1104,6 +1195,9 @@ export const markers = {
             return;
         }
 
+        // A location at a shared address bounces the marker it shares.
+        storeId = markerGroups.leadId( storeId, mapIndex );
+
         let target = null;
 
         for ( let i = 0, len = this.active[mapIndex].length; i < len; i++ ) {
@@ -1212,6 +1306,8 @@ export const markers = {
             return;
         }
 
+        storeId = markerGroups.leadId( storeId, mapIndex );
+
         for ( let i = 0, len = this.active[mapIndex].length; i < len; i++ ) {
             if ( this.active[mapIndex][i].options.storeId === storeId ) {
                 const marker       = this.active[mapIndex][i];
@@ -1235,6 +1331,204 @@ export const markers = {
     },
 
     /**
+     * Pan to a store's marker on one map, reveal it from a cluster and open
+     * it like a click. Used by wpsl.api.focusLocation().
+     *
+     * A store whose popup is already open keeps it open, so wpslMarkerClicked
+     * doesn't fire again for it.
+     *
+     * @since  3.1.1
+     * @param  {number} storeId  The store ID.
+     * @param  {number} mapIndex The map index.
+     * @param  {object} options  options.zoom: zoom to at least this level.
+     * @return {boolean} Whether the marker was found.
+     */
+    focus: function( storeId, mapIndex, options = {} ) {
+        const leafletMap = slData.maps[ mapIndex ];
+        const leadId     = markerGroups.leadId( storeId, mapIndex );
+        const marker     = ( this.active[ mapIndex ] || [] ).find( ( item ) => item && item.options && item.options.storeId === leadId );
+
+        if ( ! leafletMap || ! marker ) {
+            return false;
+        }
+
+        let group = null;
+
+        // The shared markers.layer belongs to the locator map, so look the group up on this map.
+        leafletMap.eachLayer( ( layer ) => {
+            if ( ! group && typeof L.MarkerClusterGroup !== 'undefined' && layer instanceof L.MarkerClusterGroup && layer.hasLayer( marker ) ) {
+                group = layer;
+            }
+        } );
+
+        // A newer focus on this map makes the callback of this one stale.
+        const token = {};
+
+        leafletMap._wpslFocusToken = token;
+
+        const open = () => {
+            if ( leafletMap._wpslFocusToken !== token ) {
+                return;
+            }
+
+            // A shared popup that is already open moves to the location instead.
+            // It stays where it is: centering its marker can push the popup out of view.
+            if ( this.openOn( marker, storeId, mapIndex ) ) {
+                return;
+            }
+
+            leafletMap.panTo( marker.getLatLng() );
+
+            // bindPopup() toggles on click, so a click would close an open popup.
+            if ( ! marker.isPopupOpen() ) {
+                const container = leafletMap.getContainer();
+                const active    = document.activeElement;
+
+                // Closing the popup returns keyboard focus to the caller's element,
+                // as it does for the store locator's result list.
+                if ( active && active !== document.body && ! container.contains( active ) ) {
+                    slData.markers.focusSourceElement = active;
+                }
+
+                marker.fire( 'click' );
+            }
+        };
+
+        if ( typeof options.zoom === 'number' ) {
+            // No animation, so the cluster reveal below starts from the new view.
+            leafletMap.setView( marker.getLatLng(), options.zoom, { animate: false } );
+        }
+
+        if ( group ) {
+            group.zoomToShowLayer( marker, open );
+        } else {
+            open();
+        }
+
+        return true;
+    },
+
+    /**
+     * Close the open popup on one map and restore its active marker, as a
+     * click on the map would. Used by wpsl.api.closePopups().
+     *
+     * @since  3.1.1
+     * @param  {number} mapIndex The map index.
+     * @return {boolean} Whether the map exists.
+     */
+    closePopups: function( mapIndex ) {
+        const leafletMap = slData.maps[ mapIndex ];
+
+        if ( ! leafletMap || typeof leafletMap.closePopup !== 'function' ) {
+            return false;
+        }
+
+        leafletMap.closePopup();
+        this.restoreActiveMarkers( mapIndex );
+
+        return true;
+    },
+
+    /**
+     * Show only the passed locations on a map, or all of them again, see
+     * wpsl.api.showLocations(). Hidden markers leave the cluster layer too,
+     * so the cluster counts match what's shown. The start marker stays.
+     *
+     * @since  3.1.1
+     * @param  {array|null} ids      Location ids, null for all.
+     * @param  {number}     mapIndex The map index.
+     * @param  {object}     options  options.fitBounds: fit the map to the shown markers.
+     * @return {boolean} Whether the map exists.
+     */
+    showLocations: function( ids, mapIndex, options = {} ) {
+        const leafletMap = slData.maps[ mapIndex ];
+        const list       = this.active[ mapIndex ];
+
+        if ( ! leafletMap || typeof leafletMap.eachLayer !== 'function' || ! Array.isArray( list ) ) {
+            return false;
+        }
+
+        // This map's cluster layer, if it clusters; this.layer is the last map's.
+        let clusters = null;
+
+        leafletMap.eachLayer( function( layer ) {
+            if ( ! clusters && layer && typeof layer.getVisibleParent === 'function' ) {
+                clusters = layer;
+            }
+        });
+
+        const shown  = [];
+        const hidden = [];
+
+        list.forEach( function( marker ) {
+            if ( ! marker || ! marker.options || ! marker.options.storeId ) {
+                return;
+            }
+
+            ( ! ids || markerGroups.showsAny( marker.options.storeId, ids, mapIndex ) ? shown : hidden ).push( marker );
+        });
+
+        leafletMap.closePopup();
+
+        markerGroups.setShown( ids, mapIndex );
+        shown.forEach( ( marker ) => this.applyShownGroup( marker, mapIndex ) );
+
+        if ( clusters ) {
+            clusters.removeLayers( hidden.filter( ( marker ) => clusters.hasLayer( marker ) ) );
+            clusters.addLayers( shown.filter( ( marker ) => ! clusters.hasLayer( marker ) ) );
+        } else {
+            hidden.forEach( ( marker ) => marker.remove() );
+            shown.forEach( ( marker ) => {
+                if ( ! leafletMap.hasLayer( marker ) ) {
+                    marker.addTo( leafletMap );
+                }
+            });
+        }
+
+        if ( options.fitBounds && shown.length ) {
+            this.fitBounds( shown.map( ( marker ) => marker.getLatLng() ), leafletMap );
+        }
+
+        return true;
+    },
+
+    /**
+     * Point a shared marker at the locations shown now, see
+     * wpsl.api.showLocations(): its title, popup and cluster count leave the
+     * hidden ones out.
+     *
+     * @since  3.1.1
+     * @param  {object} marker   The marker
+     * @param  {number} mapIndex The map index
+     * @return {void}
+     */
+    applyShownGroup: function( marker, mapIndex ) {
+        if ( ! marker || ! marker._wpslGroupAll ) {
+            return;
+        }
+
+        const group = markerGroups.shownOf( marker._wpslGroupAll, mapIndex );
+
+        if ( ! group.length ) {
+            return;
+        }
+
+        marker._wpslGroup = group;
+
+        // Leaflet reads the title when it draws the marker, an element on the map gets it now.
+        const title = group.length > 1 ? groupWindow.markerTitle( group ) : helpers.decodeHtmlEntity( group[0].store );
+        const el    = marker.getElement ? marker.getElement() : null;
+
+        marker.options.title = title;
+        marker.options.alt   = title;
+
+        if ( el ) {
+            el.setAttribute( 'title', title );
+            el.setAttribute( 'alt', title );
+        }
+    },
+
+    /**
      * Trigger a click event on marker that matches with the passed ID.
      *
      * @since 3.0.0
@@ -1247,15 +1541,58 @@ export const markers = {
             return;
         }
 
-        const len = this.active[mapIndex].length;
+        const leadId = markerGroups.leadId( storeId, mapIndex );
+        const len    = this.active[mapIndex].length;
+
         for ( let i = 0; i < len; i++ ) {
             const marker = this.active[mapIndex][i];
-            if ( marker.options.storeId === storeId ) {
+            if ( marker.options.storeId === leadId ) {
                 helpers.map.setCenter( marker.getLatLng() );
-                marker.fire( 'click' );
+
+                // A shared popup that is already open moves to the location instead.
+                if ( ! this.openOn( marker, storeId, mapIndex ) ) {
+                    marker.fire( 'click' );
+
+                    // Inside a cluster the marker isn't on the map and no popup opens,
+                    // so drop the location openOn() set for it, or a later click on
+                    // the marker itself would open on that location.
+                    if ( ! marker.isPopupOpen() ) {
+                        marker._wpslGroupStart = null;
+                    }
+                }
 
                 break;
             }
         }
+    },
+
+    /**
+     * Make a shared marker's popup open on this location: right away when it
+     * is already open, otherwise on the next click.
+     *
+     * @since  3.1.1
+     * @param  {object} marker   The marker
+     * @param  {number} storeId  The location id
+     * @param  {number} mapIndex The map index
+     * @return {boolean} Whether the open popup moved to the location, so no click is needed
+     */
+    openOn: function( marker, storeId, mapIndex ) {
+        if ( ! marker || ! marker._wpslGroup || marker._wpslGroup.length < 2 ) {
+            return false;
+        }
+
+        const index = markerGroups.shownIndexOf( storeId, mapIndex );
+        const popup = marker.isPopupOpen() ? marker.getPopup().getElement() : null;
+        const root  = popup ? popup.querySelector( '.wpsl-group-window' ) : null;
+
+        if ( root ) {
+            groupWindow.go( root, index );
+
+            return true;
+        }
+
+        marker._wpslGroupStart = index;
+
+        return false;
     }
 };

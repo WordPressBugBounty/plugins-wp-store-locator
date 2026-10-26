@@ -15,6 +15,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class System_Utils {
 
     /**
+     * The format of the cached autoload results, part of the cache key.
+     *
+     * Change it when the search response changes in a way old cached results
+     * must not be served after an update: the upgrade flush only runs once an
+     * admin opens wp-admin. 3.1.1 leaves out password-protected stores and
+     * the publishing details of online stores.
+     *
+     * @since 3.1.1
+     */
+    const AUTOLOAD_CACHE_FORMAT = 'f311';
+
+    /**
      * See if HTTPS is used.
      *
      * @since  3.0.0
@@ -56,6 +68,36 @@ class System_Utils {
     }
 
     /**
+     * Do the flush that a settings change asked for.
+     *
+     * A change to the landing pages sets the wpsl_flush_rewrite option, a
+     * change to what the search results show sets wpsl_delete_transient. The
+     * rewrite rules can only be flushed on a request that started after the
+     * change, so whichever admin page loads first does it: the Settings page,
+     * the Home page and the setup wizard call this on admin_init.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    public function flush_pending() {
+        $flush_rewrite    = get_option( 'wpsl_flush_rewrite' );
+        $delete_transient = get_option( 'wpsl_delete_transient' );
+
+        if ( $flush_rewrite ) {
+            flush_rewrite_rules();
+            update_option( 'wpsl_flush_rewrite', 0, 'no' );
+        }
+
+        if ( $delete_transient ) {
+            update_option( 'wpsl_delete_transient', 0, 'no' );
+        }
+
+        if ( $flush_rewrite || $delete_transient ) {
+            $this->flush_autoload_transients();
+        }
+    }
+
+    /**
      * Get the current cache version number.
      *
      * @since  3.0.0
@@ -69,14 +111,26 @@ class System_Utils {
      * Generate a versioned cache key.
      *
      * @since  3.0.0
+     * @since  3.1.1 Holds the cache format, see AUTOLOAD_CACHE_FORMAT.
      * @param  string $identifier The base name for the cache, an md5 hash of the request details.
      * @return string
      */
     public function get_cache_key( $identifier ) {
-        $version = $this->get_cache_version();
-
         // Transient names have a max length of 172 characters in the DB, longer names are truncated.
-        return 'wpsl_auto_v' . $version . '_' . $identifier;
+        return $this->get_cache_key_prefix() . $identifier;
+    }
+
+    /**
+     * The start of every current autoload cache key.
+     *
+     * flush_autoload_transients() matches _transient_wpsl_auto_v%, so it
+     * also removes the entries of older versions and formats.
+     *
+     * @since  3.1.1
+     * @return string
+     */
+    private function get_cache_key_prefix() {
+        return 'wpsl_auto_v' . $this->get_cache_version() . '_' . self::AUTOLOAD_CACHE_FORMAT . '_';
     }
 
     /**
@@ -128,7 +182,7 @@ class System_Utils {
                   WHERE entry.option_name LIKE %s
                     AND ( expiry.option_value IS NULL OR expiry.option_value > %d )",
                 strlen( '_transient_' ) + 1,
-                $wpdb->esc_like( '_transient_wpsl_auto_v' . $this->get_cache_version() . '_' ) . '%',
+                $wpdb->esc_like( '_transient_' . $this->get_cache_key_prefix() ) . '%',
                 time()
             )
         );

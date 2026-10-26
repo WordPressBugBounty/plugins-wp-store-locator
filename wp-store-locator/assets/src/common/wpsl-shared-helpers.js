@@ -23,6 +23,9 @@ const htmlEscapes = {
 // Parsed geometry per marker src; never grows past the marker count.
 const markerGeometryCache = new Map();
 
+// The console warning about a link without a URL is logged once per page.
+let emptyLinkWarned = false;
+
 /**
  * Parse the geometry out of a custom marker's inline SVG data URI.
  *
@@ -265,7 +268,7 @@ export const sharedHelpers = {
      */
     renderTemplate: function( template, data ) {
         try {
-            return template( data );
+            return sharedHelpers.unlinkEmptyHrefs( template( data ) );
         } catch ( error ) {
             if ( typeof console !== 'undefined' && console.error ) {
                 console.error( 'WP Store Locator: a template section failed to render and was skipped.', error );
@@ -273,6 +276,36 @@ export const sharedHelpers = {
 
             return '';
         }
+    },
+
+    /**
+     * Show a link the template printed without a URL as its text.
+     *
+     * A section customized while "Create landing pages?" was on links the
+     * store name, and "More details" for a location without a url, to
+     * <%= permalink %>. With the landing pages off that is empty, and a link
+     * to "" reloads the page it is on. The link text stays, and the console
+     * says how to fix the section once per page.
+     *
+     * @since   3.1.1
+     * @param   {string} html The rendered markup.
+     * @returns {string}      The markup without links to "".
+     */
+    unlinkEmptyHrefs: function( html ) {
+        let unlinked = false;
+
+        const result = String( html ).replace( /<a\b(?=[^>]*\shref=(["'])\1)[^>]*>([\s\S]*?)<\/a>/gi, function( match, quote, inner ) {
+            unlinked = true;
+
+            return inner;
+        });
+
+        if ( unlinked && ! emptyLinkWarned && typeof console !== 'undefined' && console.warn ) {
+            emptyLinkWarned = true;
+            console.warn( 'WP Store Locator: a template section printed a link without a URL, it is shown as plain text. A section customized while "Create landing pages?" was on links to the landing page, which is empty while they are off; Sync Settings in the Section Editor updates it.' );
+        }
+
+        return result;
     },
 
     /**
@@ -299,8 +332,10 @@ export const sharedHelpers = {
      * @returns {void}
      */
     showDropdownSelection: function( $button, $item ) {
+        // The label sits in its own span, so a long one can be cut off after two lines ( styles.css ).
         $button
-            .text( $item.text() )
+            .empty()
+            .append( jQuery( '<span class="wpsl-selected-label"></span>' ).text( $item.text() ) )
             .attr( 'data-value', $item.attr( 'data-value' ) )
             .prepend( $item.children( '.wpsl-category-dot' ).clone() );
     },

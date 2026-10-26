@@ -181,6 +181,8 @@ class Fields_Manager {
             }
         }
 
+        $field_manager = $this->add_social_fields( $field_manager );
+
         // Merge the default fields with the field manager fields.
         if ( ! empty( $field_manager ) ) {
             if ( $only_custom ) {
@@ -191,5 +193,59 @@ class Fields_Manager {
         }
 
         return $meta_fields;
+    }
+
+    /**
+     * Add the social media fields as a group before the Fields Manager groups.
+     *
+     * The group is only added when the social media option is on. A field that
+     * has the same name as a field in one of the user's groups is skipped. Placed
+     * first, its tab in the store editor follows the Additional Information tab.
+     *
+     * @since  3.1.1
+     * @param  array $field_manager The Fields Manager groups
+     * @return array The groups, with the social media group added when it has fields
+     */
+    private function add_social_fields( $field_manager ) {
+        $social_fields = wpsl_get_social_fields();
+
+        if ( empty( $social_fields ) ) {
+            return $field_manager;
+        }
+
+        $taken = [];
+
+        foreach ( $field_manager as $group_fields ) {
+            $taken = array_merge( $taken, array_keys( $group_fields ) );
+        }
+
+        $group_fields = [];
+
+        foreach ( $social_fields as $field ) {
+            if ( empty( $field['name'] ) || in_array( $field['name'], $taken, true ) || isset( $group_fields[ $field['name'] ] ) ) {
+                continue;
+            }
+
+            $group_fields[ $field['name'] ] = [
+                'label'     => $field['label'],
+                'type'      => 'url',
+                'default'   => '',
+                'platform'  => $field['platform'],
+                'css_class' => isset( $field['css_class'] ) ? $field['css_class'] : ''
+            ];
+        }
+
+        if ( empty( $group_fields ) ) {
+            return $field_manager;
+        }
+
+        $group_name = wpsl_social_group_label();
+
+        // Don't overwrite a group of the user that has the same name.
+        if ( isset( $field_manager[ $group_name ] ) ) {
+            $group_name .= ' (2)';
+        }
+
+        return [ $group_name => $group_fields ] + $field_manager;
     }
 }

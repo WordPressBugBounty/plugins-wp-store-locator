@@ -112,27 +112,19 @@ class Manager {
 
     /**
      * Check if the permalinks settings changed.
-     * 
+     *
+     * Only for a user who can open the Settings page, like the Home page and
+     * the setup wizard do: admin_init also runs for admin-ajax and admin-post
+     * requests of any logged-in user.
+     *
      * @since  2.0.0
+     * @since  3.1.1 Requires manage_wpsl_settings.
      * @return void
      */
     public function maybe_flush_rewrite_and_transient() {
-        if ( isset( $_GET['page'] ) && ( sanitize_text_field( wp_unslash( $_GET['page'] ) ) == 'wpsl_settings' ) ) {
-            $flush_rewrite    = get_option( 'wpsl_flush_rewrite' );
-            $delete_transient = get_option( 'wpsl_delete_transient' );
-            
-            if ( $flush_rewrite ) {
-                flush_rewrite_rules();
-                update_option( 'wpsl_flush_rewrite', 0, 'no' );
-            }
-            
-            if ( $delete_transient ) {
-                update_option( 'wpsl_delete_transient', 0, 'no' );
-            }
-
-            if ( $flush_rewrite || $delete_transient ) {
-                wpsl_get_service( 'system_utils' )->flush_autoload_transients();
-            }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reads which admin page is open.
+        if ( current_user_can( 'manage_wpsl_settings' ) && isset( $_GET['page'] ) && ( sanitize_text_field( wp_unslash( $_GET['page'] ) ) == 'wpsl_settings' ) ) {
+            wpsl_get_service( 'system_utils' )->flush_pending();
         }
     }
 
@@ -182,11 +174,12 @@ class Manager {
     public function set_delete_transient_option( $group, $new_settings, $fields_to_check = [] ) {
         // Define options that trigger transient deletion when changed
         $transient_trigger_fields = [
-            'api'       => ['active_map_service'],
+            // The country restriction filters the page load results, which aren't cached per country.
+            'api'       => ['active_map_service', 'multiple_regions', 'region_restriction_type'],
             'map'       => ['start_name', 'autoload', 'autoload_limit'],
             'search'    => ['orderby', 'order', 'distance_unit'],
-            'ux'        => ['contact_details', 'hours', 'description', 'hide_distance', 'hide_country', 'show_contact_details', 'hide_closed_hours'],
-            'editor'    => ['hide_hours'],
+            'ux'        => ['contact_details', 'hours', 'description', 'social_links', 'hide_distance', 'hide_country', 'show_contact_details', 'hide_closed_hours'],
+            'editor'    => ['hide_hours', 'social_media', 'social_fields'],
             'tools'     => ['debug'],
             'local_pages' => ['permalinks', 'permalink_slug', 'permalink_remove_front', 'category_slug'],
         ];

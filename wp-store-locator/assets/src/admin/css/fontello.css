@@ -21,6 +21,7 @@
 
 .wpsl-icon-api:before { content: '\e800';}
 .wpsl-icon-search:before { content: '\e801';}
+.wpsl-icon-result-card:before { content: '\e80c'; }
 .wpsl-icon-map:before { content: '\e802';}
 .wpsl-icon-ux:before { content: '\e803';}
 

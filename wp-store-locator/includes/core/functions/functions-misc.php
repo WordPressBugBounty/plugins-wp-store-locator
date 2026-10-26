@@ -474,6 +474,22 @@ function wpsl_get_store_status_at( $store_id, $when = null ) {
 }
 
 /**
+ * The opening ranges of a store on one date.
+ *
+ * Example: wpsl_get_store_periods( 42, '2026-10-14' ) returns
+ * [ '09:00,17:00' ], [] when the store is closed that day, or null when its
+ * hours can't be read. See \WPSL\Core\Hours\Service::periods_for_date().
+ *
+ * @since  3.1.1
+ * @param  int    $store_id The store post ID.
+ * @param  string $date     The date ( Y-m-d ), in the store's timezone.
+ * @return string[]|null
+ */
+function wpsl_get_store_periods( $store_id, $date ) {
+    return wpsl_get_service( 'hours' )->periods_for_date( $store_id, $date );
+}
+
+/**
  * Whether this request is an ordinary front-end page view.
  *
  * True only for a plain GET on the front end: not wp-admin, not admin-ajax,
@@ -517,4 +533,35 @@ function wpsl_doing_background_update_check() {
     }
 
     return defined( 'WP_CLI' ) && WP_CLI;
+}
+/**
+ * The id of the build the installed wpsl.min.js was compiled in.
+ *
+ * webpack writes it to wpsl.asset.php next to the bundle, and the bundle
+ * stores the same id in window.wpsl.build. A CDN or cache serving the
+ * wpsl.min.js of another version shows up as a different id, see the build
+ * check on the front-end and WPSL\Admin\Core\Asset_Cache in the admin.
+ *
+ * @since  3.1.1
+ * @return string The build id, or an empty string when the file is missing
+ */
+function wpsl_get_build_id() {
+    static $build = null;
+
+    if ( null !== $build ) {
+        return $build;
+    }
+
+    $build = '';
+    $file  = WPSL_PLUGIN_DIR . 'assets/dist/frontend/js/wpsl.asset.php';
+
+    if ( is_readable( $file ) ) {
+        $asset = include $file;
+
+        if ( is_array( $asset ) && ! empty( $asset['build'] ) ) {
+            $build = (string) $asset['build'];
+        }
+    }
+
+    return $build;
 }

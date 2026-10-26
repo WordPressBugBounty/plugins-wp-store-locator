@@ -244,6 +244,18 @@ class Section_Analyzer {
     }
 
     /**
+     * The names of the features the template's active custom sections are
+     * out of sync on, for the notice on the store locator page.
+     *
+     * @since  3.1.1
+     * @param  string $template_id The template id ( default / vertical / ... ).
+     * @return array  The feature labels, each one once.
+     */
+    public function get_out_of_sync_feature_labels( $template_id ) {
+        return array_values( array_unique( array_column( $this->get_active_section_findings( $template_id ), 'label' ) ) );
+    }
+
+    /**
      * Is a specific feature the reason a custom section is out of sync?
      * Scopes warnings to the setting that causes them.
      *
@@ -316,7 +328,193 @@ class Section_Analyzer {
             }
         }
 
+        $landing_page_link = $this->landing_page_link_finding( $section, $code );
+
+        if ( $landing_page_link ) {
+            $findings[] = $landing_page_link;
+        }
+
         return array_merge( $findings, $this->more_info_field_findings( $section, $lines ) );
+    }
+
+    /**
+     * Do the landing page links of a section follow "Create landing pages?"
+     *
+     * A section customized in the Section Editor keeps the links it was saved
+     * with. With the landing pages off the search data has no permalink, so a
+     * store name linked to <%= permalink %> points to the page it is on, and a
+     * "More details" link that falls back to it does the same for a store
+     * without a url. With them on, a section saved while they were off shows
+     * the store name without the link, and "More details" only for a store
+     * with a url. Both ways the markup is swapped for the one the current
+     * setting generates, see rewrite_landing_page_links().
+     *
+     * @since  3.1.1
+     * @param  string     $section The section name ( listing / info_window ).
+     * @param  string     $code    The section code.
+     * @return array|null The finding, or null when the section is in step.
+     */
+    private function landing_page_link_finding( $section, $code ) {
+        $permalinks = ! empty( $this->settings['local_pages']['permalinks'] );
+        $rewrite    = $this->rewrite_landing_page_links( $code, $section );
+
+        $finding = [
+            'id'    => 'landing_page_link',
+            'label' => __( 'landing page link', 'wp-store-locator' ),
+        ];
+
+        $off_message = __( 'This section links to the landing page, but "Create landing pages?" is off, so the link points to the page it is on.', 'wp-store-locator' );
+
+        if ( $rewrite ) {
+            $finding['status']  = 'mergeable';
+            $finding['message'] = $permalinks ? __( '"Create landing pages?" is on, but this section does not link to the landing page.', 'wp-store-locator' ) : $off_message;
+            $finding['snippet'] = implode( "\n\n", $rewrite['previews'] );
+
+            return $finding;
+        }
+
+        // Off, and linked in markup the rewrite doesn't recognize: point at the lines.
+        if ( ! $permalinks && preg_match( '/<a\b[^>]*\bhref=(["\'])<%=\s*permalink\s*%>\1/', $code ) ) {
+            list( $matched_lines, $matched_snippet ) = $this->find_reverse_matches( '/<%=\s*permalink\s*%>/', explode( "\n", $code ), false );
+
+            $finding['status']          = 'info';
+            $finding['message']         = $off_message;
+            $finding['lines']           = array_slice( $matched_lines, 0, self::REVERSE_MATCH_LIMIT );
+            $finding['lines_truncated'] = max( 0, count( $matched_lines ) - self::REVERSE_MATCH_LIMIT );
+            $finding['snippet']         = implode( "\n", array_slice( $matched_snippet, 0, self::REVERSE_MATCH_LIMIT ) );
+
+            return $finding;
+        }
+
+        return null;
+    }
+
+    /**
+     * Swap the landing page links of a section for the ones "Create landing pages?" asks for.
+     *
+     * The store name and the "More details" link, each when its markup is
+     * recognized. A store name in markup of its own, or a "More details" link
+     * without the wpsl-details class, is left alone.
+     *
+     * @since  3.1.1
+     * @param  string     $code    The section code.
+     * @param  string     $section The section name ( listing / info_window ).
+     * @return array|null The rewritten 'code' and a 'previews' list of the new markup, or null when nothing was swapped.
+     */
+    private function rewrite_landing_page_links( $code, $section ) {
+        $permalinks = ! empty( $this->settings['local_pages']['permalinks'] );
+        $previews   = [];
+
+        $store_name = $this->swap_store_name( $code, $section, $permalinks );
+
+        if ( null !== $store_name ) {
+            $code       = $store_name;
+            $previews[] = implode( "\n", array_map( 'ltrim', preg_split( '/\r?\n/', $this->sections->store_header( $section ) ) ) );
+        }
+
+        $details = $this->swap_details_link( $code, $permalinks );
+
+        if ( null !== $details ) {
+            $code       = $details['code'];
+            $previews[] = $details['preview'];
+        }
+
+        return $previews ? [ 'code' => $code, 'previews' => $previews ] : null;
+    }
+
+    /**
+     * Swap the store name markup for the one Sections::store_header() writes now.
+     *
+     * With the landing pages on, the store name block written while they are
+     * off ( or a plain <strong><%= store %></strong> ) becomes the linked
+     * store name. With them off, the store name linked to <%= permalink %>
+     * becomes the block for when they are off. The first match is replaced,
+     * its continuation lines indented like the line it starts on.
+     *
+     * @since  3.1.1
+     * @param  string      $code       The section code.
+     * @param  string      $section    The section name ( listing / info_window ).
+     * @param  bool        $permalinks Whether the landing pages are on.
+     * @return string|null The rewritten code, or null when no store name markup to swap was found.
+     */
+    private function swap_store_name( $code, $section, $permalinks ) {
+        $linked = '/<strong\b[^>]*>\s*<a\b[^>]*\bhref=(["\'])<%=\s*permalink\s*%>\1[^>]*>\s*<%=\s*store\s*%>\s*<\/a>\s*<\/strong>/';
+        $off    = '/<%\s*if\s*\(\s*wpslSettings\.storeUrl\s*==\s*1\s*&&\s*url\s*\)\s*\{\s*%>\s*<strong\b[^>]*>\s*<a\b[^>]*\bhref=(["\'])<%=\s*url\s*%>\1[^>]*>\s*<%=\s*store\s*%>\s*<\/a>\s*<\/strong>\s*<%\s*\}\s*else\s*\{\s*%>\s*<strong\b[^>]*>\s*<%=\s*store\s*%>\s*<\/strong>\s*<%\s*\}\s*%>/';
+        $plain  = '/<strong\b[^>]*>\s*<%=\s*store\s*%>\s*<\/strong>/';
+
+        foreach ( $permalinks ? [ $off, $plain ] : [ $linked ] as $pattern ) {
+            if ( ! preg_match( $pattern, $code, $match, PREG_OFFSET_CAPTURE ) ) {
+                continue;
+            }
+
+            $offset     = $match[0][1];
+            $line_start = strrpos( substr( $code, 0, $offset ), "\n" );
+            $line_start = ( false === $line_start ) ? 0 : $line_start + 1;
+
+            preg_match( '/^[ \t]*/', substr( $code, $line_start ), $indent );
+
+            $eol    = ( false !== strpos( $code, "\r\n" ) ) ? "\r\n" : "\n";
+            $header = preg_split( '/\r?\n/', $this->sections->store_header( $section ) );
+
+            foreach ( $header as $index => $header_line ) {
+                if ( $index > 0 ) {
+                    $header[ $index ] = $indent[0] . ltrim( $header_line );
+                }
+            }
+
+            return substr_replace( $code, implode( $eol, $header ), $offset, strlen( $match[0][0] ) );
+        }
+
+        return null;
+    }
+
+    /**
+     * Swap the "More details" link for the one Sections::cta_links() writes now.
+     *
+     * With the landing pages on it links to the url or the landing page, in
+     * the order of the "More details target" setting. With them off it links
+     * to the url, and only shows for a location with one. The link keeps its
+     * own attributes and text, only its href and the url check change.
+     *
+     * @since  3.1.1
+     * @param  string     $code       The section code.
+     * @param  bool       $permalinks Whether the landing pages are on.
+     * @return array|null The rewritten 'code' and a 'preview' of the new link, or null when no link to swap was found.
+     */
+    private function swap_details_link( $code, $permalinks ) {
+        // An attribute value can hold a > of the template tags, so the open tag is matched attribute by attribute.
+        $anchor   = '<a\b(?:[^>"\']|"[^"]*"|\'[^\']*\')*>[\s\S]*?<\/a>';
+        $fallback = '/\bhref="<%\s*if\s*\(\s*(?:url|permalink)\s*\)\s*\{\s*%>\s*<%=\s*(?:url|permalink)\s*%>\s*<%\s*\}\s*else\s*\{\s*%>\s*<%=\s*(?:url|permalink)\s*%>\s*<%\s*\}\s*%>"/';
+        $url_only = '/\bhref="<%=\s*url\s*%>"/';
+        $preview  = '';
+
+        if ( $permalinks ) {
+            $href = ( 'landing_page' === $this->sections->details_target() )
+                ? 'href="<% if ( permalink ) { %><%= permalink %><% } else { %><%= url %><% } %>"'
+                : 'href="<% if ( url ) { %><%= url %><% } else { %><%= permalink %><% } %>"';
+
+            $new = preg_replace_callback( '/<%\s*if\s*\(\s*url\s*\)\s*\{\s*%>\s*(' . $anchor . ')\s*<%\s*\}\s*%>/', function( $match ) use ( $url_only, $href, &$preview ) {
+                if ( $preview || ! preg_match( '/\bwpsl-details\b/', $match[1] ) || ! preg_match( $url_only, $match[1] ) ) {
+                    return $match[0];
+                }
+
+                $preview = preg_replace( $url_only, $href, $match[1], 1 );
+
+                return $preview;
+            }, $code );
+        } else {
+            $new = preg_replace_callback( '/' . $anchor . '/', function( $match ) use ( $fallback, &$preview ) {
+                if ( $preview || ! preg_match( '/\bwpsl-details\b/', $match[0] ) || ! preg_match( $fallback, $match[0] ) ) {
+                    return $match[0];
+                }
+
+                $preview = '<% if ( url ) { %>' . preg_replace( $fallback, 'href="<%= url %>"', $match[0], 1 ) . '<% } %>';
+
+                return $preview;
+            }, $code );
+        }
+
+        return ( $preview && null !== $new ) ? [ 'code' => $new, 'preview' => $preview ] : null;
     }
 
     /**
@@ -376,6 +574,7 @@ class Section_Analyzer {
             'contact_details' => [ __( 'contact details', 'wp-store-locator' ), '/wpsl-contact-details/', (array) $ux['contact_details'] ],
             'hours'           => [ __( 'opening hours', 'wp-store-locator' ), '/<%=\s*hours(_status)?\s*%>/', (array) $ux['hours'] ],
             'description'     => [ __( 'description', 'wp-store-locator' ), '/<%=\s*description\s*%>/', (array) $ux['description'] ],
+            'social_links'    => [ __( 'social media links', 'wp-store-locator' ), '/\{\{\s*wpsl_social_links\s*\}\}|wpsl-social-links/', $this->social_placements() ],
         ];
 
         $findings = [];
@@ -656,11 +855,23 @@ class Section_Analyzer {
             unset( $selected['store_id'] );
         }
 
+        // The store name link, a content transform as well. Not in the feature registry, it applies whichever way the setting is.
+        if ( in_array( 'landing_page_link', (array) $feature_ids, true ) ) {
+            $rewrite = $this->rewrite_landing_page_links( implode( "\n", $lines ), $section );
+
+            if ( null !== $rewrite ) {
+                $lines     = explode( "\n", $rewrite['code'] );
+                $applied[] = 'landing_page_link';
+            } else {
+                $skipped[] = 'landing_page_link';
+            }
+        }
+
         /**
          * Resolve anchors against the current code, then apply insertions
          * bottom-up so earlier splices don't shift later line numbers.
          */
-        $order   = [ 'categories' => 0, 'description' => 1, 'hours' => 2, 'contact_details' => 3, 'more_info' => 4, 'cta_section' => 5 ];
+        $order   = [ 'categories' => 0, 'description' => 1, 'hours' => 2, 'contact_details' => 3, 'social_links' => 4, 'more_info' => 5, 'cta_section' => 6 ];
         $current = implode( "\n", $lines );
         $scoped  = $this->code_outside_more_info( $lines );
         $inserts = [];
@@ -805,6 +1016,23 @@ class Section_Analyzer {
             'report_reverse' => true,
         ];
 
+        /*
+         * The social media links. The default sections hold the
+         * {{wpsl_social_links}} tag, it is expanded when the template is
+         * loaded. A section can also hold the expanded markup.
+         *
+         * @since 3.1.1
+         */
+        $features[] = [
+            'id'             => 'social_links',
+            'label'          => __( 'social media links', 'wp-store-locator' ),
+            'enabled'        => in_array( $placement, $this->social_placements(), true ),
+            'marker'         => '/\{\{\s*wpsl_social_links\s*\}\}|wpsl-social-links/',
+            'scoped'         => true,
+            'anchor'         => 'after_address',
+            'report_reverse' => true,
+        ];
+
         if ( $section === 'listing' ) {
             $features[] = [
                 'id'             => 'categories',
@@ -915,7 +1143,23 @@ class Section_Analyzer {
 
         return in_array( 'more_info', (array) $ux['contact_details'], true )
             || in_array( 'more_info', (array) $ux['hours'], true )
-            || in_array( 'more_info', (array) $ux['description'], true );
+            || in_array( 'more_info', (array) $ux['description'], true )
+            || in_array( 'more_info', $this->social_placements(), true );
+    }
+
+    /**
+     * The places the social media links are shown in. None while the social
+     * media group is off. Mirrors Sections::show_social_links().
+     *
+     * @since  3.1.1
+     * @return array The location keys
+     */
+    private function social_placements() {
+        if ( ! wpsl_get_social_fields() ) {
+            return [];
+        }
+
+        return isset( $this->settings['ux']['social_links'] ) ? (array) $this->settings['ux']['social_links'] : [];
     }
 
     /**
@@ -1260,6 +1504,8 @@ class Section_Analyzer {
                 return '<% if ( obj.hours ) { %>' . "\n" . $hours . "\n" . '<% } %>';
             case 'contact_details':
                 return $this->normalize_snippet( $this->sections->contact_details() );
+            case 'social_links':
+                return '{{wpsl_social_links}}';
             case 'categories':
                 return $this->normalize_snippet( $this->sections->categories() );
             case 'more_info':

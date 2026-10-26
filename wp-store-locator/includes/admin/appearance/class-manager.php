@@ -170,6 +170,18 @@ class Manager {
             $this->settings->update( 'appearance', $this->wpsl_settings['appearance'] );
         }
 
+        /**
+         * Fires after the Appearance settings are saved.
+         *
+         * The nonce and the manage_wpsl_settings capability are checked
+         * before this runs. Add-ons with inputs in an Appearance item read
+         * their own keys from the posted data and sanitize them.
+         *
+         * @since 3.1.1
+         * @param array $posted The posted form data, unslashed.
+         */
+        do_action( 'wpsl_appearance_saved', wp_unslash( $_POST ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Nonce checked above, each add-on sanitizes its own keys
+
         if ( $is_ajax ) {
             wp_send_json_success( [ 'message' => __( 'Settings saved.', 'wp-store-locator' ) ] );
             return;
@@ -535,8 +547,8 @@ class Manager {
             'category_filter_only' => 'category_only_filter',
         ];
 
-        // The category only option has no effect without the category filter.
-        if ( empty( $search_settings['category_filter'] ) ) {
+        // The category only option has no effect without the category filter, or on a panel template.
+        if ( ! $this->is_category_filter_only() ) {
             unset( $filter_map['category_filter_only'] );
         }
     
@@ -566,7 +578,7 @@ class Manager {
         if ( $cat_checkboxes ) {
             $classes[] = 'wpsl-no-bottom-margin';
             $classes[] = 'wpsl-checkboxes-enabled';
-        } elseif ( ( ! empty( $search_settings['category_filter'] ) && ! empty( $search_settings['category_filter_only'] ) ) || ( $has_all( ['category', 'countries'], $active_filters ) && count( $active_filters ) === 2 ) ) {
+        } elseif ( $this->is_category_filter_only() || ( $has_all( ['category', 'countries'], $active_filters ) && count( $active_filters ) === 2 ) ) {
             $classes[] = 'wpsl-cat-filter';
         } else {
             // Valid combinations for wpsl-no-bottom-margin
@@ -736,7 +748,7 @@ class Manager {
 
         /*
          * Always in the listing preview, directly below the address: the
-         * "Show categories?" toggle on the Search Results tab shows and
+         * "Show categories?" toggle on the Result Card tab shows and
          * hides it, see bindCategoryOptions().
          */
         if ( $template_type === 'listing' ) {
@@ -896,14 +908,62 @@ class Manager {
      * @return string The style attribute to hide the input field, or empty string
      */
     public function get_input_visibility() {
-        $search_settings = $this->settings->get_group( 'search' );
-        
+
         // Hide input field if category_only_filter is active
-        if ( ! empty( $search_settings['category_filter'] ) && ! empty( $search_settings['category_filter_only'] ) ) {
+        if ( $this->is_category_filter_only() ) {
             return 'style="display:none;"';
         }
 
         return '';
+    }
+
+    /**
+     * Whether "Only show the category filter?" is on. It only works with the category filter.
+     *
+     * The front end hides the location field, the radius and results dropdowns and the
+     * search button through the wpsl-cat-filter-only and wpsl-cat-autosubmit classes. The
+     * preview doesn't load the front-end CSS, so it hides them with inline styles instead.
+     *
+     * @since  3.1.1
+     * @return bool
+     */
+    private function is_category_filter_only() {
+        $search_settings = $this->settings->get_group( 'search' );
+
+        if ( empty( $search_settings['category_filter'] ) || empty( $search_settings['category_filter_only'] ) ) {
+            return false;
+        }
+
+        // Ignored on panel templates ( the vertical one ), as on the front end, see Filters::is_category_filter_only().
+        $template_id = isset( $this->wpsl_settings['appearance']['template_id'] ) ? $this->wpsl_settings['appearance']['template_id'] : '';
+        $details     = wpsl_get_service( 'template_loader' )->get_details( $template_id );
+
+        return empty( $details['has_panel'] );
+    }
+
+    /**
+     * Determine if the search button should be hidden in the preview.
+     *
+     * With "Only show the category filter?" picking a category searches, so the front end has no search button.
+     *
+     * @since  3.1.1
+     * @return string The style attribute to hide the search button, or empty string
+     */
+    public function get_search_button_visibility() {
+        return $this->is_category_filter_only() ? 'style="display:none;"' : '';
+    }
+
+    /**
+     * Determine if the line break between the first search row and the category row should be hidden.
+     *
+     * With "Only show the category filter?" the first row is hidden, so the break's top margin
+     * would only add space above the category filter.
+     *
+     * @since  3.1.1
+     * @return string The style attribute to hide the line break, or empty string
+     */
+    public function get_linebreak_visibility() {
+        return $this->is_category_filter_only() ? ' style="display:none;"' : '';
     }
 
     /**
@@ -915,8 +975,9 @@ class Manager {
     public function get_results_visibility() {
         $search_settings = $this->settings->get_group( 'search' );
         
-        // Hide results wrapper if both country and category filters are active (and radius/max_results are not)
-        if ( ! empty( $search_settings['category_filter'] ) && empty( $search_settings['radius_dropdown'] ) && empty( $search_settings['results_dropdown'] ) ) {
+        // Hide results wrapper if both country and category filters are active (and radius/max_results are not),
+        // and with "Only show the category filter?", which hides the radius and results dropdowns.
+        if ( ( ! empty( $search_settings['category_filter'] ) && empty( $search_settings['radius_dropdown'] ) && empty( $search_settings['results_dropdown'] ) ) || $this->is_category_filter_only() ) {
             return 'style="display:none;"';
         }
 
@@ -1173,16 +1234,23 @@ class Manager {
     }
 
     /**
-     * Generate all appearance editor tab content HTML
+     * The Appearance items: the menu entries and the panels they open.
      *
-     * @return string
+     * "Themes" is not in the list, it opens the theme picker instead of a panel.
+     *
+     * @since  3.1.1
+     * @return array[] Each item: id, title, file ( absolute path of the panel template ),
+     *                 icon ( a fontello class ), show_reset, show_footer, menu ( false hides the menu entry ).
      */
-    public function get_tab_content() {
+    public function get_tabs() {
+        $template_id = $this->settings->get( 'appearance', 'template_id' );
+
         $tabs = [
             [
                 'id'          => 'wpsl-theme-styles-tab',
                 'title'       => __( 'Theme Style', 'wp-store-locator' ),
                 'template'    => 'theme-styles.php',
+                'icon'        => 'wpsl-icon-theme-styles',
                 'show_reset'  => true,
                 'show_footer' => true,
             ],
@@ -1190,6 +1258,7 @@ class Manager {
                 'id'          => 'wpsl-button-styles-tab',
                 'title'       => __( 'Button Styles', 'wp-store-locator' ),
                 'template'    => 'button-styles.php',
+                'icon'        => 'wpsl-icon-button-styles',
                 'show_reset'  => true,
                 'show_footer' => true,
             ],
@@ -1197,6 +1266,7 @@ class Manager {
                 'id'          => 'wpsl-map-styles-tab',
                 'title'       => __( 'Map Style', 'wp-store-locator' ),
                 'template'    => 'map-styles.php',
+                'icon'        => 'wpsl-icon-map',
                 'show_reset'  => false,
                 'show_footer' => true,
             ],
@@ -1204,6 +1274,7 @@ class Manager {
                 'id'          => 'wpsl-font-size-tab',
                 'title'       => __( 'Font Size', 'wp-store-locator' ),
                 'template'    => 'font-size.php',
+                'icon'        => 'wpsl-icon-font-size',
                 'show_reset'  => true,
                 'show_footer' => true,
             ],
@@ -1211,13 +1282,16 @@ class Manager {
                 'id'          => 'wpsl-dimensions-tab',
                 'title'       => __( 'Dimensions', 'wp-store-locator' ),
                 'template'    => 'dimensions.php',
+                'icon'        => 'wpsl-icon-dimensions',
                 'show_reset'  => true,
                 'show_footer' => true,
+                'menu'        => $this->has_template_preview( $template_id ),
             ],
             [
                 'id'          => 'wpsl-search-results-tab',
                 'title'       => __( 'Search Results', 'wp-store-locator' ),
                 'template'    => 'search-results.php',
+                'icon'        => 'wpsl-icon-search',
                 'show_reset'  => false,
                 'show_footer' => true,
             ],
@@ -1225,10 +1299,138 @@ class Manager {
                 'id'          => 'wpsl-accessibility-tab',
                 'title'       => __( 'Accessibility', 'wp-store-locator' ),
                 'template'    => 'accessibility.php',
+                'icon'        => 'wpsl-icon-accessibility',
                 'show_reset'  => false,
                 'show_footer' => true,
             ],
         ];
+
+        /**
+         * Filters the Appearance items.
+         *
+         * The order of the array is the order of the menu. An add-on adds its
+         * own item with a 'path' to its panel template. The panel is printed
+         * inside the Appearance form, so its inputs are posted on save, see
+         * the 'wpsl_appearance_saved' action.
+         *
+         * @since 3.1.1
+         * @param array[] $tabs Each item: id ( wpsl-{letters and dashes}-tab ), title,
+         *                      template ( a file in core's templates folder ) or path ( absolute ),
+         *                      icon, show_reset, show_footer, menu.
+         */
+        // The settings for each location get their own item only when an add-on asks for it.
+        if ( $this->has_result_card_item() ) {
+            $index = array_search( 'wpsl-search-results-tab', array_column( $tabs, 'id' ), true );
+
+            array_splice( $tabs, ( false === $index ) ? count( $tabs ) : $index + 1, 0, [ [
+                'id'          => 'wpsl-result-card-tab',
+                'title'       => __( 'Result Card', 'wp-store-locator' ),
+                'template'    => 'result-card.php',
+                'icon'        => 'wpsl-icon-result-card',
+                'show_reset'  => false,
+                'show_footer' => true,
+            ] ] );
+        }
+
+        $tabs = apply_filters( 'wpsl_appearance_tabs', $tabs );
+
+        return $this->validate_tabs( $tabs );
+    }
+
+    /**
+     * Whether the Appearance page has a Result Card item.
+     *
+     * Off by default: the icons, the categories and the More details link
+     * stay under Search Results, as in 3.1.0. An add-on that builds on the
+     * result cards ( WP Store Locator Pro ) turns it on, and adds its own
+     * settings to it with the 'wpsl_appearance_result_card' action.
+     *
+     * @since  3.1.1
+     * @return bool
+     */
+    public function has_result_card_item() {
+
+        /**
+         * Filters whether the Appearance page shows a Result Card item.
+         *
+         * @since 3.1.1
+         * @param bool $show False, the settings stay under Search Results.
+         */
+        return (bool) apply_filters( 'wpsl_appearance_result_card_item', false );
+    }
+
+    /**
+     * Drop items that can't be shown, and fill in the defaults.
+     *
+     * @since  3.1.1
+     * @param  mixed $tabs The filtered items.
+     * @return array[]
+     */
+    private function validate_tabs( $tabs ) {
+        $valid = [];
+        $seen  = [];
+
+        foreach ( (array) $tabs as $tab ) {
+            if ( ! is_array( $tab ) || empty( $tab['id'] ) || empty( $tab['title'] ) || ! is_string( $tab['id'] ) ) {
+                continue;
+            }
+
+            // restoreTabFromSession() in wpsl-appearance-editor.js only reopens ids of this form.
+            if ( ! preg_match( '/^wpsl-[a-z-]+-tab$/D', $tab['id'] ) || isset( $seen[ $tab['id'] ] ) ) {
+                continue;
+            }
+
+            if ( ! empty( $tab['path'] ) ) {
+                $file = (string) $tab['path'];
+            } elseif ( ! empty( $tab['template'] ) ) {
+                $file = WPSL_PLUGIN_DIR . 'includes/admin/appearance/templates/' . basename( (string) $tab['template'] );
+            } else {
+                continue;
+            }
+
+            $seen[ $tab['id'] ] = true;
+
+            $valid[] = [
+                'id'          => $tab['id'],
+                'title'       => (string) $tab['title'],
+                'file'        => $file,
+                'icon'        => isset( $tab['icon'] ) ? sanitize_html_class( $tab['icon'] ) : '',
+                'show_reset'  => ! empty( $tab['show_reset'] ),
+                'show_footer' => ! isset( $tab['show_footer'] ) || ! empty( $tab['show_footer'] ),
+                'menu'        => ! isset( $tab['menu'] ) || ! empty( $tab['menu'] ),
+            ];
+        }
+
+        return $valid;
+    }
+
+    /**
+     * The menu entries for the Appearance items, after "Themes".
+     *
+     * @since  3.1.1
+     * @return string
+     */
+    public function get_menu() {
+        $html = '';
+
+        foreach ( $this->get_tabs() as $tab ) {
+            $data_id = preg_replace( '/^wpsl-|-tab$/', '', $tab['id'] );
+
+            $html .= '<li data-id="' . esc_attr( $data_id ) . '"' . ( $tab['menu'] ? '' : ' style="display:none;"' ) . '>';
+            $html .= '<a href="#' . esc_attr( $tab['id'] ) . '"><span class="' . esc_attr( $tab['icon'] ) . '">' . esc_html( $tab['title'] ) . '</span></a>';
+            $html .= '</li>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * Generate all appearance editor tab content HTML
+     *
+     * @return string
+     */
+    public function get_tab_content() {
+        $tabs = $this->get_tabs();
 
         $html = '';
 
@@ -1254,18 +1456,15 @@ class Manager {
         $html .= '<div id="wpsl-appearance-content" class="wpsl-hidden">';
         
         foreach ( $tabs as $tab ) {
-            $show_footer = isset( $tab['show_footer'] ) ? $tab['show_footer'] : true;
-            $html .= '<div class="wpsl-appearance-view wpsl-hidden" id="' . esc_attr( $tab['id'] ) . '" data-tab-title="' . esc_attr( $tab['title'] ) . '" data-show-reset="' . esc_attr( $tab['show_reset'] ? '1' : '0' ) . '" data-show-footer="' . esc_attr( $show_footer ? '1' : '0' ) . '">';
-            
-            // Include the tab template file
-            $template_path = WPSL_PLUGIN_DIR . 'includes/admin/appearance/templates/' . $tab['template'];
-            
-            if ( file_exists( $template_path ) ) {
+            $html .= '<div class="wpsl-appearance-view wpsl-hidden" id="' . esc_attr( $tab['id'] ) . '" data-tab-title="' . esc_attr( $tab['title'] ) . '" data-show-reset="' . esc_attr( $tab['show_reset'] ? '1' : '0' ) . '" data-show-footer="' . esc_attr( $tab['show_footer'] ? '1' : '0' ) . '">';
+
+            // The panel template: core's own, or an add-on's ( 'wpsl_appearance_tabs' ).
+            if ( is_readable( $tab['file'] ) ) {
                 ob_start();
-                include $template_path;
+                include $tab['file'];
                 $html .= ob_get_clean();
             } else {
-                $html .= '<!-- Template file not found: ' . esc_html( $tab['template'] ) . ' -->';
+                $html .= '<!-- Template file not found: ' . esc_html( basename( $tab['file'] ) ) . ' -->';
             }
             
             $html .= '</div>';

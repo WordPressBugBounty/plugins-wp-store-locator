@@ -18,6 +18,7 @@ require_once __DIR__ . '/functions/functions-markers.php';
 require_once __DIR__ . '/functions/functions-i18n.php';
 require_once __DIR__ . '/functions/functions-formatting.php';
 require_once __DIR__ . '/functions/functions-categories.php';
+require_once __DIR__ . '/functions/functions-social.php';
 require_once __DIR__ . '/functions/functions-misc.php';
 require_once __DIR__ . '/functions/functions-compat.php';
 require_once __DIR__ . '/functions/functions-addons.php';

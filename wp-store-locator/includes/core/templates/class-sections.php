@@ -113,8 +113,10 @@ class Sections {
 
         // An emptied "More details" label leaves the link out.
         if ( $include_details && ! $this->i18n->is_emptied_label( 'more_details_label' ) ) {
-            // Use external URL if available, otherwise fall back to permalink
-            if ( $this->settings['local_pages']['permalinks'] ) {
+            // "More details target": the website first and the local page as the fallback, or the other way around.
+            if ( $this->settings['local_pages']['permalinks'] && $this->details_target() === 'landing_page' ) {
+                $links .= "\t\t" . '<a class="' . esc_attr( $details_class ) . '" target="_blank" rel="noopener" href="<% if ( permalink ) { %><%= permalink %><% } else { %><%= url %><% } %>">' . "{{wpsl_label( 'more_details_label' )}}" . '</a>' . "\r\n";
+            } elseif ( $this->settings['local_pages']['permalinks'] ) {
                 $links .= "\t\t" . '<a class="' . esc_attr( $details_class ) . '" target="_blank" rel="noopener" href="<% if ( url ) { %><%= url %><% } else { %><%= permalink %><% } %>">' . "{{wpsl_label( 'more_details_label' )}}" . '</a>' . "\r\n";
             } else {
                 $links .= "\t\t" . '<% if ( url ) { %><a class="' . esc_attr( $details_class ) . '" target="_blank" rel="noopener" href="<%= url %>">' . "{{wpsl_label( 'more_details_label' )}}" . '</a><% } %>' . "\r\n";
@@ -126,6 +128,18 @@ class Sections {
         }
 
         return $links;
+    }
+
+    /**
+     * Where the More details link goes first: the 'website' of the location, or its 'landing_page'.
+     *
+     * @since  3.1.1
+     * @return string website or landing_page
+     */
+    public function details_target() {
+        $target = isset( $this->settings['appearance']['cta']['details_target'] ) ? $this->settings['appearance']['cta']['details_target'] : 'website';
+
+        return ( $target === 'landing_page' ) ? 'landing_page' : 'website';
     }
 
     /**
@@ -367,6 +381,7 @@ class Sections {
         $allowed_functions = apply_filters( 'wpsl_template_functions', [
             'wpsl_get_distance_unit',
             'wpsl_label',
+            'wpsl_social_links',
         ] );
 
         /**
@@ -567,6 +582,11 @@ class Sections {
             $listing_template .= $this->contact_details();
         }
 
+        // The social media links, expanded when the template is loaded ( see maybe_call_func() ), so the section editor keeps the tag.
+        if ( $this->show_social_links( 'search_results' ) ) {
+            $listing_template .= "\t\t" . '{{wpsl_social_links}}' . "\r\n";
+        }
+
         // Maybe include the hours data.
         if ( in_array( 'search_results', $this->settings['ux']['hours'] ) ) {
             $listing_template .= "\t\t" . '<% if ( obj.hours ) { %>' . "\r\n";
@@ -663,6 +683,11 @@ class Sections {
             $info_window_template .= $this->contact_details();
         }
 
+        // The social media links, expanded when the template is loaded ( see maybe_call_func() ), so the section editor keeps the tag.
+        if ( $this->show_social_links( 'marker_popup' ) ) {
+            $info_window_template .= "\t\t" . '{{wpsl_social_links}}' . "\r\n";
+        }
+
         // Maybe include the hours status in the popup (short version, no expandable hours table).
         // Skip if location_status is set (temporarily/permanently closed), since that takes priority.
         if ( in_array( 'marker_popup', $this->settings['ux']['hours'] ) && $this->settings['ux']['show_hour_status'] ) {
@@ -723,6 +748,11 @@ class Sections {
         // Maybe include the contact details.
         if ( in_array( 'landing_page_marker_popup', $this->settings['ux']['contact_details'] ) ) {
             $cpt_info_window_template .= $this->contact_details();
+        }
+
+        // The social media links, expanded when the template is loaded ( see maybe_call_func() ), so the section editor keeps the tag.
+        if ( $this->show_social_links( 'landing_page_marker_popup' ) ) {
+            $cpt_info_window_template .= "\t\t" . '{{wpsl_social_links}}' . "\r\n";
         }
 
         // Maybe include the hours status (short open / closed status).
@@ -787,6 +817,12 @@ class Sections {
         $online_template .= "\t\t\t" . '<p><%= description %></p>' . "\r\n";
         $online_template .= "\t\t\t" . '<% } %>' . "\r\n";
         $online_template .= "\t\t\t" . $this->contact_details( true );
+
+        // The social media links, expanded when the template is loaded ( see maybe_call_func() ). An online store has no map, so it follows the search results.
+        if ( $this->show_social_links( 'search_results' ) ) {
+            $online_template .= "\t\t\t" . '{{wpsl_social_links}}' . "\r\n";
+        }
+
         $online_template .= "\t" . '</div>' . "\r\n";
         $online_template .= '</li>' . "\r\n";
 
@@ -898,6 +934,11 @@ class Sections {
 
         if ( in_array( 'more_info', $this->settings['ux']['contact_details'] ) ) {
             $more_info_template .= "\t" . $this->contact_details();
+        }
+
+        // The social media links, expanded when the template is loaded ( see maybe_call_func() ).
+        if ( $this->show_social_links( 'more_info' ) ) {
+            $more_info_template .= "\t\t\t" . '{{wpsl_social_links}}' . "\r\n";
         }
 
         if ( in_array( 'more_info', $this->settings['ux']['hours'] ) ) {
@@ -1027,6 +1068,23 @@ class Sections {
     private function has_more_info_enabled() {
         return in_array( 'more_info', $this->settings['ux']['contact_details'] ) ||
             in_array( 'more_info', $this->settings['ux']['hours'] ) ||
-            in_array( 'more_info', $this->settings['ux']['description'] );
+            in_array( 'more_info', $this->settings['ux']['description'] ) ||
+            $this->show_social_links( 'more_info' );
+    }
+
+    /**
+     * Check if the social media links are part of the template of a location.
+     *
+     * The links need a social media field, and the location has to be one of the
+     * places chosen in the "Location(s) of the social links" setting.
+     *
+     * @since  3.1.1
+     * @param  string $location The location key, the same keys the contact details use ( search_results, more_info, marker_popup, landing_page_marker_popup )
+     * @return bool
+     */
+    private function show_social_links( $location ) {
+        $places = isset( $this->settings['ux']['social_links'] ) ? (array) $this->settings['ux']['social_links'] : [];
+
+        return in_array( $location, $places, true ) && (bool) wpsl_get_social_fields();
     }
 }

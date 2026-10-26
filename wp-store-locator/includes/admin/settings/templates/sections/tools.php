@@ -96,6 +96,17 @@ $migration_failed = get_option( 'wpsl_v3_migration_complete' ) === 'in_progress'
             </label>
             <a class="button wpsl-flush-cache" id="wpsl-flush-transient-cache" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wpsl-flush-transient-cache' ) ); ?>" href="#"><?php esc_html_e( 'Clear cache', 'wp-store-locator' ); ?></a>
         </p>
+        <?php if ( \WPSL\Admin\Core\Asset_Cache::get_check_config() ) : ?>
+        <p class="wpsl-has-preloader wpsl-js-required">
+            <label for="wpsl-asset-cache-check"><?php esc_html_e( 'Outdated cached files', 'wp-store-locator' ); ?>
+                <span class="wpsl-info">
+                    <?php /* translators: %s: line breaks */ ?>
+                    <span class="wpsl-info-text wpsl-hide"><?php echo wp_kses_post( sprintf( __( 'Checks whether a CDN or cache serves an outdated version of the store locator scripts, and whether your CDN ignores the version in script URLs, which makes this happen after every update. %s Run it again after clearing a cache. The Home page also runs it after an update.', 'wp-store-locator' ), '<br><br>' ) ); ?></span>
+                </span>
+            </label>
+            <a class="button" id="wpsl-asset-cache-check" href="#"><?php esc_html_e( 'Check now', 'wp-store-locator' ); ?></a>
+        </p>
+        <?php endif; ?>
         <p class="wpsl-flex-center-align wpsl-js-required">
             <label for="wpsl-show-geocode-response"><?php esc_html_e( 'Show the Geocode API response for a location search', 'wp-store-locator' ); ?>
             <?php if ( ! wpsl_has_map_api_key() ): ?>

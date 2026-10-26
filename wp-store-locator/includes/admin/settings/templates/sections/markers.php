@@ -74,6 +74,16 @@ if ( ! defined( 'ABSPATH' ) ) {
             <input type="checkbox" value="" <?php checked( $section_settings['start_marker_on_top'], true ); ?> name="wpsl_markers[start_marker_on_top]" id="wpsl-start-marker-on-top">
         </p>
         <p>
+            <label for="wpsl-group-colocated"><?php esc_html_e( 'Show locations at the same address as one marker?', 'wp-store-locator' ); ?>
+                <span class="wpsl-info">
+                    <span class="wpsl-info-text wpsl-hide">
+                        <?php esc_html_e( 'Locations with the same coordinates otherwise stack their markers, and only the top one can be clicked. With this enabled they share one marker, and its info window lets visitors browse them.', 'wp-store-locator' ); ?>
+                    </span>
+                </span>
+            </label>
+            <input type="checkbox" value="" <?php checked( ! empty( $section_settings['group_colocated'] ), true ); ?> name="wpsl_markers[group_colocated]" id="wpsl-group-colocated">
+        </p>
+        <p>
             <label for="wpsl-marker-clusters"><?php esc_html_e( 'Enable marker clusters?', 'wp-store-locator' ); ?>
                 <span class="wpsl-info">
                     <span class="wpsl-info-text wpsl-hide">

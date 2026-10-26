@@ -27,13 +27,7 @@ $template_id = $wpsl_settings->get( 'appearance', 'template_id' );
             <nav>
                 <ul id="wpsl-appearance-tabs">
                     <li data-id="templates"><a href="#wpsl-templates-tab"><span class="wpsl-icon-theme"><?php esc_html_e( 'Themes', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="theme-styles"><a href="#wpsl-theme-styles-tab"><span class="wpsl-icon-theme-styles"><?php esc_html_e( 'Theme Style', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="button-styles"><a href="#wpsl-button-styles-tab"><span class="wpsl-icon-button-styles"><?php esc_html_e( 'Button Styles', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="map-styles"><a href="#wpsl-map-styles-tab"><span class="wpsl-icon-map"><?php esc_html_e( 'Map Style', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="font-size"><a href="#wpsl-font-size-tab"><span class="wpsl-icon-font-size"><?php esc_html_e( 'Font Size', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="dimensions"<?php echo $appearance->has_template_preview( $template_id ) ? '' : ' style="display:none;"'; ?>><a href="#wpsl-dimensions-tab"><span class="wpsl-icon-dimensions"><?php esc_html_e( 'Dimensions', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="search-results"><a href="#wpsl-search-results-tab"><span class="wpsl-icon-search"><?php esc_html_e( 'Search Results', 'wp-store-locator' ); ?></span></a></li>
-                    <li data-id="accessibility"><a href="#wpsl-accessibility-tab"><span class="wpsl-icon-accessibility"><?php esc_html_e( 'Accessibility', 'wp-store-locator' ); ?></span></a></li>
+                    <?php echo $appearance->get_menu(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>
                 </ul>
             </nav>
         </div>

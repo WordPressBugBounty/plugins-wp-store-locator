@@ -2,6 +2,7 @@ import { importedLibraries } from '../../../../../common/wpsl-core.js';
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { mapBootstrap } from '../../../modules/wpsl-map-bootstrap.js';
+import { fireMapReady } from '../../../modules/wpsl-map-ready.js';
 import { buttons } from '../../../modules/wpsl-buttons.js';
 import { eventHandlers } from '../../../modules/wpsl-event-handlers.js';
 import { markers } from './wpsl-markers.js';
@@ -101,6 +102,12 @@ export const map = {
 
         slData.maps[mapIndex] = new importedLibraries.maps.Map( mapElement, mapOptions );
         slData.maps[mapIndex]._wpslMapIndex = mapIndex;
+
+        const readyMap = slData.maps[mapIndex];
+
+        google.maps.event.addListenerOnce( readyMap, 'idle', () => {
+            fireMapReady( readyMap, mapIndex, readyMap.getDiv() );
+        } );
 
         // Per-map cluster flag: the locator follows the global setting /
         // [wpsl] attribute, a [wpsl_map] additionally honors its own

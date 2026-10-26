@@ -169,6 +169,7 @@ class Home {
         $this->markers     = $markers;
 
         add_action( 'admin_init', [ $this, 'maybe_dismiss_setup' ] );
+        add_action( 'admin_init', [ $this, 'maybe_flush_pending' ] );
         add_action( 'admin_post_wpsl_create_locator_page', [ $this, 'create_locator_page' ] );
         add_action( 'wp_ajax_' . self::SAVE_SERVICE_ACTION, [ $this, 'save_map_service' ] );
         add_action( 'wp_ajax_' . self::STATUS_ACTION, [ $this, 'setup_status' ] );
@@ -381,6 +382,24 @@ class Home {
      */
     public function get_dismiss_url() {
         return wp_nonce_url( add_query_arg( [ 'wpsl-hide-setup' => 1 ] ), self::DISMISS_ACTION );
+    }
+
+    /**
+     * Finish a flush that Quick setup asked for and the browser never sent.
+     *
+     * Switching the landing pages on the Home page sets the flush flag, the
+     * request that flushes follows once the save has answered. Someone who
+     * leaves in between would find the page addresses broken until they
+     * visit the Settings page, so the next load of Home does it.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    public function maybe_flush_pending() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reads which admin page is open.
+        if ( current_user_can( 'manage_wpsl_settings' ) && isset( $_GET['page'] ) && 'wpsl_home' === sanitize_text_field( wp_unslash( $_GET['page'] ) ) ) {
+            wpsl_get_service( 'system_utils' )->flush_pending();
+        }
     }
 
     /**

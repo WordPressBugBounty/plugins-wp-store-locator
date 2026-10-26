@@ -221,6 +221,7 @@ class Resources {
             'thisField' => esc_html__( 'this field', 'wp-store-locator' ),
             'thisGroup' => esc_html__( 'this group', 'wp-store-locator' ),
             'requiredFieldsMissing' => esc_html__( 'Some required fields in the {groups} group(s) are missing or incomplete.', 'wp-store-locator' ),
+            'socialLabelMissing' => esc_html__( 'A social media field of the type Other needs a name.', 'wp-store-locator' ),
             'noLanguageDefaultTemplate' => esc_html__('The selected language has no template available, so the default template has been loaded.', 'wp-store-locator' ),
             'customize' => esc_html__( 'Customize', 'wp-store-locator' ),
             'activate' => esc_html__( 'Activate', 'wp-store-locator' ),

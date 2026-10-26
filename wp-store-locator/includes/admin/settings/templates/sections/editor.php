@@ -15,6 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             <label for="wpsl-editor-online-locations"><?php esc_html_e( 'Include online stores?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Online stores always appear first in the search results, and only need the website field to be filled in.', 'wp-store-locator' ); ?></span></span></label>
             <input type="checkbox" value="" <?php checked( $section_settings['enable_online_only'], true ); ?> name="wpsl_editor[enable_online_only]" id="wpsl-editor-online-locations">
         </p>
+        <p>
+            <label for="wpsl-editor-social-media"><?php esc_html_e( 'Enable the social media group?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Adds a Social Media group to the Fields Manager and a Social Media tab to the store editor, with a link field for each platform you choose.', 'wp-store-locator' ); ?></span></span></label>
+            <input type="checkbox" value="" <?php checked( ! empty( $section_settings['social_media'] ), true ); ?> name="wpsl_editor[social_media]" id="wpsl-editor-social-media">
+        </p>
         <p class="wpsl-api-gmaps" <?php if ( $settings_manager->get( 'api', 'active_map_service' ) != 'gmaps' ) { echo 'style="display:none"'; } ?>>
             <label for="wpsl-editor-map-type"><?php esc_html_e( 'Map type for the location preview', 'wp-store-locator' ); ?></label>
             <?php echo $ui->create_dropdown( 'editor_map_types' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?>

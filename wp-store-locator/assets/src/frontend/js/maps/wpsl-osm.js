@@ -10,6 +10,7 @@ import { api } from './osm/modules/wpsl-api.js';
 import { geocodeCache } from './osm/modules/wpsl-geocode-cache.js';
 import { search as osmSearch } from './osm/modules/wpsl-search.js';
 import { shapes } from './osm/modules/wpsl-shapes.js';
+import { radiusCircle } from './osm/modules/wpsl-radius-circle.js';
 
 /**
  * OpenStreetMap implementation for WPSL frontend
@@ -27,6 +28,7 @@ export const osm = {
     geocodeCache,
     search: osmSearch,
     shapes,
+    radiusCircle,
 
     /**
      * Initialize OpenStreetMap

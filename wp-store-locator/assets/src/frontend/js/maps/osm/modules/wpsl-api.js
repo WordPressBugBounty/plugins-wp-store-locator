@@ -5,6 +5,7 @@ import { helpers } from '../../../modules/wpsl-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
 import { responseHandlers } from '../../../modules/wpsl-response-handlers.js';
 import { preloader } from '../../../modules/wpsl-preloader.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
 import { geocodeCache } from './wpsl-geocode-cache.js';
 import { markers } from './wpsl-markers.js';
 
@@ -382,7 +383,7 @@ export const api = {
                     originLatLng = markers.latLng[mapIndex][i];
 
                     directionMarkers.push( originLatLng );
-                } else if ( markerObjects[i].options.storeId === api.directions.storeId ) {
+                } else if ( markerObjects[i].options.storeId === markerGroups.leadId( api.directions.storeId, mapIndex ) ) {
                     destinationLatLng = markers.latLng[mapIndex][i];
 
                     directionMarkers.push( destinationLatLng );
@@ -518,7 +519,7 @@ export const api = {
             
             if ( this.focusedStoreId !== null ) {
                 jQuery.each( activeMarkers, function( i, marker ) {
-                    if ( marker.options.storeId === api.directions.focusedStoreId ) {
+                    if ( marker.options.storeId === markerGroups.leadId( api.directions.focusedStoreId, mapIndex ) ) {
                         const markerElement = marker.getElement();
 
                         if ( markerElement ) {

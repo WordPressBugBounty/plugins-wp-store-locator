@@ -128,11 +128,35 @@ class Location_Utils {
             $api_service = wpsl_get_service( 'api' );
 
             foreach ( $ids as $k => $location ) {
-                $online_locations[] = $this->escape_for_template( $api_service->get( $location->ID ) );
+                $online_locations[] = $this->escape_for_template( $this->public_fields( $api_service->get( $location->ID ) ) );
             }
         }
 
         return $online_locations;
+    }
+
+    /**
+     * Leave out what the search response has no use for.
+     *
+     * Api\Service::format_response() is shared with the REST API, so it holds
+     * the author ID, the excerpt, the dates and the post status. None of it
+     * is shown on the front end, and the search is public. The description
+     * stays: the online listing template prints it whenever it is there.
+     *
+     * @since  3.1.1
+     * @param  array $location The location data from Api\Service::get().
+     * @return array $location The location data without the publishing details.
+     */
+    private function public_fields( $location ) {
+        if ( ! is_array( $location ) ) {
+            return $location;
+        }
+
+        foreach ( [ 'author', 'excerpt', 'date', 'date_gmt', 'modified', 'modified_gmt', 'status' ] as $key ) {
+            unset( $location[ $key ] );
+        }
+
+        return $location;
     }
 
     /**
@@ -143,8 +167,8 @@ class Location_Utils {
      * templates interpolate with <%= %>, which doesn't escape, so anything
      * reaching them must be escaped first, the same way
      * Frontend\Store\Data::get_meta_data() escapes a physical store. Without
-     * this an online store's title, url, email, phone or fax reaches the DOM
-     * exactly as it sits in the database.
+     * this an online store's title, url, email, phone, fax or social media
+     * links reach the DOM exactly as they sit in the database.
      *
      * The description is left alone: physical stores render it as HTML through
      * the_content, so escaping it here would make the two paths disagree.
@@ -178,6 +202,13 @@ class Location_Utils {
             $location['fax'] = esc_attr( sanitize_text_field( stripslashes( $location['fax'] ) ) );
         }
 
+        // The social media links ( 3.1.1 ) are urls as well.
+        foreach ( wpsl_get_social_fields() as $field ) {
+            if ( isset( $location[ $field['name'] ] ) ) {
+                $location[ $field['name'] ] = is_string( $location[ $field['name'] ] ) ? esc_url( $location[ $field['name'] ] ) : '';
+            }
+        }
+
         return $location;
     }
 
@@ -192,6 +223,7 @@ class Location_Utils {
         $query_args = [
             'post_type'      => 'wpsl_stores',
             'post_status'    => 'publish',
+            'has_password'   => false, // A password-protected store stays out of the public search.
             'fields'         => 'ids',
             'meta_query'     => [
                 [
@@ -339,29 +371,46 @@ class Location_Utils {
      * Get a list of unique meta values
      * based on the passed key.
      *
+     * Published stores only by default: the values end up in the front-end
+     * filters ( wpsl_create_meta_filter() ), and a draft, pending, private
+     * or scheduled store's meta isn't for visitors. An editor-only caller can
+     * pass the other statuses.
+     *
      * @since  3.0.0
-     * @param  string $key WPSL meta key
-     * @return array  $result
+     * @since  3.1.1 The $statuses parameter, published only by default.
+     * @param  string   $key      WPSL meta key
+     * @param  string[] $statuses The post statuses of the stores to read
+     * @return array    $result
      */
-    function get_unique_meta_values( $key ) {
+    function get_unique_meta_values( $key, $statuses = [ 'publish' ] ) {
         global $wpdb;
 
-        $cache_key   = 'wpsl_unique_meta_' . md5( $key );
+        $statuses = array_values( array_unique( array_filter( array_map( 'sanitize_key', (array) $statuses ) ) ) );
+
+        if ( ! $statuses ) {
+            return [];
+        }
+
+        sort( $statuses );
+
+        $cache_key   = 'wpsl_unique_meta_' . md5( $key . '|' . implode( ',', $statuses ) );
         $cache_group = 'wpsl';
         $result      = wp_cache_get( $cache_key, $cache_group );
 
         if ( false === $result ) {
+            $status_placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+
             $sql = "SELECT DISTINCT pm.meta_value
                         FROM {$wpdb->postmeta} pm
                     LEFT JOIN {$wpdb->posts} p ON p.ID = pm.post_id
                         WHERE pm.meta_key = %s
                         AND TRIM( pm.meta_value ) > ''
                         AND p.post_type = 'wpsl_stores'
-                        AND p.post_status NOT IN ( 'trash', 'auto-draft' )
+                        AND p.post_status IN ( {$status_placeholders} )
                     ORDER BY pm.meta_value ASC";
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- No native WP function for DISTINCT meta values. SQL is prepared below.
-            $result = $wpdb->get_col( $wpdb->prepare( $sql, $key ) );
+            $result = $wpdb->get_col( $wpdb->prepare( $sql, array_merge( [ $key ], $statuses ) ) );
 
             // Cache for 12 hours
             wp_cache_set( $cache_key, $result, $cache_group, 12 * HOUR_IN_SECONDS );

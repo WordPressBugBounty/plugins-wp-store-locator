@@ -1,7 +1,8 @@
 /**
  * Small standalone admin behaviour for the Home page: the shortcode copy
  * buttons, the feedback popup, the "Choose a map service" step of the
- * setup checklist, and the check for a header that blocks geolocation.
+ * setup checklist, the check for a header that blocks geolocation, and
+ * the check for outdated cached scripts.
  *
  * @since 3.0.0
  */
@@ -274,6 +275,43 @@
                     } ).remove();
 
                     $list.prepend( $item ).show();
+                    $box.find( '.wpsl-no-alerts' ).hide();
+                }
+
+                syncAlerts( response.data.alerts );
+            } )
+            .catch( function() {} );
+    }() );
+
+    /*
+     * Check whether a CDN or cache serves outdated store locator scripts,
+     * see wpsl-asset-cache-check.js. Only when it is due: after an update,
+     * while it reports a problem, and once a day.
+     *
+     * @since 3.1.1
+     */
+    ( function checkAssetCache() {
+        if ( ! config.assetCacheDue || typeof window.wpslAssetCacheCheck !== 'function' ) {
+            return;
+        }
+
+        window.wpslAssetCacheCheck()
+            .then( function( response ) {
+                if ( ! response || ! response.success ) {
+                    return;
+                }
+
+                const $box  = $( '#wpsl-home-alerts' );
+                const $list = $box.find( '.wpsl-alerts-list' );
+                const keys  = response.data.keys || [];
+
+                // Both alerts come from this check, so a new result replaces both.
+                $list.children( 'li' ).filter( function() {
+                    return keys.indexOf( $( this ).attr( 'data-plugin' ) ) !== -1;
+                } ).remove();
+
+                if ( response.data.html ) {
+                    $list.prepend( $( '<div>' ).append( $.parseHTML( response.data.html ) ).find( 'li[data-plugin]' ) ).show();
                     $box.find( '.wpsl-no-alerts' ).hide();
                 }
 

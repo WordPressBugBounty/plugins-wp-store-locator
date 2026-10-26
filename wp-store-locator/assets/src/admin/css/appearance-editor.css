@@ -941,7 +941,7 @@
     flex: none;
 }
 
-#wpsl-settings-content #wpsl-appearance-form p:not( #wpsl-search-results-tab p, #wpsl-dimensions-tab p ) label {
+#wpsl-settings-content #wpsl-appearance-form p:not( #wpsl-search-results-tab p, #wpsl-result-card-tab p, #wpsl-dimensions-tab p ) label {
     flex: none;
     max-width: none;
 }
@@ -1870,6 +1870,17 @@ Theme styles used on the customization section
     margin: 0;
 }
 
+/*
+ * The category dropdown gets the search input width, like the front end, which
+ * prints the same width for "#wpsl-search-input, #wpsl-category .wpsl-dropdown"
+ * ( AssetsManager ). alignSearchColumns() clears the measured width before it
+ * lines the columns up, so without this the dropdown fell back to the width of
+ * its first option, most visible with "Only show the category filter?".
+ */
+.wpsl-styled-template-preview #wpsl-category .wpsl-dropdown {
+    width: var(--wpsl-search-input-width);
+}
+
 #wpsl-search-wrap input, #wpsl-search-btn {
     border: 1px solid #d2d2d2;
     border-radius: var(--wpsl-radius, 3px);
@@ -2702,7 +2713,8 @@ Theme styles used on the customization section
 
 #wpsl-dimensions-tab input[type=text],
 #wpsl-dimensions-tab input[type=number],
-#wpsl-search-results-tab .wpsl-input-with-unit input[type=number] {
+#wpsl-search-results-tab .wpsl-input-with-unit input[type=number],
+#wpsl-result-card-tab .wpsl-input-with-unit input[type=number] {
     width: 110px;
     padding-right: 46px;
 }
@@ -2806,14 +2818,17 @@ Theme styles used on the customization section
     border-left: 4px solid #ffb900;
 }
 
-#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option p .wpsl-color-picker-wrapper {
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option p .wpsl-color-picker-wrapper,
+#wpsl-appearance-form #wpsl-result-card-tab .wpsl-conditional-option p .wpsl-color-picker-wrapper {
     flex: 0 0 auto;
     margin-inline-start: auto;
     align-self: center;
 }
 
 #wpsl-appearance-form #wpsl-search-results-tab,
-#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option {
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option,
+#wpsl-appearance-form #wpsl-result-card-tab,
+#wpsl-appearance-form #wpsl-result-card-tab .wpsl-conditional-option {
     display: flex;
     flex-direction: column;
     gap: 13px;
@@ -2821,13 +2836,23 @@ Theme styles used on the customization section
 
 #wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab > p,
 #wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option > p,
-#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector {
+#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector,
+#wpsl-settings-content #wpsl-appearance-form #wpsl-result-card-tab > p,
+#wpsl-settings-content #wpsl-appearance-form #wpsl-result-card-tab .wpsl-conditional-option > p,
+#wpsl-settings-content #wpsl-appearance-form #wpsl-result-card-tab .wpsl-icon-selector {
     margin: 0;
 }
 
-#wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector {
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-icon-selector,
+#wpsl-appearance-form #wpsl-result-card-tab .wpsl-icon-selector {
     min-height: 38px;
     padding: 0;
+}
+
+/* Let a dropdown with a long option shrink next to its label, instead of wrapping below it in a narrow panel. */
+#wpsl-appearance-form #wpsl-search-results-tab p select,
+#wpsl-appearance-form #wpsl-result-card-tab p select {
+    min-width: 0;
 }
 
 #wpsl-settings-content #wpsl-appearance-form #wpsl-theme-styles-tab p.wpsl-featured-none {
@@ -2837,8 +2862,15 @@ Theme styles used on the customization section
     line-height: 1.5;
 }
 
-#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option p #wpsl-category-custom-color + .wpsl-color-picker-wrapper {
+#wpsl-appearance-form #wpsl-search-results-tab .wpsl-conditional-option p #wpsl-category-custom-color + .wpsl-color-picker-wrapper,
+#wpsl-appearance-form #wpsl-result-card-tab .wpsl-conditional-option p #wpsl-category-custom-color + .wpsl-color-picker-wrapper {
     margin-inline-start: 0;
+}
+
+#wpsl-settings-content #wpsl-appearance-form #wpsl-search-results-tab p.wpsl-moved-note {
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 #wpsl-settings-content #wpsl-appearance-form #wpsl-theme-styles-tab p.wpsl-no-flex:not([style*="display:none"]):not([style*="display: none"]),

@@ -1,0 +1,518 @@
+/*
+ * Quick setup: the six tiles, the collapsed summary and the line at the
+ * bottom of the Home page. Also used by the last step of the setup wizard.
+ *
+ * The card prints both the open and the collapsed markup, data-state picks
+ * which one shows ( open, collapsed, or hidden together with the hidden
+ * attribute ), so the script can switch without a reload.
+ */
+
+/* The card */
+
+#wpsl-quick-setup[hidden],
+.wpsl-qs [hidden],
+.wpsl-qs-tiles [hidden] {
+    display: none;
+}
+
+.wpsl-qs-head {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.wpsl-qs-intro {
+    margin: 0;
+    color: #50575e;
+}
+
+.wpsl-qs-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 14px;
+    white-space: nowrap;
+}
+
+.wpsl-qs-actions .button-link {
+    text-decoration: underline;
+}
+
+.wpsl-qs-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: #008a20;
+    font-weight: 600;
+}
+
+/*
+ * In the card the status line sits under the intro, in the space between the
+ * header and the tiles, so a message appearing or going doesn't move anything.
+ */
+.wpsl-qs-head .wpsl-qs-status {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    margin-top: 9px;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.wpsl-qs[data-state="open"] .wpsl-qs-head {
+    margin-bottom: 34px;
+}
+
+/* A "… saved" message fades out ( the JS adds the class after a few seconds ). */
+.wpsl-qs-status {
+    transition: opacity 0.4s ease;
+}
+
+.wpsl-qs-status.wpsl-qs-status-fading {
+    opacity: 0;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+    .wpsl-qs-status {
+        transition: none;
+    }
+}
+
+.wpsl-qs-status:empty {
+    display: none;
+}
+
+.wpsl-qs-status.wpsl-qs-status-error {
+    color: #b32d2e;
+}
+
+.wpsl-qs-status svg {
+    flex: none;
+}
+
+/* Open shows the tiles, collapsed shows the summary */
+
+.wpsl-qs[data-state="open"] .wpsl-qs-summary,
+.wpsl-qs[data-state="open"] .wpsl-qs-when-collapsed,
+.wpsl-qs[data-state="collapsed"] .wpsl-qs-body,
+.wpsl-qs[data-state="collapsed"] .wpsl-qs-when-open {
+    display: none;
+}
+
+/* The tiles */
+
+.wpsl-qs-tiles {
+    display: grid;
+    grid-template-columns: repeat( 3, minmax( 0, 1fr ) );
+    gap: 14px;
+}
+
+/*
+ * In the setup wizard the status line sits in a gap above the tiles, so a
+ * message appearing or going doesn't move them ( the card does the same ).
+ * The wizard is narrower than the Home page, two columns when it gets tight.
+ */
+.wpsl-qs-context-wizard {
+    position: relative;
+    margin-top: 26px;
+}
+
+.wpsl-qs-context-wizard > .wpsl-qs-status {
+    position: absolute;
+    top: -22px;
+    right: 0;
+    left: 0;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.wpsl-qs-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #e2e4e7;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.wpsl-qs-question {
+    margin: 0;
+    color: #1d2327;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.wpsl-qs-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wpsl-qs-answer {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 9px 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #fff;
+    color: #1d2327;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+    cursor: pointer;
+}
+
+.wpsl-qs-answer:hover {
+    border-color: #8c8f94;
+}
+
+.wpsl-qs-answer:focus-visible,
+.wpsl-qs-row:focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 1px;
+}
+
+.wpsl-qs-answer[aria-checked="true"] {
+    border-color: #5b9b36;
+    background: #f4f9ef;
+}
+
+.wpsl-qs-answer[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.wpsl-qs-answer[aria-disabled="true"]:hover {
+    border-color: #dcdcde;
+}
+
+.wpsl-qs-answer[aria-disabled="true"][aria-checked="true"]:hover {
+    border-color: #5b9b36;
+}
+
+.wpsl-qs-answer-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.wpsl-qs-answer-label {
+    color: #1d2327;
+    font-weight: 600;
+}
+
+.wpsl-qs-answer-desc {
+    color: #646970;
+    font-size: 12px;
+}
+
+/* The radio dot and the checkbox */
+
+.wpsl-qs-dot,
+.wpsl-qs-box {
+    flex: none;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    background: #fff;
+}
+
+.wpsl-qs-dot {
+    border: 1.5px solid #8c8f94;
+    border-radius: 50%;
+}
+
+.wpsl-qs-answer[aria-checked="true"] .wpsl-qs-dot {
+    border: 5px solid #4a8f2a;
+}
+
+.wpsl-qs-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #8c8f94;
+    border-radius: 3px;
+    color: #fff;
+}
+
+.wpsl-qs-box svg {
+    visibility: hidden;
+}
+
+.wpsl-qs-answer[aria-checked="true"] .wpsl-qs-box {
+    border-color: #4a8f2a;
+    background: #4a8f2a;
+}
+
+.wpsl-qs-answer[aria-checked="true"] .wpsl-qs-box svg {
+    visibility: visible;
+}
+
+/* Layouts: a row each, the thumbnail on the right */
+
+.wpsl-qs-layout {
+    align-items: center;
+}
+
+.wpsl-qs-layout .wpsl-qs-dot {
+    margin-top: 0;
+}
+
+.wpsl-qs-layout .wpsl-qs-answer-text {
+    flex: 1 1 auto;
+}
+
+.wpsl-qs-layout-thumb {
+    display: block;
+    box-sizing: border-box;
+    flex: none;
+    width: auto;
+    height: 40px;
+    max-width: 64px;
+    margin-left: auto;
+    border: 1px solid #e2e4e7;
+    border-radius: 2px;
+    background: #fff;
+}
+
+.wpsl-qs-layout-desc {
+    margin: 0;
+    color: #646970;
+    font-size: 12px;
+}
+
+/*
+ * Countries: the multiselect of the Settings page ( its styles are in
+ * shared.css ), shown under the radios.
+ */
+
+.wpsl-qs-country-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpsl-qs-disabled .wpsl-qs-country-box {
+    opacity: 0.55;
+}
+
+.wpsl-qs-country-hint {
+    margin: 0;
+    color: #646970;
+    font-size: 12px;
+}
+
+.wpsl-qs-tiles .wpsl-multiselect-container > button {
+    padding: 8px 24px 8px 8px;
+}
+
+.wpsl-qs-tiles .wpsl-multiselect-container > button:disabled {
+    cursor: not-allowed;
+}
+
+.wpsl-qs-tiles .wpsl-multiselect-placeholder {
+    color: #646970;
+    line-height: 20px;
+}
+
+.wpsl-qs-tiles .wpsl-multiselect-menu input[type="checkbox"]:disabled,
+.wpsl-qs-tiles .wpsl-multiselect-menu input[type="checkbox"]:disabled + span {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Notes */
+
+.wpsl-qs-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    margin: 0;
+    padding: 7px 9px;
+    border-radius: 3px;
+    background: #f6f7f7;
+    color: #50575e;
+    font-size: 12px;
+}
+
+.wpsl-qs-note[hidden] {
+    display: none;
+}
+
+.wpsl-qs-note-icon {
+    flex: none;
+    margin-top: 2px;
+}
+
+.wpsl-qs-note-text {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* The Review differences link goes on its own line under the text, not in a column next to it. */
+.wpsl-qs-note-link {
+    flex: 0 0 100%;
+    padding-left: 20px;
+}
+
+.wpsl-qs-note[data-note-for="pages"] {
+    background: #fcf9e8;
+    color: #6b4e00;
+}
+
+.wpsl-qs-note[data-note-for="pages"] a {
+    color: #6b4e00;
+}
+
+/* A filter's note is the same box as a tile's, right under its checkbox. */
+.wpsl-qs-filter .wpsl-qs-note {
+    margin-top: 4px;
+}
+
+/* The link to the settings of a tile, plain text at the bottom of the tile. */
+.wpsl-qs-more {
+    align-self: flex-start;
+    margin-top: auto;
+    color: #2271b1;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.wpsl-qs-more:hover,
+.wpsl-qs-more:focus {
+    color: #0a4b78;
+    text-decoration: underline;
+}
+
+/* The collapsed summary */
+
+.wpsl-qs-summary {
+    display: grid;
+    grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+    grid-template-rows: repeat( 3, auto );
+    grid-auto-flow: column;
+    gap: 10px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wpsl-qs-summary li {
+    margin: 0;
+}
+
+.wpsl-qs-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #e8eaed;
+    border-radius: 6px;
+    background: #fff;
+    color: #1d2327;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.wpsl-qs-row-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var( --qs-tint );
+    color: var( --qs-ink );
+    transition: background-color 0.15s ease;
+}
+
+.wpsl-qs-row-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.wpsl-qs-row-label {
+    color: #646970;
+    font-size: 12px;
+}
+
+.wpsl-qs-row-value {
+    font-weight: 600;
+}
+
+.wpsl-qs-row-chevron {
+    flex: none;
+    color: #a7aaad;
+}
+
+.wpsl-qs-row:hover,
+.wpsl-qs-row:focus-visible {
+    border-color: color-mix( in srgb, var( --qs-ink ) 35%, #fff );
+}
+
+.wpsl-qs-row:hover .wpsl-qs-row-icon,
+.wpsl-qs-row:focus-visible .wpsl-qs-row-icon {
+    background-color: color-mix( in srgb, var( --qs-ink ) 15%, #fff );
+}
+
+/* The line at the bottom of the Home page */
+
+.wpsl-home-start-over {
+    margin: 14px 0 0;
+    color: #646970;
+    font-size: 12px;
+    text-align: center;
+}
+
+.wpsl-home-start-over [hidden] {
+    display: none;
+}
+
+.wpsl-home-start-over .button-link {
+    font-size: inherit;
+    text-decoration: underline;
+}
+
+@media screen and ( max-width: 960px ) {
+    .wpsl-qs-context-wizard {
+        grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+    }
+}
+
+@media screen and ( max-width: 782px ) {
+    .wpsl-qs-head {
+        flex-direction: column;
+    }
+
+    .wpsl-qs-tiles,
+    .wpsl-qs-summary {
+        grid-template-columns: minmax( 0, 1fr );
+    }
+
+    .wpsl-qs-summary {
+        grid-template-rows: none;
+        grid-auto-flow: row;
+    }
+}

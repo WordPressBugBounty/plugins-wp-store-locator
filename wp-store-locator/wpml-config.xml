@@ -40,6 +40,7 @@
             <key name="limit_label"/>
             <key name="number_results_label"/>
             <key name="number_results_single_label"/>
+            <key name="group_header_label"/>
             <key name="skip_to_results_label"/>
             <key name="geolocation_dialog_label"/>
             <key name="geolocation_accept_label"/>

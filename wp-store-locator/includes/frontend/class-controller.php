@@ -598,9 +598,12 @@ class Controller {
     private function get_gdpr_fast_path_script( $element_id ) {
         $map_service = wpsl_get_active_map_service();
 
+        // Kept out of LiteSpeed's and Cloudflare's script deferring, which held it until the visitor
+        // interacted, so the consent overlay showed until the main script removed it ( 3.1.1 ).
+
         // Use minified version in production, readable version when debugging
         if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
-            return '<script>
+            return '<script data-no-optimize="1" data-cfasync="false">
                     ( function() {
                         if ( typeof window.localStorage !== "undefined" ) {
                             const storageKey = "wpsl-gdpr-' . esc_js( $map_service ) . '";
@@ -618,7 +621,7 @@ class Controller {
                 </script>' . "\r\n";
         }
 
-        return '<script>!function(){if("undefined"!=typeof window.localStorage&&"1"===localStorage.getItem("wpsl-gdpr-' . esc_js( $map_service ) . '")){const e=document.getElementById("' . esc_js( $element_id ) . '");e&&(e.classList.remove("wpsl-gdpr-checkpoint"),e.classList.add("wpsl-gdpr-passed"))}}();</script>' . "\r\n";
+        return '<script data-no-optimize="1" data-cfasync="false">!function(){if("undefined"!=typeof window.localStorage&&"1"===localStorage.getItem("wpsl-gdpr-' . esc_js( $map_service ) . '")){const e=document.getElementById("' . esc_js( $element_id ) . '");e&&(e.classList.remove("wpsl-gdpr-checkpoint"),e.classList.add("wpsl-gdpr-passed"))}}();</script>' . "\r\n";
     }
 
     /**

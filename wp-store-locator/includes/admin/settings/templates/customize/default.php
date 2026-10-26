@@ -55,7 +55,7 @@ $output .= '                </div>';
 $output .= '            </div>';
 
 if ( $wpsl_settings['category_filter'] ) {
-    $output .= '            <div class="wpsl-flex-linebreak" aria-hidden="true"></div>';
+    $output .= '            <div class="wpsl-flex-linebreak" aria-hidden="true"' . $appearance->get_linebreak_visibility() . '></div>';
 }
 $output .= '            <div data-filter="category" ' . ( $wpsl_settings['category_filter'] ? '' : ' style="display: none;"' ) . '>';
 $output .= '                <div data-filter="category_dropdown" ' . ( $wpsl_settings['category_filter_type'] == 'dropdown' ? '' : ' style="display: none;"' ) . '>';
@@ -67,7 +67,7 @@ $output .=                      $filters->category_list( [ 'style' => 'checkboxe
 $output .= '                </div>';
 $output .= '            </div>';
 
-$output .= '            <div data-filter="search" class="wpsl-search-btn-wrap">';
+$output .= '            <div data-filter="search" class="wpsl-search-btn-wrap" ' . $appearance->get_search_button_visibility() . '>';
 $output .= '                <input id="wpsl-search-btn" type="submit" value="' . esc_attr( $i18n->get_translation( 'search_btn_label', __( 'Search', 'wp-store-locator' ) ) ) . '" tabindex="0">';
 $output .= '            </div>';
 $output .= '        </div>';

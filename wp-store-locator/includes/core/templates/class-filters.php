@@ -123,11 +123,17 @@ class Filters {
             $distance_unit = '';
         }
 
+        $default_found = false;
+
         foreach ( $settings as $index => $setting_value ) {
-            // The default radius has a [] wrapped around it, so we check for that and filter out the [].
+            /*
+             * The default value has a [] wrapped around it, so we check for that and filter out the [].
+             * Only the first one is selected, the same value the search uses as the default ( 3.1.1 ).
+             */
             if ( strpos( $setting_value, '[' ) !== false ) {
                 $setting_value = filter_var( $setting_value, FILTER_SANITIZE_NUMBER_INT );
-                $selected = 'selected="selected" ';
+                $selected      = $default_found ? '' : 'selected="selected" ';
+                $default_found = true;
             } else {
                 $selected = '';
             }
@@ -500,11 +506,23 @@ class Filters {
      * active as well. Otherwise the radius / results filters disappear with nothing
      * replacing them.
      *
+     * Panel templates ( the vertical one ) have their own search field and
+     * filter panel, which the option doesn't cover, so it's ignored there.
+     *
      * @since  3.0.0
+     * @since  3.1.1 Always false for panel templates.
      * @return bool
      */
     public function is_category_filter_only() {
-        return $this->is_category_enabled() && (bool) $this->settings->get( 'search', 'category_filter_only' );
+        if ( ! $this->is_category_enabled() || ! $this->settings->get( 'search', 'category_filter_only' ) ) {
+            return false;
+        }
+
+        $atts        = $this->get_shortcodes()->atts;
+        $template_id = ( isset( $atts['template'] ) && $atts['template'] ) ? $atts['template'] : $this->settings->get( 'appearance', 'template_id' );
+        $details     = wpsl_get_service( 'template_loader' )->get_details( $template_id );
+
+        return empty( $details['has_panel'] );
     }
 
     /**
@@ -632,14 +650,20 @@ class Filters {
     /**
      * Make sure the filter contains a valid value, otherwise use the default value.
      *
+     * The value is a positive whole number: a negative max_results used to
+     * reach the SQL as LIMIT 0, -5.
+     *
      * @since  2.0.0
+     * @since  3.1.1 Returns the absint() of the requested value.
      * @param  array  $args         The values used in the SQL query to find nearby locations
      * @param  string $filter       The name of the filter
-     * @return string $filter_value The filter value
+     * @return string|int $filter_value The filter value
      */
     public function check_store_filter( $args, $filter ) {
-        if ( isset( $args[$filter] ) && absint( $args[$filter] ) && $this->check_allowed_filter_value( $args, $filter ) ) {
-            $filter_value = $args[$filter];
+        $value = ( isset( $args[$filter] ) && is_scalar( $args[$filter] ) ) ? absint( $args[$filter] ) : 0;
+
+        if ( $value && $this->check_allowed_filter_value( [ $filter => $value ], $filter ) ) {
+            $filter_value = $value;
         } else {
             $filter_value = $this->get_default_filter_value( $filter );
         }

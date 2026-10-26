@@ -51,6 +51,23 @@ function wpsl_normalize_category_filter( $filter ) {
 }
 
 /**
+ * The term ids in the category filter request parameter.
+ *
+ * Without duplicates, and at most $max of them: each id ends up in the
+ * search query, and the request is public. Extra ids are dropped.
+ *
+ * @since  3.1.1
+ * @param  string|array $filter The raw filter parameter
+ * @param  int          $max    The most ids to return
+ * @return int[]        The term ids, 0 for a value that isn't a number
+ */
+function wpsl_get_category_filter_ids( $filter, $max = 100 ) {
+    $ids = array_values( array_unique( array_map( 'absint', explode( ',', wpsl_normalize_category_filter( $filter ) ) ) ) );
+
+    return array_slice( $ids, 0, max( 1, (int) $max ) );
+}
+
+/**
  * Get a list of unique store categories.
  *
  * @since   3.0.0

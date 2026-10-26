@@ -841,13 +841,37 @@
     margin-inline-start: 28px;
 }
 
+/* The social media links line up with the address text, like the categories. */
+#wpsl-wrap.wpsl-has-icons .wpsl-social-links {
+    margin-inline-start: 28px;
+}
+
+/*
+ * In the search results the blocks of a card are 20px apart ( the address,
+ * "More info", the distance ), the categories and the social links follow
+ * that. The info windows keep their tighter spacing.
+ */
+#wpsl-wrap #wpsl-result-list .wpsl-categories,
+#wpsl-wrap #wpsl-result-list .wpsl-social-links {
+    margin-bottom: 20px;
+}
+
+/* A long name wraps inside the card, the dot stays level with its first line. */
 .wpsl-category {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding: var(--wpsl-category-padding, 6px 10px);
     border-radius: var(--wpsl-category-radius, 20px);
     background: var(--wpsl-category-bg, rgba(120, 124, 130, 0.14));
     line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.wpsl-category .wpsl-category-dot {
+    margin-top: calc( ( 1.4em - 10px ) / 2 );
 }
 
 @supports (background: color-mix(in srgb, red 10%, transparent)) {
@@ -859,6 +883,17 @@
 #wpsl-checkbox-filter label .wpsl-category-dot,
 #wpsl-filter-options label .wpsl-category-dot {
     margin-inline-end: 0;
+}
+
+/*
+ * A long category name without spaces wraps inside the filter panel. The name is
+ * a flex item, which can't shrink below its longest word unless the text may
+ * break anywhere ( break-word doesn't count for that ).
+ */
+#wpsl-checkbox-filter label,
+#wpsl-filter-options .wpsl-filter label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 /* ========================================

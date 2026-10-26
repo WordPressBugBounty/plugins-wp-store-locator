@@ -544,6 +544,8 @@ class Manager {
                     'autoload_start_latlng' => '',
                     'autoload_limit'        => 50,
                     'run_fitbounds'         => true,
+                    'radius_circle'         => false,
+                    'radius_circle_color'   => '#2271b1',
                     'zoom_level'            => 3,
                     'auto_zoom_level'       => 15,
                     'streetview'            => false,
@@ -585,6 +587,8 @@ class Manager {
                     'contact_details'           => [ 'search_results' ],
                     'hours'                     => [ 'search_results' ],
                     'description'               => [],
+                    // The places the social media links showed before they got a setting of their own.
+                    'social_links'              => [ 'search_results', 'marker_popup', 'landing_page', 'landing_page_marker_popup' ],
                 ];
             case 'markers':
                 return [
@@ -593,6 +597,7 @@ class Manager {
                     'active_marker'            => 'dark-blue.svg',
                     'hide_start_marker'        => false,
                     'start_marker_on_top'      => false,
+                    'group_colocated'          => true,
                     'labels'                   => 'none',
                     'marker_clusters'          => false,
                     'cluster_style'            => 'default',
@@ -613,6 +618,8 @@ class Manager {
                     'hours'              => wpsl_default_opening_hours(),
                     'hour_input'         => 'dropdown',
                     'hour_format'        => 12,
+                    'social_media'       => 0,
+                    'social_fields'      => wpsl_social_default_fields(),
                     'field_manager'      => [
                         'groups' => [],
                         'fields' => []
@@ -783,6 +790,7 @@ class Manager {
                     'routes_api_enabled_link_label' => esc_html__( 'enabled', 'wp-store-locator' ),
                     'number_results_label'     => esc_html__( '{number} stores near you', 'wp-store-locator' ),
                     'number_results_single_label' => esc_html__( '{number} store near you', 'wp-store-locator' ),
+                    'group_header_label'          => esc_html__( '{number} locations at this address', 'wp-store-locator' ),
                     'geolocation_dialog_label' => esc_html__( 'Would you like to share your location to find nearby stores?', 'wp-store-locator' ),
                     'geolocation_accept_label' => esc_html__( 'Share Location', 'wp-store-locator' ),
                     'geolocation_decline_label' => esc_html__( 'No Thanks', 'wp-store-locator' ),
@@ -1074,6 +1082,7 @@ class Manager {
                 'start_marker'         => $this->migrate_marker( isset( $old_settings['start_marker'] ) ? $old_settings['start_marker'] : '', 'start_marker' ),
                 'store_marker'         => $this->migrate_marker( isset( $old_settings['store_marker'] ) ? $old_settings['store_marker'] : '', 'store_marker' ),
                 'marker_clusters'      => $old_settings['marker_clusters'],
+                'group_colocated'      => false, // 2.x showed one marker per location, keep that.
                 'cluster_zoom'         => empty( $old_settings['cluster_zoom'] ) ? false : $old_settings['cluster_zoom'],
                 'cluster_size'         => empty( $old_settings['cluster_size'] ) ? false : $old_settings['cluster_size'],
                 'cluster_marker_shape' => $old_cluster_shape,

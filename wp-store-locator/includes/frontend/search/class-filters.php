@@ -367,12 +367,18 @@ class Filters {
             $distance_unit = '';
         }
 
+        $default_found = false;
+
         foreach ( $settings as $index => $setting_value ) {
 
-            // The default radius has a [] wrapped around it, so we check for that and filter out the [].
+            /*
+             * The default value has a [] wrapped around it, so we check for that and filter out the [].
+             * Only the first one is selected, the same value the search uses as the default ( 3.1.1 ).
+             */
             if ( strpos( $setting_value, '[' ) !== false ) {
                 $setting_value = filter_var( $setting_value, FILTER_SANITIZE_NUMBER_INT );
-                $selected = 'selected="selected" ';
+                $selected      = $default_found ? '' : 'selected="selected" ';
+                $default_found = true;
             } else {
                 $selected = '';
             }

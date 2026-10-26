@@ -128,6 +128,10 @@ class Markers {
             'startOnTop'     => ! empty( $this->marker_settings['start_marker_on_top'] ),
             'labels'         => $labels,
 
+            // Locations at the same coordinates share one marker.
+            'groupColocated' => $this->group_colocated_enabled(),
+            'groupPrecision' => $this->get_group_precision(),
+
             /**
              * Bounce hover effect (Mapbox / Leaflet). Vertical travel in pixels
              * and the duration of one full up-and-down bounce in milliseconds.
@@ -245,6 +249,50 @@ class Markers {
         }
 
         return apply_filters( 'wpsl_marker_props', $marker );
+    }
+
+    /**
+     * Whether locations at the same address share one marker.
+     *
+     * New installs have it on by default, sites updated from an older version
+     * keep one marker per location ( see the 3.1.1 upgrade step ). That step
+     * runs on admin_init, so after a background update the front end can be
+     * ahead of it: without a saved value, a site that is still on an older
+     * wpsl_version keeps one marker per location as well.
+     *
+     * @since  3.1.1
+     * @return bool Whether co-located locations share one marker.
+     */
+    private function group_colocated_enabled() {
+        $saved   = get_option( 'wpsl_markers' );
+        $version = get_option( 'wpsl_version' );
+
+        if ( is_array( $saved ) && ! isset( $saved['group_colocated'] ) && $version && version_compare( $version, '3.1.1', '<' ) ) {
+            return false;
+        }
+
+        return ! empty( $this->marker_settings['group_colocated'] );
+    }
+
+    /**
+     * The number of decimals two locations' coordinates have to share
+     * to be shown as one marker. Five decimals is about a meter.
+     *
+     * @since  3.1.1
+     * @return int The number of decimals, from 3 to 7
+     */
+    public function get_group_precision() {
+
+        /**
+         * Filter how precisely the coordinates of two locations have to match
+         * for them to share a marker.
+         *
+         * @since 3.1.1
+         * @param int $precision The number of decimals, 3 ( about 100 meters ) to 7
+         */
+        $precision = (int) apply_filters( 'wpsl_marker_group_precision', 5 );
+
+        return max( 3, min( 7, $precision ) );
     }
 
     /**

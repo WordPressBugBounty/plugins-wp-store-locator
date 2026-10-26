@@ -4,6 +4,7 @@
  * @since 3.0.0
  */
 export const slData = {
+    providerName: '',
     mapsInTabs: [],
     maps: [],
     useBasicMode: false,
@@ -31,6 +32,9 @@ export const slData = {
 
     // Track dynamically loaded Google Maps libraries
     libraries: {},
+
+    // Locations that share a marker, per map index. See wpsl-marker-groups.js.
+    markerGroups: {},
 
     // Shared marker state (provider-specific properties added at runtime)
     markers: {

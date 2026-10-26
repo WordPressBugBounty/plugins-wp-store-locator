@@ -1014,61 +1014,17 @@ class Service {
             'timezone' => $timezone->getName(),
         ];
 
-        $location_status = get_post_meta( $store_id, 'wpsl_location_status', true );
+        list( $closed, $reason, $reopens ) = $this->location_closed_on( $store_id, $when->format( 'Y-m-d' ) );
 
-        if ( 'permanently_closed' === $location_status ) {
-            $result['open']   = false;
-            $result['reason'] = 'permanently_closed';
+        if ( $closed ) {
+            $result['open']    = false;
+            $result['reason']  = $reason;
+            $result['reopens'] = $reopens;
 
             return $result;
         }
 
-        if ( 'temporarily_closed' === $location_status ) {
-            $reopens = get_post_meta( $store_id, 'wpsl_reopens', true );
-
-            /**
-             * Location_Status::process() stores the reopen date with
-             * strtotime(), which WordPress runs in UTC, so the timestamp is
-             * midnight UTC of the picked date ( the metabox reads it back with
-             * gmdate() for the same reason ). Compare calendar dates in the
-             * store's own timezone, so it reopens at its own midnight.
-             */
-            $reopen_ymd = ( ! empty( $reopens ) && is_numeric( $reopens ) ) ? gmdate( 'Y-m-d', (int) $reopens ) : null;
-
-            if ( null === $reopen_ymd || $when->format( 'Y-m-d' ) < $reopen_ymd ) {
-                $result['open']    = false;
-                $result['reason']  = 'temporarily_closed';
-                $result['reopens'] = $reopen_ymd;
-
-                return $result;
-            }
-        }
-
-        /**
-         * The weekly hours can only be read when all seven days are there.
-         * The legacy textarea format is free text, and imports have left
-         * stores with a single-day array such as [ 'monday' => [] ], which
-         * says nothing about the other six days. A day saved as a string
-         * ( "Closed" ) is read as closed, as current_status() does.
-         */
-        $weekly = get_post_meta( $store_id, 'wpsl_hours', true );
-
-        /**
-         * Filters the weekly hours status_at() checks.
-         *
-         * For an add-on that changes wpsl_hours as it's read, e.g. to show
-         * today's special hours in the live status, to hand back the stored
-         * week. Dated exceptions belong in wpsl_special_hours_for_date.
-         *
-         * @since 3.0.0
-         * @param mixed $weekly   The wpsl_hours meta as read.
-         * @param int   $store_id The store ID.
-         */
-        $weekly = apply_filters( 'wpsl_status_at_weekly_hours', $weekly, $store_id );
-
-        if ( ! is_array( $weekly ) || array_diff( [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], array_keys( $weekly ) ) ) {
-            $weekly = null;
-        }
+        $weekly = $this->weekly_hours( $store_id );
 
         $today     = $this->periods_on( $store_id, $when, $weekly );
         $yesterday = $this->periods_on( $store_id, $when->modify( '-1 day' ), $weekly );
@@ -1104,17 +1060,131 @@ class Service {
     }
 
     /**
-     * The opening periods of a store on one calendar date: its special hours
-     * for that date when there are any, otherwise its weekly hours.
+     * The opening ranges of a store on one date, as stored.
      *
-     * @since  3.0.0
+     * The same sources status_at() reads, in the same order: the location
+     * status, dated special hours ( wpsl_special_hours_for_date ) and the
+     * weekly hours ( wpsl_hours through wpsl_status_at_weekly_hours ). The
+     * ranges are returned as saved: "H:i,H:i", or "g:i A,g:i A" in 12-hour
+     * mode. A range that runs past midnight is returned on its start date.
+     *
+     * @since  3.1.1
+     * @param  int    $store_id The store ID.
+     * @param  string $date     The date ( Y-m-d ), in the store's timezone.
+     * @return string[]|null The ranges, [] when the store is closed that day, or null
+     *                       when its hours can't be read or the store or date is invalid.
+     */
+    public function periods_for_date( $store_id, $date ) {
+        $store_id = (int) $store_id;
+
+        if ( ! $store_id || 'wpsl_stores' !== get_post_type( $store_id ) ) {
+            return null;
+        }
+
+        if ( ! is_string( $date ) || ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})\z/', $date, $m ) || ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+            return null;
+        }
+
+        list( $closed ) = $this->location_closed_on( $store_id, $date );
+
+        if ( $closed ) {
+            return [];
+        }
+
+        $day = $this->ranges_on( $store_id, new \DateTimeImmutable( $date ), $this->weekly_hours( $store_id ) );
+
+        if ( null === $day ) {
+            return null;
+        }
+
+        return array_values( array_map( 'strval', array_filter( (array) $day['ranges'], 'is_scalar' ) ) );
+    }
+
+    /**
+     * Whether the location status closes a store on a date.
+     *
+     * Location_Status::process() stores the reopen date with strtotime(),
+     * which WordPress runs in UTC, so the timestamp is midnight UTC of the
+     * picked date ( the metabox reads it back with gmdate() for the same
+     * reason ). Calendar dates are compared in the store's own timezone, so
+     * it reopens at its own midnight.
+     *
+     * @since  3.1.1
+     * @param  int    $store_id The store ID.
+     * @param  string $ymd      The date ( Y-m-d ), in the store's timezone.
+     * @return array [ bool $closed, string $reason, string|null $reopens ]
+     */
+    private function location_closed_on( $store_id, $ymd ) {
+        $location_status = get_post_meta( $store_id, 'wpsl_location_status', true );
+
+        if ( 'permanently_closed' === $location_status ) {
+            return [ true, 'permanently_closed', null ];
+        }
+
+        if ( 'temporarily_closed' === $location_status ) {
+            $reopens    = get_post_meta( $store_id, 'wpsl_reopens', true );
+            $reopen_ymd = ( ! empty( $reopens ) && is_numeric( $reopens ) ) ? gmdate( 'Y-m-d', (int) $reopens ) : null;
+
+            if ( null === $reopen_ymd || $ymd < $reopen_ymd ) {
+                return [ true, 'temporarily_closed', $reopen_ymd ];
+            }
+        }
+
+        return [ false, '', null ];
+    }
+
+    /**
+     * The weekly hours, or null when they can't be read.
+     *
+     * The weekly hours can only be read when all seven days are there.
+     * The legacy textarea format is free text, and imports have left
+     * stores with a single-day array such as [ 'monday' => [] ], which
+     * says nothing about the other six days.
+     *
+     * @since  3.1.1
+     * @param  int $store_id The store ID.
+     * @return array|null
+     */
+    private function weekly_hours( $store_id ) {
+        $weekly = get_post_meta( $store_id, 'wpsl_hours', true );
+
+        /**
+         * Filters the weekly hours status_at() checks.
+         *
+         * For an add-on that changes wpsl_hours as it's read, e.g. to show
+         * today's special hours in the live status, to hand back the stored
+         * week. Dated exceptions belong in wpsl_special_hours_for_date.
+         *
+         * Since 3.1.1 it also feeds periods_for_date() and so
+         * wpsl_get_store_periods().
+         *
+         * @since 3.0.0
+         * @param mixed $weekly   The wpsl_hours meta as read.
+         * @param int   $store_id The store ID.
+         */
+        $weekly = apply_filters( 'wpsl_status_at_weekly_hours', $weekly, $store_id );
+
+        if ( ! is_array( $weekly ) || array_diff( [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], array_keys( $weekly ) ) ) {
+            return null;
+        }
+
+        return $weekly;
+    }
+
+    /**
+     * The stored opening ranges of a store on one calendar date: its special
+     * hours for that date when there are any, otherwise its weekly hours.
+     *
+     * A day saved as a string ( "Closed" ) has no ranges.
+     *
+     * @since  3.1.1
      * @param  int                $store_id The store ID.
      * @param  \DateTimeImmutable $date     The date, in the store's timezone.
      * @param  array|null         $weekly   The weekly hours, or null when they can't be read.
-     * @return array|null [ 'source' => 'special_hours'|'weekly_hours', 'periods' => [ [ 'start' => \DateTime, 'end' => \DateTime ] ] ],
-     *                    or null when neither special nor weekly hours are available.
+     * @return array|null [ 'source' => 'special_hours'|'weekly_hours', 'ranges' => array ], or null
+     *                    when neither special nor weekly hours are available.
      */
-    private function periods_on( $store_id, \DateTimeImmutable $date, $weekly ) {
+    private function ranges_on( $store_id, \DateTimeImmutable $date, $weekly ) {
         $ymd = $date->format( 'Y-m-d' );
 
         /**
@@ -1134,19 +1204,40 @@ class Service {
         $special = apply_filters( 'wpsl_special_hours_for_date', null, $store_id, $ymd );
 
         if ( is_array( $special ) ) {
-            $source = 'special_hours';
-            $ranges = $special;
-        } elseif ( null !== $weekly ) {
-            $day    = strtolower( $date->format( 'l' ) );
-            $source = 'weekly_hours';
-            $ranges = ( isset( $weekly[ $day ] ) && is_array( $weekly[ $day ] ) ) ? $weekly[ $day ] : [];
-        } else {
+            return [ 'source' => 'special_hours', 'ranges' => $special ];
+        }
+
+        if ( null !== $weekly ) {
+            $day = strtolower( $date->format( 'l' ) );
+
+            return [ 'source' => 'weekly_hours', 'ranges' => ( isset( $weekly[ $day ] ) && is_array( $weekly[ $day ] ) ) ? $weekly[ $day ] : [] ];
+        }
+
+        return null;
+    }
+
+    /**
+     * The opening periods of a store on one calendar date: its special hours
+     * for that date when there are any, otherwise its weekly hours.
+     *
+     * @since  3.0.0
+     * @param  int                $store_id The store ID.
+     * @param  \DateTimeImmutable $date     The date, in the store's timezone.
+     * @param  array|null         $weekly   The weekly hours, or null when they can't be read.
+     * @return array|null [ 'source' => 'special_hours'|'weekly_hours', 'periods' => [ [ 'start' => \DateTime, 'end' => \DateTime ] ] ],
+     *                    or null when neither special nor weekly hours are available.
+     */
+    private function periods_on( $store_id, \DateTimeImmutable $date, $weekly ) {
+        $day = $this->ranges_on( $store_id, $date, $weekly );
+
+        if ( null === $day ) {
             return null;
         }
 
+        $ymd     = $date->format( 'Y-m-d' );
         $periods = [];
 
-        foreach ( $ranges as $range ) {
+        foreach ( $day['ranges'] as $range ) {
             $parsed = $this->parse_period( (string) $range, 'H:i', $ymd );
 
             if ( $parsed ) {
@@ -1154,7 +1245,7 @@ class Service {
             }
         }
 
-        return [ 'source' => $source, 'periods' => $periods ];
+        return [ 'source' => $day['source'], 'periods' => $periods ];
     }
 
     /**
@@ -1287,7 +1378,7 @@ class Service {
 
         /*
          * Covers pages the asset detector can't see (theme templates, page
-         * builders, widgets); prints in the footer when it lands this late.
+         * builders, widgets); late_assets() prints them with the output then.
          * After the hide_hours guard, so a site rendering no hours doesn't
          * load their stylesheets.
          */

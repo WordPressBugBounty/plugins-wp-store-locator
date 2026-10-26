@@ -199,7 +199,22 @@ class Register {
                 'update_count_callback' => '_update_post_term_count',
                 'query_var'             => true,
                 'rewrite'               => $rewrite,
-                'show_in_rest'          => true
+                'show_in_rest'          => true,
+
+                /*
+                 * Tied to the store capabilities instead of WordPress's
+                 * manage_categories / edit_posts defaults, so a Store Locator
+                 * Manager can manage the store categories and an editor
+                 * without store rights can't. Like post categories: managing
+                 * them is for those who can edit every store, assigning one
+                 * for anyone who can edit stores. ( 3.1.1 )
+                 */
+                'capabilities'          => [
+                    'manage_terms' => 'edit_others_stores',
+                    'edit_terms'   => 'edit_others_stores',
+                    'delete_terms' => 'edit_others_stores',
+                    'assign_terms' => 'edit_stores',
+                ],
             ]
         );
 

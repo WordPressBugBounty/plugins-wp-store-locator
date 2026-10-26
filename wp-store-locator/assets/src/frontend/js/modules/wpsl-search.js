@@ -5,6 +5,8 @@ import { responseHandlers } from './wpsl-response-handlers.js';
 import { filters } from './wpsl-filters.js';
 import { eventHandlers } from './wpsl-event-handlers.js';
 import { preloader } from './wpsl-preloader.js';
+import { markerGroups } from './wpsl-marker-groups.js';
+import { radiusCircle } from './wpsl-radius-circle.js';
 
 /**
  * Search functionality for WPSL frontend
@@ -154,7 +156,9 @@ export const search = {
 
         // args.fullSearch is set for a country / state search, which returns
         // every result for that country / state and so needs no coordinates.
-        if ( typeof config.search.skipGeocode === 'undefined' ) {
+        // The page load always searches around the start location, also with
+        // the name search ( skipGeocode ), or it would never find a location.
+        if ( typeof config.search.skipGeocode === 'undefined' || args.autoLoad ) {
             if ( typeof args.fullSearch === 'undefined' || typeof config.collectStatistics === 'string' ) {
 
                 // Extract coordinates from various formats (Google Maps, Mapbox, direct properties).
@@ -174,6 +178,19 @@ export const search = {
         } else {
             if ( typeof args.fullSearch === 'undefined' ) {
                 jQuery.extend( ajaxData, filters.dropdowns.getRestrictions() );
+            } else {
+
+                // A whole country / state has no radius. With "Return all locations when someone
+                // searches for a whole country or state?" on, full_search makes
+                // Types::get_numberposts() return all of them. Without it ( the geocoder
+                // only finds regions ) the selected max results applies, up to the largest listed value.
+                ajaxData.full_search = 1;
+
+                const restrictions = filters.dropdowns.getRestrictions();
+
+                if ( typeof restrictions.max_results !== 'undefined' && ! isNaN( parseInt( restrictions.max_results ) ) ) {
+                    ajaxData.max_results = restrictions.max_results;
+                }
             }
 
             // Category ids set through the wpsl shortcode 
@@ -350,6 +367,9 @@ export const search = {
 
         preloader.add();
 
+        // The searched area, also shown when nothing is found in it.
+        radiusCircle.update( ajaxData, searchArgs );
+
         jQuery( '.wpsl-api-message' ).remove();
         jQuery( '#wpsl-wrap' ).removeClass( 'wpsl-no-results' );
 
@@ -414,6 +434,15 @@ export const search = {
                     const onlineTemplate  = typeof slData.templates.online !== 'undefined' ? _.template( slData.templates.online ) : undefined;
                     const featuredIds     = [];
 
+                    // A template that prints the unit from the data can show a short distance in m or ft.
+                    // An older custom template with the unit written in it ( "<%= distance %> km" ) keeps 0.0.
+                    const showsDistanceUnit = typeof slData.templates.listing === 'string' && slData.templates.listing.indexOf( 'distance_unit' ) !== -1;
+
+                    // Locations at the same address share a marker. Mapbox groups its features in geojson.add().
+                    if ( typeof geoJSON !== 'object' ) {
+                        markerGroups.build( response, 0, map );
+                    }
+
                     jQuery.each( response, function( index ) {
                         const locationDetails = typeof geoJSON === 'object' ? response[index].properties : response[index];
 
@@ -431,18 +460,25 @@ export const search = {
                             locationDetails.lat = geometry.coordinates[1];
                         }
 
-                        // Fall back to the configured distance unit.
+                        // Fall back to the distance unit the search used.
                         if ( typeof locationDetails.distance !== 'undefined' && typeof locationDetails.distance_unit === 'undefined' ) {
-                            locationDetails.distance_unit = wpslSettings.distanceUnit;
+                            locationDetails.distance_unit = config.search.distanceUnit;
                         }
 
                         if ( typeof locationDetails.online !== 'undefined' && typeof onlineTemplate !== 'undefined' ) {
-                            storeData = storeData + sharedHelpers.renderTemplate( onlineTemplate, locationDetails );
+                            storeData = storeData + sharedHelpers.renderTemplate( onlineTemplate, helpers.results.withOptionalPlaceholders( locationDetails ) );
                         } else if ( typeof locationDetails.online === 'undefined' ) {
 
                             // Google Maps / Leaflet markers are added one by one.
                             if ( typeof geoJSON !== 'object' ) {
-                                slData.provider.markers.add( response[index], map );
+
+                                // A location at the same address as an earlier one shows on that marker. It still
+                                // goes through setProperties(), so wpslMarkerProperties sees every result.
+                                if ( markerGroups.isFollower( locationDetails.id ) ) {
+                                    helpers.markers.setProperties( response[index] );
+                                } else {
+                                    slData.provider.markers.add( response[index], map );
+                                }
                             }
 
                             // Always set this, even for custom listing sections,
@@ -450,12 +486,16 @@ export const search = {
                             locationDetails.hasMoreInfoData = helpers.results.hasMoreInfoData( locationDetails );
 
                             // Create the HTML output with help from underscore js.
-                            storeData += sharedHelpers.renderTemplate( listingTemplate, locationDetails );
+                            storeData += sharedHelpers.renderTemplate( listingTemplate, helpers.results.withOptionalPlaceholders( helpers.results.withShortDistance( locationDetails, showsDistanceUnit ) ) );
                         }
                     });
 
                     // For Mapbox we add all the marker data at once.
                     if ( typeof geoJSON === 'object' && typeof slData.provider.geojson !== 'undefined' ) {
+
+                        // Grouped here, not before the loop: the loop gave the properties their coordinates.
+                        markerGroups.build( geoJSON.features.map( ( feature ) => feature.properties ), 0, map );
+
                         slData.provider.geojson.add( geoJSON, map );
                     }
 
@@ -522,11 +562,26 @@ export const search = {
                     return;
                 }
 
+                // The map already moved to the search radius circle when the search
+                // started ( radiusCircle.update() ). Google still needs the skip link
+                // put back in front, which its fitBounds() normally does.
+                if ( radiusCircle.fitted ) {
+                    if ( typeof slData.provider.markers.setupMarkerAccessibility === 'function' ) {
+                        slData.provider.markers.setupMarkerAccessibility( map );
+                    }
+
+                    return;
+                }
+
                 // Either fit all markers in the viewport, or center the map
                 // on the start marker / start location.
                 const activeMarkerCount = helpers.getActiveMarkerCount();
 
-                if ( config.map.fitBounds && activeMarkerCount > 1 ) {
+                // A name search has no start marker to center on: a single
+                // result is fitted too, which zooms in to the max auto zoom level.
+                const fitSingle = activeMarkerCount === 1 && config.search.namesEnabled;
+
+                if ( config.map.fitBounds && ( activeMarkerCount > 1 || fitSingle ) ) {
                     slData.provider.markers.fitBounds();
                 } else if ( config.map.fitBounds && ! searchArgs.restoreViewport ) {
                     helpers.map.setCenter();

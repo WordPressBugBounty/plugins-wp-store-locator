@@ -38,7 +38,7 @@ export const notice = {
         noticeHtml += '</div>';
 
         if ( onboardingActive ) {
-            jQuery( '#wpsl-onboarding-api-keys h3' ).after( noticeHtml );
+            jQuery( '#wpsl-onboarding-api-keys .wpsl-onboarding-key-status' ).append( noticeHtml );
         } else {
             jQuery( '#wpsl-settings-form' ).prepend( noticeHtml );
         }

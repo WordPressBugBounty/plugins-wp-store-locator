@@ -1,6 +1,7 @@
 import { slData, config } from './wpsl-shared.js';
 import { helpers } from './wpsl-helpers.js';
 import { search } from './wpsl-search.js';
+import { filters } from './wpsl-filters.js';
 import { geolocation } from './wpsl-geolocation.js';
 import { accessibility } from './wpsl-accessibility.js';
 
@@ -44,6 +45,15 @@ export const buttons = {
             if ( slData.autoCompleteLatLng ) {
                 args.latLng = slData.autoCompleteLatLng;
 
+                // A picked country or state lists all its locations, like a typed one.
+                const fullSearch = helpers.search.getAutoCompleteFullSearch();
+
+                if ( fullSearch ) {
+                    args.fullSearch = fullSearch;
+                } else {
+                    delete args.fullSearch;
+                }
+
                 // Border enforcement needs the country code and the statistics
                 // add-on needs the address components, both of which only come
                 // from the reverse geocode response. Skipping it when either is
@@ -59,6 +69,60 @@ export const buttons = {
                 search.submitActions( buttons.args );
             }
         }
+    },
+
+    /**
+     * Whether "Only show the category filter?" is on.
+     *
+     * The class sits on .wpsl-search, see Assets\Manager::get_css_classes().
+     *
+     * @since   3.1.1
+     * @returns {boolean}
+     */
+    isCategoryFilterOnly: function() {
+        return jQuery( '#wpsl-wrap .wpsl-cat-filter-only, #wpsl-wrap.wpsl-cat-filter-only' ).length > 0;
+    },
+
+    /**
+     * With "Only show the category filter?" there is no location field and no
+     * Search button, so picking a category runs the search.
+     *
+     * The styled dropdown stops the click from bubbling, so this listens in
+     * the capture phase and searches once the dropdown has stored the pick.
+     * A native select ( mobile, or styled dropdowns turned off ) fires change.
+     *
+     * @since   3.1.1
+     * @returns {void}
+     */
+    bindCategoryFilterOnly: function() {
+        const category = document.getElementById( 'wpsl-category' );
+
+        if ( ! category || ! buttons.isCategoryFilterOnly() || category.dataset.wpslFilterOnly ) {
+            return;
+        }
+
+        category.dataset.wpslFilterOnly = '1';
+
+        const searchCategory = function() {
+            setTimeout( function() {
+                jQuery( '#wpsl-search-btn' ).trigger( 'click' );
+            }, 0 );
+        };
+
+        category.addEventListener( 'click', function( e ) {
+            if ( e.target.closest( '.wpsl-dropdown li' ) ) {
+                searchCategory();
+            }
+        }, true );
+
+        // Enter only: that's the key the dropdown selects an item with ( wpsl-accessibility.js ).
+        category.addEventListener( 'keydown', function( e ) {
+            if ( e.key === 'Enter' && e.target.closest( '.wpsl-dropdown li' ) ) {
+                searchCategory();
+            }
+        }, true );
+
+        jQuery( category ).on( 'change', 'select', searchCategory );
     },
 
     /**
@@ -110,6 +174,8 @@ export const buttons = {
             });
         }
 
+        buttons.bindCategoryFilterOnly();
+
         jQuery( '#wpsl-search-btn' ).off( 'click keydown' ).on( 'click keydown', function( e ) {
             // Allow both click and keyboard activation (Enter or Space)
             if ( e.type === 'keydown' && e.which !== 13 && e.which !== 32 ) {
@@ -122,6 +188,10 @@ export const buttons = {
 
             jQuery( '#wpsl-search-btn' ).attr( 'disabled', true );
             $input.removeClass();
+
+            // A fresh object per search, so a full country search or the "Any" page load
+            // arguments ( autoLoad, start coordinates ) don't carry over into the next one.
+            args = {};
 
             // Make sure the previous results and
             // filter are hidden for v3.x+ templates.
@@ -148,11 +218,31 @@ export const buttons = {
                 // Clear the existing markers / results before running, like the geocoded search path does.
                 search.reset();
                 search.run( args );
-            } else if ( jQuery( '#wpsl-wrap' ).hasClass( 'wpsl-cat-filter-only' ) ) {
-                config.search.skipGeocode = true;
-
+            } else if ( buttons.isCategoryFilterOnly() ) {
                 search.reset();
-                search.run( args );
+
+                if ( filters.dropdowns.getSelectedId().filter ) {
+                    config.search.skipGeocode = true;
+
+                    search.run( args );
+                } else if ( config.search.autoLoad ) {
+
+                    // "Any" brings back the locations shown on page load.
+                    const coordinates = helpers.extractCoordinates( { latLng: config.map.startLatLng } );
+
+                    args.latLng = config.map.startLatLng;
+
+                    if ( coordinates ) {
+                        args.lat = coordinates.lat;
+                        args.lng = coordinates.lng;
+                    }
+
+                    args.autoLoad = true;
+
+                    search.prepare( args );
+                } else {
+                    jQuery( '#wpsl-search-btn' ).attr( 'disabled', false );
+                }
             } else {
                 jQuery( '#wpsl-search-btn' ).attr( 'disabled', false );
                 $input.removeClass();

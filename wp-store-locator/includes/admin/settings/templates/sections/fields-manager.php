@@ -15,10 +15,25 @@ $fields = [
 
 $editor_data = $wpsl_settings->get_group( 'editor' );
 $section_settings = $editor_data['field_manager'];
+$social_enabled   = ! empty( $editor_data['social_media'] );
 ?>
 <section id="wpsl-fields-manager" data-protected-fields="<?php echo esc_attr( implode( ',', $fields[ 'defaults' ] ) ); ?>"  data-custom-fields="<?php echo esc_attr( implode( ',', $fields[ 'custom' ] ) ); ?>" class="postbox">
     <h3><span><?php esc_html_e( 'Fields Manager', 'wp-store-locator' ); ?></span> <span class="wpsl-groups-header" style="display:none;">/ <?php esc_html_e( 'Groups Manager', 'wp-store-locator' ); ?></span></h3>
     <div class="inside">
+        <?php // The tabs show while the social media group is on, the "Enable the social media group?" option toggles them without a reload. Without them the Fields Manager looks as it always did. ?>
+        <?php // The script fills in the counts, and keeps them up to date while fields are added or removed. ?>
+        <div id="wpsl-fields-tabs" class="wpsl-fields-tabs<?php if ( ! $social_enabled ) { echo ' wpsl-hide'; } ?>" role="tablist" aria-label="<?php esc_attr_e( 'Fields Manager', 'wp-store-locator' ); ?>">
+            <button type="button" id="wpsl-fields-tab-custom" class="wpsl-fields-tab is-current" role="tab" aria-selected="true" aria-controls="wpsl-fields-panel-custom" data-tab="custom"><?php esc_html_e( 'Custom', 'wp-store-locator' ); ?><span class="wpsl-fields-tab-count"></span></button>
+            <button type="button" id="wpsl-fields-tab-social" class="wpsl-fields-tab" role="tab" aria-selected="false" aria-controls="wpsl-fields-panel-social" tabindex="-1" data-tab="social"><?php echo esc_html( wpsl_social_group_label() ); ?><span class="wpsl-fields-tab-count"></span></button>
+        </div>
+        <?php // Custom is the tab that opens, the script reopens Social Media after a save on that tab. ?>
+        <div id="wpsl-fields-panel-social" class="wpsl-fields-panel" role="tabpanel" aria-labelledby="wpsl-fields-tab-social" hidden>
+            <?php
+            // Both panels are in the same form, so a save on either tab posts the social media fields.
+            require WPSL_PLUGIN_DIR . 'includes/admin/settings/templates/fields-manager/social-fields.php';
+            ?>
+        </div>
+        <div id="wpsl-fields-panel-custom" class="wpsl-fields-panel" role="tabpanel" aria-labelledby="wpsl-fields-tab-custom">
         <div class="wpsl-fields-manager-wrap">
             <?php            
             if ( is_array( $section_settings['groups'] ) && ! empty( $section_settings['groups'] ) ) {
@@ -196,6 +211,7 @@ $section_settings = $editor_data['field_manager'];
             <input class="button-primary" id="wpsl-show-fields-manager" type="submit" value="<?php esc_html_e( 'Return to Fields Manager', 'wp-store-locator' ); ?>" />
             <input type="hidden" id="wpsl-delete-group-nonce" value="<?php echo esc_attr( wp_create_nonce( 'wpsl-delete_group' ) ); ?>"/>
             <input type="hidden" id="wpsl-update-groups-nonce" value="<?php echo esc_attr( wp_create_nonce( 'wpsl-update_group' ) ); ?>"/>
+        </div>
         </div>
     </div>
 </section>

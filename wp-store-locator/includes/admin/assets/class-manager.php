@@ -56,6 +56,8 @@ class Manager {
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'codemirror' ] );
         add_filter( 'script_loader_tag',     [ $this, 'update_tag' ], 10, 3 );
+
+        add_action( 'enqueue_block_editor_assets', [ $this, 'open_meta_box_pane' ] );
     }
 
     /**
@@ -89,9 +91,17 @@ class Manager {
         if ( isset( $_GET['page'] ) && 'wpsl_home' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
             wp_enqueue_script( 'mircomodal', WPSL_URL . 'assets/src/admin/js/micromodal.min.js', [], '0.4.10', true );
             wp_enqueue_style( 'wpsl-micromodal', WPSL_URL . $css_base . 'admin/css/micromodal' . $css_ext, [], WPSL_VERSION_NUM );
+            wp_enqueue_style( 'wpsl-quick-setup', WPSL_URL . $css_base . 'admin/css/quick-setup' . $css_ext, [ 'wpsl-admin' ], WPSL_VERSION_NUM );
 
-            wp_enqueue_script( 'wpsl-admin-ui', WPSL_URL . 'assets/src/admin/js/wpsl-admin-ui' . $toggle_min . '.js', [ 'jquery', 'wpsl-shared-funcs', 'mircomodal' ], WPSL_VERSION_NUM, true );
+            $this->enqueue_asset_cache_check( $toggle_min );
+
+            wp_enqueue_script( 'wpsl-admin-ui', WPSL_URL . 'assets/src/admin/js/wpsl-admin-ui' . $toggle_min . '.js', [ 'jquery', 'wpsl-shared-funcs', 'mircomodal', 'wpsl-asset-cache-check' ], WPSL_VERSION_NUM, true );
             wp_enqueue_script( 'wpsl-key-visibility', WPSL_URL . 'assets/src/admin/js/wpsl-key-visibility' . $toggle_min . '.js', [], WPSL_VERSION_NUM, true );
+
+            // Quick setup: saves each choice when it is picked, switches the card between open, collapsed and hidden.
+            wp_enqueue_script( 'wpsl-quick-setup', WPSL_URL . 'assets/src/admin/js/wpsl-quick-setup' . $toggle_min . '.js', [ 'jquery' ], WPSL_VERSION_NUM, true );
+
+            wp_localize_script( 'wpsl-quick-setup', 'wpslQuickSetup', wpsl_get_service( 'quick_setup' )->get_script_data() );
 
             wp_localize_script( 'wpsl-admin-ui', 'wpslHome', [
                 'ajaxUrl'               => admin_url( 'admin-ajax.php' ),
@@ -101,6 +111,8 @@ class Manager {
                 'dismissNonce'          => wp_create_nonce( 'wpsl_dismiss_alert' ),
                 // The page whose headers are checked for a blocked geolocation, only while auto-locate is on.
                 'policyUrl'             => \WPSL\Admin\Core\Geolocation_Policy::is_needed() ? \WPSL\Admin\Core\Geolocation_Policy::get_check_url() : '',
+                // Whether to check for outdated cached scripts on this visit, see Asset_Cache::is_due().
+                'assetCacheDue'         => \WPSL\Admin\Core\Asset_Cache::get_check_config() && \WPSL\Admin\Core\Asset_Cache::is_due(),
                 'actions'               => [
                     'save'       => \WPSL\Admin\Home\Home::SAVE_SERVICE_ACTION,
                     'status'     => \WPSL\Admin\Home\Home::STATUS_ACTION,
@@ -143,6 +155,9 @@ class Manager {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, nothing is processed.
         if ( isset( $_GET['page'] ) && 'wpsl_settings' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
             wp_enqueue_script( 'wpsl-key-visibility', WPSL_URL . 'assets/src/admin/js/wpsl-key-visibility' . $toggle_min . '.js', [], WPSL_VERSION_NUM, true );
+
+            // The "Outdated cached files" button in the Tools section.
+            $this->enqueue_asset_cache_check( $toggle_min );
         }
 
         wp_enqueue_style( 'wpsl-shared', WPSL_URL . $css_base . 'admin/css/shared' . $css_ext, false, WPSL_VERSION_NUM );
@@ -398,6 +413,31 @@ class Manager {
         }
 
         wp_add_inline_script( 'wpsl-admin', 'Object.assign( wpslL10n, ' . $json . ' );', 'before' );
+    }
+
+    /**
+     * Enqueue the outdated cached scripts check, see Asset_Cache.
+     *
+     * A standalone file, like the other Home page scripts: the Home page runs
+     * it when it is due, the Tools section on the Settings page from a button.
+     *
+     * @since  3.1.1
+     * @param  string $min The '.min' suffix, or an empty string with SCRIPT_DEBUG
+     * @return void
+     */
+    private function enqueue_asset_cache_check( $min ) {
+        wp_enqueue_script( 'wpsl-asset-cache-check', WPSL_URL . 'assets/src/admin/js/wpsl-asset-cache-check' . $min . '.js', [ 'jquery' ], WPSL_VERSION_NUM, true );
+
+        wp_localize_script( 'wpsl-asset-cache-check', 'wpslAssetCache', [
+            'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+            'nonce'     => wp_create_nonce( \WPSL\Admin\Core\Asset_Cache::NONCE ),
+            'action'    => \WPSL\Admin\Core\Asset_Cache::ACTION,
+            'check'     => \WPSL\Admin\Core\Asset_Cache::get_check_config(),
+            'preloader' => WPSL_URL . 'assets/img/ajax-loader.svg',
+            'i18n'      => [
+                'requestFailed' => esc_html__( 'The request failed. Please reload the page and try again.', 'wp-store-locator' ),
+            ],
+        ] );
     }
 
     /**
@@ -729,6 +769,33 @@ class Manager {
         }
 
         return $tag;
+    }
+
+    /**
+     * Open the block editor's meta box pane by default on the store screens.
+     *
+     * The block editor collapses the meta box pane to a thin bar until the
+     * user opens it, which hides the Store Details fields. Opening it is a
+     * default, not a saved setting, so a user who collapses the pane keeps
+     * it collapsed. The setting is shared by all post types, so a user who
+     * collapsed it on posts sees it collapsed here too.
+     *
+     * Without a height the open pane grows to fit Store Details and squeezes
+     * the title and content to a sliver, so it also defaults to half the
+     * window. Dragging the pane saves the user's own height.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    public function open_meta_box_pane() {
+        $screen = get_current_screen();
+
+        if ( ! $screen || 'wpsl_stores' !== $screen->post_type || 'post' !== $screen->base ) {
+            return;
+        }
+
+        // The core/preferences store was added in WP 6.0, older versions don't need it.
+        wp_add_inline_script( 'wp-edit-post', "( function() { var preferences = wp.data.dispatch( 'core/preferences' ); if ( preferences && preferences.setDefaults ) { preferences.setDefaults( 'core/edit-post', { metaBoxesMainIsOpen: true, metaBoxesMainOpenHeight: Math.round( window.innerHeight / 2 ) } ); } } )();" );
     }
 
     /**

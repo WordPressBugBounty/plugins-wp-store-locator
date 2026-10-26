@@ -21,6 +21,7 @@ export const groupsCRUD = {
 
         jQuery( '.wpsl-fields-manager-wrap' ).hide();
         jQuery( '.wpsl-groups-manager-wrap, .wpsl-groups-header' ).show();
+        jQuery( '#wpsl-fields-manager' ).addClass( 'wpsl-groups-manager-open' );
 
         this.buildList();
         fieldsUI.updateGroupsDraggableState();

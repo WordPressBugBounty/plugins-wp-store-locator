@@ -174,7 +174,7 @@ class Shortcodes {
      */
     public function show_store_locator( $atts ) {
         // Covers pages the asset detector cannot see ( theme templates, page
-        // builders, widgets ); prints in the footer when it lands this late.
+        // builders, widgets ); late_assets() prints them with the output then.
         $this->assets_manager()->ensure_styles();
 
         $upgraded_from = wpsl_upgraded_from();
@@ -384,7 +384,7 @@ class Shortcodes {
      */
     public function show_store_map( $atts = [] ) {
         // Covers pages the asset detector cannot see ( theme templates, page
-        // builders, widgets ); prints in the footer when it lands this late.
+        // builders, widgets ); late_assets() prints them with the output then.
         $this->assets_manager()->ensure_styles();
 
         global $post;
@@ -728,7 +728,7 @@ class Shortcodes {
      */
     public function show_store_address( $atts ) {
         // Covers pages the asset detector cannot see ( theme templates, page
-        // builders, widgets ); prints in the footer when it lands this late.
+        // builders, widgets ); late_assets() prints them with the output then.
         $this->assets_manager()->ensure_styles();
 
         global $post;
@@ -743,6 +743,9 @@ class Shortcodes {
          * passed to the shortcode always overrides this default.
          */
         $show_contact_details = in_array( 'landing_page', $wpsl_settings['ux']['contact_details'], true );
+
+        // The same for the social media links, with their own location setting.
+        $show_social_links = in_array( 'landing_page', (array) $wpsl_settings['ux']['social_links'], true );
 
         /*
          * Which details the author named, before shortcode_atts() merges the
@@ -767,7 +770,8 @@ class Shortcodes {
             'url'                       => $show_contact_details,
             'directions'                => false,
             'clickable_contact_details' => (bool) $wpsl_settings['ux']['clickable_contact_details'],
-            'bold_contact_details'      => true
+            'bold_contact_details'      => true,
+            'social'                    => $show_social_links
         ] ), $atts ) );
 
         /**
@@ -934,6 +938,11 @@ class Shortcodes {
             }
 
             $output .= '</div>';
+        }
+
+        // The social media links, empty when the option is off or the location has none filled in.
+        if ( $atts['social'] ) {
+            $output .= wpsl_social_links_html( $atts['id'] );
         }
 
         /**

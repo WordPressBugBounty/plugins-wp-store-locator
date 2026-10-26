@@ -297,7 +297,8 @@ class Manager {
             }
         }
 
-        $stored = wpsl_get_service( 'location_utils' )->get_unique_meta_values( 'wpsl_country_iso' );
+        // The block editor ( edit_posts ) also offers the countries of stores that aren't published yet.
+        $stored = wpsl_get_service( 'location_utils' )->get_unique_meta_values( 'wpsl_country_iso', [ 'publish', 'future', 'draft', 'pending', 'private' ] );
         $codes  = [];
 
         foreach ( (array) $stored as $iso ) {

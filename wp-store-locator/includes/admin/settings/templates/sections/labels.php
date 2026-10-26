@@ -211,6 +211,10 @@ foreach ( wpsl_labels() as $label_name ) {
             <label for="wpsl-number-results-single-label"><?php esc_html_e( 'Number of results (single)', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Used instead of the text above when exactly one result is found. The {number} will be replaced with the result count.', 'wp-store-locator' ); ?></span></span></label>
             <input type="text" value="<?php echo esc_attr( $i18n->get_translation( 'number_results_single_label', __( '{number} store near you', 'wp-store-locator' ) ) ); ?>" name="wpsl_labels[number_results_single]" id="wpsl-number-results-single-label">
         </p>
+        <p>
+            <label for="wpsl-group-header-label"><?php esc_html_e( 'Locations at one address', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'The title of the info window that is shared by locations at the same address. The {number} will be replaced with the number of locations.', 'wp-store-locator' ); ?></span></span></label>
+            <input type="text" value="<?php echo esc_attr( $i18n->get_translation( 'group_header_label', __( '{number} locations at this address', 'wp-store-locator' ) ) ); ?>" name="wpsl_labels[group_header]" id="wpsl-group-header-label">
+        </p>
         </div><!-- .wpsl-labels-panel-other -->
 
         <?php do_action( 'wpsl_label_settings_section' ); ?>

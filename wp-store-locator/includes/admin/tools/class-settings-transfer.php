@@ -1426,6 +1426,19 @@ class Settings_Transfer {
             $values['field_manager'] = $this->apply_field_manager_rules( $values['field_manager'] );
         }
 
+        /*
+         * The social media fields get the rules of the settings form ( 3.1.1 ).
+         * The file is the stored list of the site it came from, so an Other
+         * field keeps the name it was exported with, the links of the stores
+         * use it as their meta key.
+         */
+        if ( 'editor' === $group && isset( $values['social_fields'] ) ) {
+            $field_manager = isset( $values['field_manager'] ) ? $values['field_manager'] : [];
+            $social        = wpsl_sanitize_social_fields( $values['social_fields'], wpsl_social_taken_names( $field_manager ), $values['social_fields'] );
+
+            $values['social_fields'] = $social['fields'];
+        }
+
         return $values;
     }
 

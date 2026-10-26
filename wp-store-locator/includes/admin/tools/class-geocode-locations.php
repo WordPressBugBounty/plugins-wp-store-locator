@@ -934,9 +934,14 @@ class Geocode_Locations {
      * @return array The outcome for this store
      */
     private function geocode_location( $post_id ) {
+        /*
+         * The name is only filled in once the id is a store the user can
+         * edit: the ids come from the request, and a title of another post
+         * can be private ( a privacy request has an email address as title ).
+         */
         $result = [
             'id'      => $post_id,
-            'name'    => $this->plain_text( get_the_title( $post_id ) ),
+            'name'    => '',
             'success' => false,
         ];
 
@@ -951,6 +956,8 @@ class Geocode_Locations {
 
             return $result;
         }
+
+        $result['name'] = $this->plain_text( get_the_title( $post_id ) );
 
         /*
          * Rescue what is already stored before paying for a lookup: a

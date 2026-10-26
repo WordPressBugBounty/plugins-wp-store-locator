@@ -126,19 +126,16 @@ class UI {
 
         /**
          * Name search matches on the post / location name and never calculates
-         * a distance, so sorting by distance isn't possible. Drop that option
-         * from the "Sort by" dropdown and, when it was the saved value, fall
-         * back to the first remaining option so a valid choice stays selected.
+         * a distance, so sorting by distance isn't possible. The distance option
+         * stays in the list: settings.js hides and disables it while name search
+         * is chosen, and enables it again when switching back to geocode. When
+         * distance was the saved value, the first other option is selected.
          */
         $order_values   = wpsl_get_search_order_options();
         $order_selected = $this->settings->get( 'search', 'orderby' );
 
-        if ( $this->settings->get( 'search', 'search_method' ) === 'name' ) {
-            unset( $order_values['distance'] );
-
-            if ( $order_selected === 'distance' ) {
-                $order_selected = key( $order_values );
-            }
+        if ( $this->settings->get( 'search', 'search_method' ) === 'name' && $order_selected === 'distance' ) {
+            $order_selected = key( array_diff_key( $order_values, [ 'distance' => true ] ) );
         }
 
         /**
@@ -240,7 +237,7 @@ class UI {
                 'values' => [
                     'horizontal' => esc_html__( 'Horizontal row', 'wp-store-locator' ),
                     'stacked'    => esc_html__( 'Stacked', 'wp-store-locator' ),
-                    'nested'     => esc_html__( 'Nested ( single Filters button )', 'wp-store-locator' ),
+                    'nested'     => esc_html__( 'Nested ( one Filters button )', 'wp-store-locator' ),
                 ],
                 'id'       => 'wpsl-filter-layout',
                 'name'     => 'wpsl_appearance[search][filter_layout]',
@@ -477,15 +474,54 @@ class UI {
         }
         
         $label = $this->build_multiselect_label( $type, $config );
-        $button = $this->build_multiselect_button( $type, $config );
-        $options = $this->build_multiselect_options( $config );
         
-        $multiselect = $label;
-        $multiselect .= '<div class="wpsl-multiselect-container">';
-        $multiselect .= $button;
-        $multiselect .= $options;
+        return $label . $this->build_multiselect_container( $type, $config );
+    }
+
+    /**
+     * Gets the multiselect dropdown without its label, for a place that
+     * has its own ( the Quick setup tiles ).
+     *
+     * @since  3.1.1
+     * @param  string $type Which multiselect, see get_multiselect_config().
+     * @param  array  $args Optional overrides:
+     *                      selected_values ( array ) the checked values instead of the saved ones,
+     *                      field_name ( string ) the checkbox name, '' prints none,
+     *                      button_id ( string ) the id of the button,
+     *                      disabled ( bool ) whether the button is disabled,
+     *                      max_selected ( int ) the most values that can be checked, the other boxes are disabled once it is reached.
+     * @return string The escaped html, an empty string for an unknown type.
+     */
+    public function get_multiselect_control( $type, $args = [] ) {
+        $config = $this->get_multiselect_config( $type );
+
+        if ( empty( $config ) ) {
+            return '';
+        }
+
+        foreach ( [ 'selected_values', 'field_name', 'button_id', 'disabled', 'max_selected' ] as $key ) {
+            if ( isset( $args[ $key ] ) ) {
+                $config[ $key ] = $args[ $key ];
+            }
+        }
+
+        return $this->build_multiselect_container( $type, $config );
+    }
+
+    /**
+     * Build the container with the button and the menu.
+     *
+     * @since  3.1.1
+     * @param  string $type
+     * @param  array  $config
+     * @return string
+     */
+    private function build_multiselect_container( $type, $config ) {
+        $multiselect = '<div class="wpsl-multiselect-container">';
+        $multiselect .= $this->build_multiselect_button( $type, $config );
+        $multiselect .= $this->build_multiselect_options( $config );
         $multiselect .= '</div>';
-    
+
         return $multiselect;
     }
 
@@ -497,8 +533,9 @@ class UI {
      * @return array
      */
     private function get_multiselect_config( $type ) {
+        // Closures, so only the requested one is built ( the others read the settings and the section analyzer ).
         $configs = [
-            'countries' => [
+            'countries' => fn() => [
                 'label_text' => __( 'Restrict the search results to one or more countries', 'wp-store-locator' ),
                 'info_text' => '',
                 'placeholder' => __( 'Select your country(s)', 'wp-store-locator' ),
@@ -506,7 +543,7 @@ class UI {
                 'selected_values' => $this->settings->get( 'api', 'multiple_regions' ),
                 'field_name' => 'wpsl_api[multiple_regions][]',
             ],
-            'hours' => [
+            'hours' => fn() => [
                 'label_text' => __( 'Location(s) of opening hours', 'wp-store-locator' ),
                 'info_text' => '',
                 // 'hours' is also the Section_Analyzer feature id this placement maps to.
@@ -517,7 +554,7 @@ class UI {
                 'selected_values' => $this->settings->get( 'ux', 'hours' ),
                 'field_name' => 'wpsl_ux[hours][]'
             ],
-            'description' => [
+            'description' => fn() => [
                 'label_text' => __( 'Location(s) of the post content', 'wp-store-locator' ),
                 'info_text' => '',
                 'warning_text' => $this->section_sync_warning( 'description' ),
@@ -527,7 +564,7 @@ class UI {
                 'selected_values' => $this->settings->get( 'ux', 'description' ),
                 'field_name' => 'wpsl_ux[description][]'
             ],
-            'contact_details' => [
+            'contact_details' => fn() => [
                 'label_text' => __( 'Location(s) of contact details', 'wp-store-locator' ),
                 'info_text' => '',
                 'warning_text' => $this->section_sync_warning( 'contact_details' ),
@@ -536,10 +573,20 @@ class UI {
                 'options' => wpsl_get_multiselect_ux_locations(),
                 'selected_values' => $this->settings->get( 'ux', 'contact_details' ),
                 'field_name' => 'wpsl_ux[contact_details][]'
+            ],
+            'social_links' => fn() => [
+                'label_text' => __( 'Location(s) of the social links', 'wp-store-locator' ),
+                'info_text' => '',
+                'warning_text' => $this->section_sync_warning( 'social_links' ),
+                'placeholder' => __( 'Select', 'wp-store-locator' ),
+                'data_source' => 'static',
+                'options' => wpsl_get_multiselect_ux_locations(),
+                'selected_values' => $this->settings->get( 'ux', 'social_links' ),
+                'field_name' => 'wpsl_ux[social_links][]'
             ]
         ];
 
-        return isset( $configs[$type] ) ? $configs[$type] : [];
+        return isset( $configs[$type] ) ? $configs[$type]() : [];
     }
 
     /**
@@ -684,7 +731,8 @@ class UI {
      * @return string
      */
     private function build_multiselect_button( $type, $config ) {
-        $button = '<button type="button" id="wpsl-multiselect-' . esc_attr( $type ) . '" data-placeholder="' . esc_attr( $config['placeholder'] ) . '">';
+        $id     = isset( $config['button_id'] ) ? $config['button_id'] : 'wpsl-multiselect-' . $type;
+        $button = '<button type="button" id="' . esc_attr( $id ) . '" data-placeholder="' . esc_attr( $config['placeholder'] ) . '"' . ( ! empty( $config['disabled'] ) ? ' disabled aria-disabled="true"' : '' ) . '>';
         $button .= '<div class="wpsl-multiselect-content">';
         
         // Show tags if we have selected values
@@ -722,7 +770,8 @@ class UI {
             
             // For static data sources, the key is the value and value is the label
             if ( $config['data_source'] === 'static' ) {
-                $selected_label = isset( $data_source[$selected_value] ) ? $data_source[$selected_value] : $selected_value;
+                // A saved place that isn't offered ( the landing page ones with the permalinks off ) gets no tag.
+                $selected_label = isset( $data_source[$selected_value] ) ? $data_source[$selected_value] : '';
             } else {
                 // For dynamic data sources, find the key where value matches
                 foreach ( $data_source as $option_key => $option_value ) {
@@ -788,13 +837,24 @@ class UI {
             
             $options .= '<li>';
             $options .= '<label>';
-            $options .= '<input type="checkbox" ' . $selected . ' value="' . esc_attr( $value ) . '" name="' . esc_attr( $config['field_name'] ) . '" data-label="' . esc_attr( wpsl_underscore_to_readable( $value ) ) . '">';
+            $options .= '<input type="checkbox" ' . $selected . ' value="' . esc_attr( $value ) . '"' . $this->multiselect_name_attr( $config ) . ' data-label="' . esc_attr( wpsl_underscore_to_readable( $value ) ) . '">';
             $options .= '<span>' . esc_html( $label ) . '</span>';
             $options .= '</label>';
             $options .= '</li>';
         }
         
         return $options;
+    }
+
+    /**
+     * The name attribute of a multiselect checkbox.
+     *
+     * @since  3.1.1
+     * @param  array $config
+     * @return string The attribute with a leading space, empty when the control has no field name.
+     */
+    private function multiselect_name_attr( $config ) {
+        return ( '' === $config['field_name'] ) ? '' : ' name="' . esc_attr( $config['field_name'] ) . '"';
     }
 
     /**
@@ -828,12 +888,15 @@ class UI {
             
             if ( is_array( $config['selected_values'] ) && in_array( $option_value, $config['selected_values'] ) ) {
                 $selected = 'checked';
+            } elseif ( ! empty( $config['max_selected'] ) && is_array( $config['selected_values'] ) && count( $config['selected_values'] ) >= $config['max_selected'] ) {
+                $selected = 'disabled';
             }
             
+            // The keys are readable names already ( "United Kingdom" ), the tags use them as they are too.
             $options .= '<li>';
             $options .= '<label>';
-            $options .= '<input type="checkbox" ' . $selected . ' value="' . esc_attr( $option_value ) . '" name="' . esc_attr( $config['field_name'] ) . '" data-label="' . esc_attr( wpsl_underscore_to_readable( $option_key ) ) . '">';
-            $options .= '<span>' . esc_html( wpsl_underscore_to_readable( $option_key ) ) . '</span>';
+            $options .= '<input type="checkbox" ' . $selected . ' value="' . esc_attr( $option_value ) . '"' . $this->multiselect_name_attr( $config ) . ' data-label="' . esc_attr( $option_key ) . '">';
+            $options .= '<span>' . esc_html( $option_key ) . '</span>';
             $options .= '</label>';
             $options .= '</li>';
         }

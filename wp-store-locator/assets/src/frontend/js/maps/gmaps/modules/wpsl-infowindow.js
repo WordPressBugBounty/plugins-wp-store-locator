@@ -1,6 +1,7 @@
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
+import { groupWindow } from '../../../modules/wpsl-group-window.js';
 import { api } from './wpsl-api.js';
 import { markers } from './wpsl-markers.js';
 
@@ -136,6 +137,11 @@ export const infoWindow = {
             const maxZoom = config.map.autoZoomLevel;
             const clickedElem = jQuery( this );
 
+            // More details, and any link a template adds, opens as a normal link.
+            if ( ! clickedElem.is( '.wpsl-directions, .wpsl-streetview, .wpsl-zoom-here' ) ) {
+                return true;
+            }
+
             e.stopImmediatePropagation();
 
             if ( jQuery( this ).hasClass( 'wpsl-directions' ) ) {
@@ -193,7 +199,13 @@ export const infoWindow = {
         let template;
 
         if ( marker.storeId === 0 && ! slData.directions.active ) {
-            template = marker.title;
+
+            // The marker title is the decoded label, plain text. The window takes HTML ( as on Mapbox and OpenStreetMap ).
+            template = sharedHelpers.escapeHtml( marker.title );
+        } else if ( marker._wpslGroup && marker._wpslGroup.length > 1 && typeof infoWindowData.store !== 'undefined' ) {
+
+            // Every location at this address, on the one the marker click asked for.
+            template = groupWindow.template( marker._wpslGroup, typeof marker._wpslGroupOpen === 'number' ? marker._wpslGroupOpen : null );
         } else if ( typeof infoWindowData.store !== 'undefined' ) {
             template = helpers.template.getInfoWindowTemplate( infoWindowData );
         } else {

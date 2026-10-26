@@ -89,17 +89,23 @@ class Types {
             $args = $_GET;
         }
 
+        $full_search = $this->is_full_search( $args );
+        $numberposts = $this->get_numberposts( $args );
+
+        // A password-protected store stays out of the results, as it does in the radius search.
         $this->search_args = apply_filters( 'wpsl_default_search_args', [
-            'post_type'   => 'wpsl_stores',
-            'post_status' => 'publish',
-            'fields'      => 'ids',
-            'numberposts' => $this->get_numberposts()
+            'post_type'    => 'wpsl_stores',
+            'post_status'  => 'publish',
+            'has_password' => false,
+            'fields'       => 'ids',
+            'numberposts'  => $numberposts
         ] );
 
         // Multiple comma-separated types are supported ( e.g. types=name,country );
         // each runs its own *_search_args handler and the arguments compose.
-        // Covered by tests/unit/frontend/search/TypesTest.php.
-        $types = explode( ',', $args['types'] );
+        // Covered by tests/unit/frontend/search/TypesTest.php. A malformed
+        // types[]= runs no handler, and gets the ordinary limited result.
+        $types = is_string( $args['types'] ) ? explode( ',', $args['types'] ) : [];
 
         /**
          * Extend the search arguments based on the passed type.
@@ -123,6 +129,33 @@ class Types {
             $this->taxonomy_search_args( $args );
         }
 
+        /*
+         * A whole country / state search only goes past the result limit
+         * when a handler really narrowed it down to a country or state. A
+         * filter on the handler arguments can still drop the clause, and
+         * then it's an ordinary search with the ordinary limit. A limit the
+         * wpsl_default_search_args filter set is kept.
+         */
+        if ( $full_search && isset( $this->search_args['numberposts'] ) && $this->search_args['numberposts'] === $numberposts ) {
+            /**
+             * Filter the meta keys that make a search a whole country / state search.
+             *
+             * Only a search with a clause on one of these keys, with a value,
+             * goes past the result limit. Add the key an add-on maps the
+             * country or state clause to through wpsl_country_meta_query_args
+             * or wpsl_state_meta_query_args.
+             *
+             * @since 3.1.1
+             * @param string[] $meta_keys The meta keys, wpsl_country, wpsl_country_iso and wpsl_state.
+             * @param array    $args      The search request.
+             */
+            $region_keys = (array) apply_filters( 'wpsl_full_search_region_meta_keys', [ 'wpsl_country', 'wpsl_country_iso', 'wpsl_state' ], $args );
+
+            if ( ! $this->has_region_clause( isset( $this->search_args['meta_query'] ) ? $this->search_args['meta_query'] : [], $region_keys ) ) {
+                $this->search_args['numberposts'] = $this->get_max_results();
+            }
+        }
+
         $this->run_search();
     }
 
@@ -130,9 +163,40 @@ class Types {
      * Get the results limit.
      *
      * @since  3.0.0
-     * @return string $numberposts
+     * @since  3.1.1 A whole country / state search returns every location in it.
+     * @param  array $args The search request, see prepare_search().
+     * @return string|int $numberposts
      */
-    public function get_numberposts() {
+    public function get_numberposts( $args = [] ) {
+        if ( $this->is_full_search( $args ) ) {
+
+            /**
+             * Filter the number of locations a whole country / state search returns.
+             *
+             * Applies with "Return all locations when someone searches for a
+             * whole country or state?" on. -1 returns all of them.
+             *
+             * @since 3.1.1
+             * @param int   $max_results -1, or the max number of locations.
+             * @param array $args        The search request.
+             */
+            $max_results = (int) apply_filters( 'wpsl_full_search_max_results', -1, $args );
+
+            if ( $max_results === -1 || $max_results > 0 ) {
+                return $max_results;
+            }
+        }
+
+        return $this->get_max_results();
+    }
+
+    /**
+     * The results limit of an ordinary search.
+     *
+     * @since  3.1.1
+     * @return string|int The requested max results, or the default one.
+     */
+    private function get_max_results() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public search parameter, no state change
         $max_results = isset( $_GET['max_results'] ) ? absint( $_GET['max_results'] ) : 0;
 
@@ -152,6 +216,78 @@ class Types {
         }
 
         return $numberposts;
+    }
+
+    /**
+     * Whether the request is a search for a whole country or state, with
+     * "Return all locations when someone searches for a whole country or state?" on.
+     *
+     * The JS sets full_search for a searched country / state only, so the
+     * country dropdown, which also sends types=country, keeps the max results.
+     *
+     * The country or state has to be in the request too. Without one there
+     * is no country / state filter, and full_search=1 with types=country
+     * returned every location on the site in one public request. The
+     * country_iso only counts when country_search_args() reads it: without
+     * a location[country] value.
+     *
+     * prepare_search() checks again after the handlers ran, so the limit is
+     * only lifted when the search really holds a country or state clause.
+     *
+     * @since  3.1.1
+     * @param  array $args The search request.
+     * @return bool
+     */
+    private function is_full_search( $args ) {
+        if ( empty( $args['full_search'] ) || empty( $args['types'] ) || ! is_string( $args['types'] ) || ! $this->settings->get( 'search', 'full_search', false ) ) {
+            return false;
+        }
+
+        $types = explode( ',', $args['types'] );
+
+        if ( in_array( 'country', $types, true ) && ( $this->get_location_values( $args, 'country' ) || '' !== $this->get_country_iso( $args ) ) ) {
+            return true;
+        }
+
+        return in_array( 'state', $types, true ) && $this->get_location_values( $args, 'state' );
+    }
+
+    /**
+     * The country_iso some add-ons pass instead of location[country].
+     *
+     * @since  3.1.1
+     * @param  array  $args The search request.
+     * @return string The sanitized code, '' when there is none.
+     */
+    private function get_country_iso( $args ) {
+        return isset( $args['country_iso'] ) && is_string( $args['country_iso'] ) ? sanitize_text_field( $args['country_iso'] ) : '';
+    }
+
+    /**
+     * Whether a meta query holds a country, ISO code or state clause with a value.
+     *
+     * @since  3.1.1
+     * @param  array    $meta_query The meta_query of the search arguments.
+     * @param  string[] $keys       The meta keys that count, see wpsl_full_search_region_meta_keys.
+     * @return bool
+     */
+    private function has_region_clause( $meta_query, $keys ) {
+        if ( ! is_array( $meta_query ) ) {
+            return false;
+        }
+
+        if ( isset( $meta_query['key'] ) ) {
+            return in_array( $meta_query['key'], $keys, true )
+                && isset( $meta_query['value'] ) && is_scalar( $meta_query['value'] ) && '' !== (string) $meta_query['value'];
+        }
+
+        foreach ( $meta_query as $clause ) {
+            if ( is_array( $clause ) && $this->has_region_clause( $clause, $keys ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -191,7 +327,7 @@ class Types {
             return;
         }
 
-        $filter_ids = array_map( 'absint', explode( ',', wpsl_normalize_category_filter( $args['filter'] ) ) );
+        $filter_ids = wpsl_get_category_filter_ids( $args['filter'], Search::MAX_CATEGORY_IDS );
 
         $this->search_args['tax_query'][] = [
             'taxonomy' => 'wpsl_store_category',
@@ -209,7 +345,7 @@ class Types {
      * @return void
      */
     public function name_search_args( $args ) {
-        $this->search_args['s'] = sanitize_text_field( $args['search'] );
+        $this->search_args['s'] = ( isset( $args['search'] ) && is_string( $args['search'] ) ) ? sanitize_text_field( $args['search'] ) : '';
     }
 
     /**
@@ -223,8 +359,8 @@ class Types {
         $values = $this->get_location_values( $args, 'country' );
 
         // Some add-ons pass the iso code separately instead of via location[country].
-        if ( ( ! is_array( $values ) || ! $values ) && isset( $args['country_iso'] ) && $args['country_iso'] ) {
-            $values = [ sanitize_text_field( $args['country_iso'] ) ];
+        if ( ( ! is_array( $values ) || ! $values ) && '' !== $this->get_country_iso( $args ) ) {
+            $values = [ $this->get_country_iso( $args ) ];
         }
 
         if ( ! is_array( $values ) || ! $values ) {
@@ -266,7 +402,13 @@ class Types {
     /**
      * Take out the location data from the passed args.
      *
+     * Empty values are left out, so "location[country]=" or "location[state]=,x"
+     * can't add a clause that matches every store without one, and every
+     * caller agrees on whether there is a value at all. Each value is an OR
+     * clause, so they stop at Search::MAX_RESTRICTION_VALUES.
+     *
      * @since 3.0.0
+     * @since 3.1.1 Leaves out empty values, and caps the number and length of the values.
      * @param array  $args The submitted AJAX data
      * @param string $type The location field to read ( e.g. 'country', 'state' )
      * @return array|string The sanitized values, or '' when the field is absent
@@ -274,8 +416,9 @@ class Types {
     public function get_location_values( $args, $type ) {
         $values = '';
 
-        if ( isset( $args['location'] ) && array_key_exists( $type, $args['location'] ) ) {
-            $values = array_map('sanitize_text_field', explode( ',', $args['location'][$type] ) );
+        // A malformed location=abc or location[country][]=x counts as no value.
+        if ( isset( $args['location'] ) && is_array( $args['location'] ) && isset( $args['location'][$type] ) && is_string( $args['location'][$type] ) ) {
+            $values = array_values( array_filter( array_map( 'sanitize_text_field', Search::limit_values( $args['location'][$type] ) ), 'strlen' ) );
         }
 
         return $values;

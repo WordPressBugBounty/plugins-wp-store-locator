@@ -97,7 +97,7 @@ export const settings = {
      *
      * @returns {void}
      */
-    toggleSearchMethodFields: function() {
+    toggleSearchMethodFields: function( methodChanged = false ) {
         const method = jQuery( '#wpsl-search-method' ).val();
         const $autoLocate = jQuery( '#wpsl-auto-locate' ).closest( 'p' );
         const $autoLocateConditional = $autoLocate.next( '.wpsl-conditional-option' );
@@ -160,8 +160,13 @@ export const settings = {
 
             $nameSearchNotice.hide();
 
-            // Restore the distance sort option when leaving name search.
+            // Restore the distance sort option when leaving name search. Only when the
+            // visitor changed the search method: on page load the saved sort stays.
             $sortByDistance.prop( 'disabled', false ).show();
+
+            if ( methodChanged ) {
+                $sortBy.val( 'distance' );
+            }
 
             $autoLocate.css( 'display', 'flex' );
             if ( jQuery( '#wpsl-auto-locate' ).is( ':checked' ) ) {
@@ -253,7 +258,7 @@ export const settings = {
      */
     bindHandlers: function() {
         jQuery( '#wpsl-search-method' ).on( 'change', function() {
-            settings.toggleSearchMethodFields();
+            settings.toggleSearchMethodFields( true );
         });
 
         jQuery( '#wpsl-label-panel-select' ).on( 'change', function() {

@@ -61,6 +61,7 @@ function wpsl_labels() {
         'error',
         'number_results',
         'number_results_single',
+        'group_header',
     ];
 
     return $labels;

@@ -11,6 +11,7 @@ import { geojson } from './mapbox/modules/wpsl-geojson.js';
 import { layers } from './mapbox/modules/wpsl-layers.js';
 import { search } from './mapbox/modules/wpsl-search.js';
 import { shapes } from './mapbox/modules/wpsl-shapes.js';
+import { radiusCircle } from './mapbox/modules/wpsl-radius-circle.js';
 
 /**
  * Mapbox implementation for WPSL frontend.
@@ -29,6 +30,7 @@ export const mapbox = {
     layers,
     search,
     shapes,
+    radiusCircle,
     
     /**
      * Initialize Mapbox.

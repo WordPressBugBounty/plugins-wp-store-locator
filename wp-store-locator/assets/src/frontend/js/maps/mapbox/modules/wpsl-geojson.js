@@ -1,6 +1,8 @@
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { sharedHelpers } from '../../../../../common/wpsl-shared-helpers.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
+import { groupWindow } from '../../../modules/wpsl-group-window.js';
 import { layers } from './wpsl-layers.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { markers } from './wpsl-markers.js';
@@ -57,6 +59,25 @@ export const geojson = {
             }
         }
 
+        /*
+         * A location at the same address as an earlier one has no point of its
+         * own, it shows on that one's. After the loop above, so every location
+         * still went through setProperties(). A copy, the response keeps them all.
+         */
+        if ( map === slData.maps[0] && markerGroups.get( 0 ) ) {
+            const features = data.features.filter( ( feature ) => ! ( feature.properties && markerGroups.isFollower( feature.properties.id, 0 ) ) );
+
+            features.forEach( ( feature ) => {
+                const size = feature.properties ? markerGroups.size( feature.properties.id, 0 ) : 1;
+
+                if ( size > 1 ) {
+                    feature.properties.groupSize = size;
+                }
+            });
+
+            data = Object.assign( {}, data, { features } );
+        }
+
         let startFeature    = null;
         const storeFeatures = [];
 
@@ -95,13 +116,13 @@ export const geojson = {
             if ( locSource ) {
                 locSource.setData( storeCollection );
             } else {
-                const sourceArgs = {
+                const sourceArgs = this.withLocationCount( {
                     type:          'geojson',
                     data:           storeCollection,
                     cluster:        true,
                     clusterMaxZoom: Number( config.markers.cluster.maxZoom ),
                     clusterRadius:  Number( config.markers.cluster.radius )
-                };
+                } );
 
                 map.addSource( 'locations', wp.hooks.applyFilters( 'wpslAddSourceArgs', sourceArgs ) );
                 slData.activeSources.push( 'locations' );
@@ -127,6 +148,8 @@ export const geojson = {
                     sourceArgs.cluster        = true;
                     sourceArgs.clusterMaxZoom = Number( config.markers.cluster.maxZoom );
                     sourceArgs.clusterRadius  = Number( config.markers.cluster.radius );
+
+                    this.withLocationCount( sourceArgs );
                 }
 
                 map.addSource( 'locations', wp.hooks.applyFilters( 'wpslAddSourceArgs', sourceArgs ) );
@@ -158,6 +181,43 @@ export const geojson = {
         };
 
         this.createMarkerLayers( map );
+    },
+
+    /**
+     * The accessible name of a marker's keyboard overlay.
+     *
+     * @since  3.1.1
+     * @param  {object} feature The marker's GeoJSON feature
+     * @param  {object} map     The Mapbox map instance
+     * @return {string} Plain text
+     */
+    overlayLabel: function( feature, map ) {
+        const members = map === slData.maps[0] ? markerGroups.shownOf( markerGroups.members( feature.properties.id, 0 ), 0 ) : null;
+
+        if ( members && members.length > 1 ) {
+            return groupWindow.markerTitle( members );
+        }
+
+        // One location at the address left by wpsl.api.showLocations() is named on its own.
+        return helpers.decodeHtmlEntity( members && members.length ? members[0].store : feature.properties.store );
+    },
+
+    /**
+     * Let a clustered source count locations, not points: a point shared by the
+     * locations at one address adds its groupSize. Clusters get a storeCount.
+     *
+     * @since  3.1.1
+     * @param  {object} sourceArgs The arguments of a clustered GeoJSON source
+     * @return {object} The same object
+     */
+    withLocationCount: function( sourceArgs ) {
+        if ( markerGroups.enabled() ) {
+            sourceArgs.clusterProperties = Object.assign( {}, sourceArgs.clusterProperties, {
+                storeCount: [ '+', [ 'coalesce', [ 'get', 'groupSize' ], 1 ] ]
+            } );
+        }
+
+        return sourceArgs;
     },
 
     /**
@@ -435,7 +495,7 @@ export const geojson = {
                 // recenter = false: only pan into view if the popup overflows
                 // (Google Maps / Leaflet behavior). The map argument keeps the popup
                 // on the clicked map when a page has multiple [wpsl_map] shortcodes.
-                markers.triggerClick( storeId, false, map );
+                markers.triggerClick( storeId, false, map, true );
             });
         }
     },
@@ -629,7 +689,7 @@ export const geojson = {
         button.setAttribute( 'data-lng', coords[0] );
         button.setAttribute( 'data-lat', coords[1] );
         button.setAttribute( 'tabindex', '0' );
-        button.setAttribute( 'aria-label', helpers.decodeHtmlEntity( feature.properties.store ) );
+        button.setAttribute( 'aria-label', this.overlayLabel( feature, map ) );
 
         /**
          * The box has to cover the symbol on the canvas, so it takes the marker
@@ -702,15 +762,23 @@ export const geojson = {
                     f => f.properties?.id === storeId
                 );
                 const featureProperties = activeFeature?.properties ?? feature.properties;
-                // The feature's properties have no coordinates, but the directions link needs them.
-                template = helpers.template.getInfoWindowTemplate( Object.assign( { lat: latLng[1], lng: latLng[0] }, featureProperties ) );
+
+                // One location, or every location at the address on a shared point.
+                const content = markers.popupContent( Object.assign( {}, feature, { properties: featureProperties } ), latLng, map, null );
 
                 geojson.icon.setActive( storeId, state, map, () => {
                     // No force-centering (Google Maps / Leaflet): infoWindow.create()
                     // pans only if the popup would overflow the map viewport. The
                     // icon is read inside the callback because setActive() has just
                     // swapped it, and the popup clears the marker on screen now.
-                    infoWindow.create( template, latLng, map, featureProperties.icon );
+                    infoWindow.create( content.template, latLng, map, featureProperties.icon );
+                    markers.bindGroupWindow( content, feature, map );
+
+                    // The same action as a mouse click, see markers.triggerClick().
+                    if ( window.wp && window.wp.hooks ) {
+                        window.wp.hooks.doAction( 'wpslMarkerClicked', feature, content.shown, map );
+                    }
+
                     map.getSource( 'locations' ).setData( state.active );
                     geojson.syncRouteSource( map, state );
                 });
@@ -907,6 +975,9 @@ export const geojson = {
             const point = map.project( coords );
             const pointCount = feature.properties.point_count;
             const radius = getClusterRadius( pointCount );
+
+            // The number of locations, which a shared point counts once for each.
+            const locationCount = feature.properties.storeCount || pointCount;
             
             const button = document.createElement( 'button' );
             button.className = 'wpsl-mapbox-cluster-overlay';
@@ -916,7 +987,7 @@ export const geojson = {
             button.setAttribute( 'data-radius', radius );
             button.setAttribute( 'tabindex', '0' );
             button.setAttribute( 'role', 'button' );
-            button.setAttribute( 'aria-label', wpslLabels.clusterTitle.replace( '%d', pointCount ) );
+            button.setAttribute( 'aria-label', wpslLabels.clusterTitle.replace( '%d', locationCount ) );
             button.style.position = 'absolute';
             button.style.left = `${point.x - radius}px`;
             button.style.top = `${point.y - radius}px`;
@@ -1234,7 +1305,13 @@ export const geojson = {
             }
 
             feature.properties.icon = activeIcon;
-            
+
+            // The active marker has its own layer; a new layer is added on top, an
+            // existing one stays where it was and the other markers covered it.
+            if ( activeIcon !== geojsonInstance.originalIcon ) {
+                layers.raise( mapInstance || slData.maps[0], activeIcon );
+            }
+
             if ( typeof callback === 'function' ) {
                 callback();
             }

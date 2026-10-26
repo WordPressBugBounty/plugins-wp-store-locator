@@ -36,6 +36,27 @@ export const layers = {
     },
 
     /**
+     * Draw a marker layer above the other markers, as the active marker is on
+     * the other map services. The start marker stays on top when it should be.
+     *
+     * @since  3.1.1
+     * @param  {object} map     Mapbox map object
+     * @param  {string} layerId The symbol layer id
+     * @return {void}
+     */
+    raise: function( map, layerId ) {
+        if ( ! map || ! map.getLayer( layerId ) ) {
+            return;
+        }
+
+        map.moveLayer( layerId );
+
+        if ( config.markers.startOnTop && layerId !== 'start' && map.getLayer( 'start' ) ) {
+            map.moveLayer( 'start' );
+        }
+    },
+
+    /**
      * Add a layer to the map.
      *
      * @since  3.0.0

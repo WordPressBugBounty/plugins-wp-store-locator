@@ -90,6 +90,7 @@ class Manager {
         'map-service',
         'api-keys',
         'start-location',
+        'your-locator',
         'finishing-up'
     ];
 
@@ -103,6 +104,7 @@ class Manager {
     public function __construct( Container $container, WpslSettings $settings ) {
         // Always register the redirect hook for first-time setup
         add_action( 'admin_init', [ $this, 'redirect' ] );
+        add_action( 'admin_init', [ $this, 'maybe_flush_pending' ] );
 
         $this->container = $container;
         $this->settings = $settings;
@@ -177,6 +179,28 @@ class Manager {
     }
 
     /**
+     * Build the step list and pick the current step.
+     *
+     * The step bar comes from the single source of truth ($step_keys), so the
+     * order and slug list stay identical between methods.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    private function load_steps() {
+        $labels = $this->step_labels();
+
+        $this->steps = [];
+        foreach ( $this->step_keys as $step_key ) {
+            $this->steps[ $step_key ] = [
+                'name' => isset( $labels[ $step_key ] ) ? $labels[ $step_key ] : $step_key,
+            ];
+        }
+
+        $this->step = $this->get_current_step();
+    }
+
+    /**
      * Output the onboarding template.
      *
      * @since 3.0.0
@@ -191,18 +215,7 @@ class Manager {
             return;
         }
 
-        // Build the step bar from the single source of truth ($step_keys),
-        // so the order and slug list stay identical between methods.
-        $labels = $this->step_labels();
-
-        $this->steps = [];
-        foreach ( $this->step_keys as $step_key ) {
-            $this->steps[ $step_key ] = [
-                'name' => isset( $labels[ $step_key ] ) ? $labels[ $step_key ] : $step_key,
-            ];
-        }
-
-        $this->step = $this->get_current_step();
+        $this->load_steps();
 
         // Add wpsl-wp-7-plus class for WP 7.0+ ( mirrors the admin_body_class filter, which doesn't run on this custom page ).
         global $wp_version;
@@ -227,6 +240,11 @@ class Manager {
         <title><?php esc_html_e( 'WP Store Locator - Onboarding', 'wp-store-locator' ); ?></title>
         <?php wp_print_styles( 'wpsl-shared' ); ?>
         <?php wp_print_styles( 'wpsl-onboarding' ); ?>
+        <?php
+        if ( 'your-locator' === $this->step ) {
+            wp_print_styles( 'wpsl-quick-setup' );
+        }
+        ?>
         <?php wp_print_styles( 'dashicons' ); ?>
         <?php wp_print_styles( 'common' ); ?>
         <?php wp_print_styles( 'buttons' ); ?>
@@ -260,6 +278,10 @@ class Manager {
             }
             
             wp_print_scripts( 'wpsl-onboarding' );
+
+            if ( $this->step === 'your-locator' ) {
+                wp_print_scripts( 'wpsl-quick-setup' );
+            }
 
             if ( $this->step === 'api-keys' ) {
                 wp_print_scripts( 'wpsl-key-visibility' );
@@ -334,40 +356,73 @@ class Manager {
             'map-service'    => esc_html__( 'Map Service', 'wp-store-locator' ),
             'api-keys'       => esc_html__( 'API Keys', 'wp-store-locator' ),
             'start-location' => esc_html__( 'Start Location', 'wp-store-locator' ),
+            'your-locator'   => esc_html__( 'Your Locator', 'wp-store-locator' ),
             'finishing-up'   => esc_html__( 'Finishing Up', 'wp-store-locator' ),
         ];
     }
 
     /**
-     * Show the onboarding steps
+     * Show the header with the logo and the onboarding steps.
+     *
+     * The closing step isn't listed: there is nothing to fill in there, and
+     * reaching it checks off the steps before it.
      *
      * @since  3.0.0
      * @return void
      */
     public function onboarding_steps() {
+        $step_keys = array_diff( array_keys( $this->steps ), [ 'finishing-up' ] );
+        $last_key  = end( $step_keys );
+        $number    = 0;
         ?>
-        <div class="wpsl-onboarding-steps">
-            <?php
-            foreach ( $this->steps as $step_key => $step ) {
-                if ( $step_key === $this->step || $this->step_done( $step_key ) ) {
-                    ?>
-                    <div <?php echo $this->get_step_class( $step_key ); ?>><a href="<?php echo esc_url( add_query_arg( [ 'step' => $step_key, ], admin_url( '?page=wpsl-onboarding' ) ) ); ?>"><?php echo esc_html( $step['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?></a></div>
+        <div id="wpsl-onboarding-header">
+            <div class="wpsl-onboarding-header-inner">
+                <img src="<?php echo esc_url( plugins_url( 'assets/img/admin/logo.png', WPSL_PLUGIN_FILE ) ); ?>" width="279" height="34" alt="WP Store Locator">
+                <ol class="wpsl-onboarding-steps" aria-label="<?php esc_attr_e( 'Setup progress', 'wp-store-locator' ); ?>">
                     <?php
-                } else {
-                    ?>
-                    <div <?php echo $this->get_step_class( $step_key ); ?>><?php echo esc_html( $step['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method already escapes output ?></div>
-                    <?php
-                }
+                    foreach ( $step_keys as $step_key ) {
+                        $number++;
+                        $is_active = ( $step_key === $this->step );
+                        $is_done   = $this->step_done( $step_key );
 
-                if ( $step_key !== 'finishing-up' ) {
-                    ?>
-                    <span class="wpsl-divider"></span>
-                    <?php
-                }
-                ?>
-            <?php } ?>
+                        if ( $is_done ) {
+                            $marker = '<span class="wpsl-step-marker"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+                        } else {
+                            $marker = '<span class="wpsl-step-marker">' . esc_html( $number ) . '</span>';
+                        }
+                        ?>
+                        <li <?php echo $this->get_step_class( $step_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Method returns a fixed class attribute ?><?php echo $is_active ? ' aria-current="step"' : ''; ?>>
+                            <?php if ( $is_done ) { ?>
+                                <a href="<?php echo esc_url( add_query_arg( [ 'step' => $step_key ], admin_url( '?page=wpsl-onboarding' ) ) ); ?>"><?php echo $marker; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above ?><?php echo esc_html( $this->steps[ $step_key ]['name'] ); ?></a>
+                            <?php } else { ?>
+                                <?php echo $marker; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts above ?><?php echo esc_html( $this->steps[ $step_key ]['name'] ); ?>
+                            <?php } ?>
+                        </li>
+                        <?php if ( $step_key !== $last_key ) { ?>
+                            <li class="wpsl-divider<?php echo $is_done ? ' wpsl-divider-done' : ''; ?>" aria-hidden="true"></li>
+                        <?php } ?>
+                    <?php } ?>
+                </ol>
+            </div>
         </div>
         <?php
+    }
+
+    /**
+     * Finish a flush that Quick setup asked for and the browser never sent.
+     *
+     * The last step switches the landing pages like the Home card does. A
+     * visitor who presses Finish before the flush request went out lands on
+     * the summary step, which does it here.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    public function maybe_flush_pending() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reads which admin page is open.
+        if ( current_user_can( 'manage_wpsl_settings' ) && isset( $_GET['page'] ) && 'wpsl-onboarding' === sanitize_text_field( wp_unslash( $_GET['page'] ) ) ) {
+            wpsl_get_service( 'system_utils' )->flush_pending();
+        }
     }
 
     /**
@@ -472,6 +527,13 @@ class Manager {
         wp_localize_script( 'wpsl-onboarding', 'wpslSecurity', [
             'validateKeyNonce' => wp_create_nonce( 'wpsl_validate_key' ),
         ] );
+
+        // The last step shows the six Quick setup tiles, the same ones as the Home page.
+        if ( 'your-locator' === $this->step ) {
+            wp_register_style( 'wpsl-quick-setup', WPSL_URL . $css_base . 'admin/css/quick-setup' . $css_ext, [], WPSL_VERSION_NUM );
+            wp_register_script( 'wpsl-quick-setup', WPSL_URL . 'assets/src/admin/js/wpsl-quick-setup' . $toggle_min . '.js', [ 'jquery' ], WPSL_VERSION_NUM, true );
+            wp_localize_script( 'wpsl-quick-setup', 'wpslQuickSetup', $this->container->get( 'quick_setup' )->get_script_data() );
+        }
     }
 
     /**
@@ -605,6 +667,10 @@ class Manager {
 
                 update_option( 'wpsl_onboarding_finished', true );
                 break;
+            case 'your-locator':
+                // The choices were saved as they were picked, finishing the step only folds the Home card up.
+                $this->container->get( 'quick_setup' )->set_state( get_current_user_id(), 'collapsed' );
+                break;
         }
 
         $this->step = $key;
@@ -668,7 +734,10 @@ class Manager {
             'noResults' => $this->i18n()->get_no_results_message(),
             'noStartLocation' => esc_html__( 'Please enter a start location.', 'wp-store-locator' ),
             'startLocation' => esc_html__( 'Start Location', 'wp-store-locator' ),
-            'searching' => esc_html__( 'Searching...', 'wp-store-locator' )
+            'searching' => esc_html__( 'Searching...', 'wp-store-locator' ),
+            'continueWith' => $this->continue_with_label(),
+            'serviceNames' => $this->map_service_names(),
+            'copied' => __( 'Copied', 'wp-store-locator' ),
         ];
 
         return $onboarding_js_l10n;
@@ -699,32 +768,57 @@ class Manager {
     private function action_buttons() {
         ?>
         <p class="submit">
-            <?php
-            // No Previous on the first step, and none on the closing one - setup
-            // is done there, so stepping back into it is not a route we offer.
-            if ( $this->step !== 'map-service' && $this->step !== 'finishing-up' ) { ?>
-                <a class="wpsl-onboarding-previous" href="<?php echo esc_url( add_query_arg( 'step', $this->nav_step( 'prev' ) ) ); ?>"><?php esc_html_e( 'Previous', 'wp-store-locator' ); ?></a>
-            <?php } ?>
-
             <?php if ( $this->step === 'map-service' ) { ?>
-                <span class="wpsl-onboarding-footnote"><?php
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    echo sprintf( esc_html__( '* required for the %1$sCSV Manager%2$s add-on.', 'wp-store-locator' ), '<a target="_blank" href="https://wpstorelocator.co/add-ons/csv-manager/">', '</a>' ); ?></span>
+                <a class="wpsl-onboarding-previous" href="<?php echo esc_url( admin_url() ); ?>"><?php esc_html_e( 'Not now, I\'ll do this later', 'wp-store-locator' ); ?></a>
+            <?php } else { ?>
+                <a class="wpsl-onboarding-previous" href="<?php echo esc_url( add_query_arg( 'step', $this->nav_step( 'prev' ) ) ); ?>"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><?php esc_html_e( 'Previous', 'wp-store-locator' ); ?></a>
             <?php } ?>
 
             <span class="wpsl-onboarding-actions">
-                <?php if ( $this->step !== 'map-service' && $this->step !== 'finishing-up' ) { ?>
-                    <a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'step', $this->nav_step() ), 'wpsl_onboarding_skip', 'wpsl_skip_nonce' ) ); ?>"><?php esc_html_e( 'Skip this step', 'wp-store-locator' ); ?></a>
-                <?php } ?>
-                <?php if ( $this->step !== 'finishing-up' ) { ?>
-                    <input type="submit" name="save" value="<?php esc_html_e( 'Save &amp; Continue', 'wp-store-locator' ); ?>" class="button button-primary" />
-                <?php } ?>
-                <?php if ( $this->step == 'finishing-up' ) { ?>
-                    <a href="https://wpstorelocator.co/support/" class="button button-secondary wpsl-onboarding-help"><?php esc_html_e( 'Need help? Contact us!' , 'wp-store-locator' ); ?></a>
+                <?php if ( $this->step === 'map-service' ) {
+                    $service_names = $this->map_service_names();
+                    $service_name  = isset( $service_names[ $this->map_service ] ) ? $service_names[ $this->map_service ] : $service_names['osm'];
+                    ?>
+                    <input type="submit" name="save" id="wpsl-onboarding-continue" value="<?php echo esc_attr( sprintf( $this->continue_with_label(), $service_name ) ); ?>" class="button button-primary" />
+                <?php } else { ?>
+                    <?php
+                    // The last step has nothing to skip: every choice is already saved, Finish only closes the wizard.
+                    if ( 'your-locator' !== $this->step ) { ?>
+                        <a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'step', $this->nav_step() ), 'wpsl_onboarding_skip', 'wpsl_skip_nonce' ) ); ?>"><?php esc_html_e( 'Skip this step', 'wp-store-locator' ); ?></a>
+                    <?php } ?>
+                    <input type="submit" name="save" value="<?php echo 'your-locator' === $this->step ? esc_attr__( 'Finish', 'wp-store-locator' ) : esc_attr__( 'Save &amp; Continue', 'wp-store-locator' ); ?>" class="button button-primary" />
                 <?php } ?>
             </span>
         </p>
         <?php
+    }
+
+    /**
+     * The label of the button that closes the map service step.
+     *
+     * Shared with the JS, which swaps in the name of the picked service.
+     *
+     * @since  3.1.1
+     * @return string
+     */
+    private function continue_with_label() {
+        /* translators: %s: the map service name, e.g. Google Maps */
+        return __( 'Continue with %s', 'wp-store-locator' );
+    }
+
+    /**
+     * The display name of each map service.
+     *
+     * @since  3.1.1
+     * @return array Map of service slug => name.
+     */
+    private function map_service_names() {
+        return [
+            'osm'    => __( 'OpenStreetMap', 'wp-store-locator' ),
+            'stadia' => __( 'Stadia Maps', 'wp-store-locator' ),
+            'mapbox' => __( 'Mapbox', 'wp-store-locator' ),
+            'gmaps'  => __( 'Google Maps', 'wp-store-locator' ),
+        ];
     }
 
     /**
@@ -766,7 +860,11 @@ class Manager {
         ?>
         <input type="hidden" name="onboarding_nonce" value="<?php echo esc_attr( wp_create_nonce( 'wpsl_onboarding_' . $this->step ) ); ?>" />
         <input type="hidden" name="step" value="<?php echo esc_attr( $this->step ); ?>" />
-        <input type="hidden" name="wpsl_api[active_map_service]" id="wpsl-selected-map-service" value="<?php echo esc_attr( $this->map_service ); ?>">
+        <?php
+        // The map service step submits the picked service through its radio buttons.
+        if ( $this->step !== 'map-service' ) { ?>
+            <input type="hidden" name="wpsl_api[active_map_service]" id="wpsl-selected-map-service" value="<?php echo esc_attr( $this->map_service ); ?>">
+        <?php } ?>
         <?php
     }
 
@@ -777,77 +875,114 @@ class Manager {
      * @return void
      */
     private function render_map_service_boxes() {
+        $service_names = $this->map_service_names();
+        $autocomplete  = __( 'Autocomplete', 'wp-store-locator' );
+        $bulk_geocode  = __( 'Bulk geocoding', 'wp-store-locator' );
+        $key_required  = __( 'API key required', 'wp-store-locator' );
+
         $map_providers = [
             'osm' => [
-                /* translators: 1: opening span tag, 2: closing span tag */
-                'title' => sprintf( esc_html__( 'OpenStreetMap %1$sFree%2$s', 'wp-store-locator' ), '<span>', '</span>' ),
-                'img' => WPSL_URL . 'assets/img/admin/onboarding/osm-placeholder.jpg',
-                'img_alt' => esc_html__( 'OpenStreetMaps placeholder', 'wp-store-locator' ),
-                'features' => [
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    esc_html__( 'Free to use, no API key or credit card required.', 'wp-store-locator' ) . ' <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide">' . sprintf( esc_html__( 'Note: Displaying map directions requires a free %1$sOpenRouteService%2$s API key.', 'wp-store-locator' ), '<a target="_blank" href="https://openrouteservice.org/">', '</a>' ) . '</span></span>',
-                    esc_html__( 'Autocomplete not supported', 'wp-store-locator' ),
-                    esc_html__( 'Bulk geocoding requests not supported', 'wp-store-locator' ) . ' *',
+                'badge'      => __( 'Free', 'wp-store-locator' ),
+                'badge_type' => 'free',
+                'img'        => WPSL_URL . 'assets/img/admin/onboarding/osm-placeholder.jpg',
+                'features'   => [
+                    [ 'type' => 'yes', 'label' => __( 'No API key needed', 'wp-store-locator' ) ],
+                    [ 'type' => 'no', 'label' => $autocomplete ],
+                    [ 'type' => 'no', 'label' => $bulk_geocode ],
                 ],
+                /* translators: 1: opening link tag, 2: closing link tag */
+                'extra'      => sprintf( esc_html__( 'Works right away. In-map directions need a free %1$sOpenRouteService%2$s API key.', 'wp-store-locator' ), '<a target="_blank" href="https://openrouteservice.org/">', '</a>' ),
             ],
             'stadia' => [
-                /* translators: 1: opening span tag, 2: closing span tag */
-                'title' => sprintf( esc_html__( 'Stadia Maps %1$sPaid plan%2$s', 'wp-store-locator' ), '<span>', '</span>' ),
-                'img' => WPSL_URL . 'assets/img/admin/onboarding/stadia-placeholder.jpg',
-                'img_alt' => esc_html__( 'Stadia Maps placeholder', 'wp-store-locator' ),
-                'features' => [
+                'badge'      => __( 'Paid plan', 'wp-store-locator' ),
+                'badge_type' => 'paid',
+                'img'        => WPSL_URL . 'assets/img/admin/onboarding/stadia-placeholder.jpg',
+                'features'   => [
                     /* translators: 1: opening strong tag, 2: closing strong tag, 3: opening link tag to the Stadia Maps pricing page, 4: closing link tag */
-                    esc_html__( 'API key required', 'wp-store-locator' ) . ' <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide">' . sprintf( esc_html__( 'Note: the free plan %1$sdoes not allow commercial use%2$s, see the %3$spricing page%4$s for the paid plans.', 'wp-store-locator' ), '<strong>', '</strong>', '<a target="_blank" href="https://stadiamaps.com/pricing/">', '</a>' ) . '</span></span>',
-                    /* translators: 1: opening link tag, 2: closing link tag, 3: opening link tag, 4: closing link tag */
-                    sprintf( esc_html__( 'More affordable than %1$sGoogle Maps%2$s or %3$sMapbox%4$s for high usage', 'wp-store-locator' ), '<a target="_blank" href="https://stadiamaps.com/switch-to-stadia/from-google/">', '</a>', '<a target="_blank" href="https://stadiamaps.com/switch-to-stadia/from-mapbox/">', '</a>' ),
+                    [ 'type' => 'key', 'label' => $key_required, 'info' => sprintf( esc_html__( 'Note: the free plan %1$sdoes not allow commercial use%2$s, see the %3$spricing page%4$s for the paid plans.', 'wp-store-locator' ), '<strong>', '</strong>', '<a target="_blank" href="https://stadiamaps.com/pricing/">', '</a>' ) ],
+                    [ 'type' => 'yes', 'label' => $autocomplete ],
                     /* translators: 1: opening link tag, 2: closing link tag */
-                    esc_html__( 'Autocomplete supported', 'wp-store-locator' ),
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    esc_html__( 'Bulk geocoding requests supported', 'wp-store-locator' ) . ' * <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide">' . sprintf( esc_html__( 'Note: Bulk geocoding and persistent data storage require the %1$sStandard plan%2$s or higher.', 'wp-store-locator' ), '<a target="_blank" href="https://stadiamaps.com/pricing/">', '</a>' ) . '</span></span>',
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    sprintf( esc_html__( 'EU endpoints %1$savailable%2$s', 'wp-store-locator' ), '<a target="_blank" href="https://docs.stadiamaps.com/eu-gdpr-endpoints/">', '</a>' ),
+                    [ 'type' => 'yes', 'label' => $bulk_geocode, 'info' => sprintf( esc_html__( 'Note: Bulk geocoding and persistent data storage require the %1$sStandard plan%2$s or higher.', 'wp-store-locator' ), '<a target="_blank" href="https://stadiamaps.com/pricing/">', '</a>' ) ],
                 ],
+                /* translators: 1: opening link tag, 2: closing link tag, 3: opening link tag, 4: closing link tag, 5: opening link tag, 6: closing link tag */
+                'extra'      => sprintf( esc_html__( 'Cheaper than %1$sGoogle Maps%2$s or %3$sMapbox%4$s at high volume. %5$sEU endpoints%6$s available.', 'wp-store-locator' ), '<a target="_blank" href="https://stadiamaps.com/switch-to-stadia/from-google/">', '</a>', '<a target="_blank" href="https://stadiamaps.com/switch-to-stadia/from-mapbox/">', '</a>', '<a target="_blank" href="https://docs.stadiamaps.com/eu-gdpr-endpoints/">', '</a>' ),
             ],
             'mapbox' => [
-                /* translators: 1: opening span tag, 2: closing span tag */
-                'title' => sprintf( esc_html__( 'Mapbox %1$sFree Quota%2$s', 'wp-store-locator' ), '<span>', '</span>' ),
-                'img' => WPSL_URL . 'assets/img/admin/onboarding/mapbox-placeholder.jpg',
-                'img_alt' => esc_html__( 'Mapbox placeholder', 'wp-store-locator' ),
-                'features' => [
-                    esc_html__( 'API key required', 'wp-store-locator' ),
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    sprintf( esc_html__( '50.000 free map loads, see details and %1$spricing%2$s.' , 'wp-store-locator' ), '<a target="_blank" href="https://www.mapbox.com/pricing">', '</a>' ),
-                    esc_html__( 'Autocomplete supported', 'wp-store-locator' ),
-                    esc_html__( 'Bulk geocoding requests supported' , 'wp-store-locator' ) . ' *',
+                'badge'      => __( 'Free quota', 'wp-store-locator' ),
+                'badge_type' => 'quota',
+                'img'        => WPSL_URL . 'assets/img/admin/onboarding/mapbox-placeholder.jpg',
+                'features'   => [
+                    [ 'type' => 'key', 'label' => $key_required ],
+                    [ 'type' => 'yes', 'label' => $autocomplete ],
+                    [ 'type' => 'yes', 'label' => $bulk_geocode ],
                 ],
+                /* translators: 1: line break, 2: opening link tag, 3: closing link tag */
+                'extra'      => sprintf( esc_html__( '50,000 free map loads a month,%1$ssee the %2$spricing%3$s.', 'wp-store-locator' ), '<br>', '<a target="_blank" href="https://www.mapbox.com/pricing">', '</a>' ),
             ],
             'gmaps' => [
-                /* translators: 1: opening span tag, 2: closing span tag */
-                'title' => sprintf( esc_html__( 'Google Maps %1$sFree Quota%2$s', 'wp-store-locator' ), '<span>', '</span>' ),
-                'img' => WPSL_URL . 'assets/img/admin/onboarding/gmaps-placeholder.jpg',
-                'img_alt' => esc_html__( 'Google Maps placeholder', 'wp-store-locator' ),
-                'features' => [
-                    esc_html__( 'API keys always required', 'wp-store-locator' ),
-                    /* translators: 1: opening link tag, 2: closing link tag */
-                    sprintf( esc_html__( 'Google provides %1$sfree monthly usage caps%2$s for each API.', 'wp-store-locator' ), '<a target="_blank" href="https://mapsplatform.google.com/pricing/#pay-as-you-go">', '</a>' ) . ' <span class="wpsl-info"><span class="wpsl-info-text wpsl-hide">' . sprintf( esc_html__( 'An active billing account is required to activate their map services. You can manage this in the %1$sGoogle Cloud Console%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://docs.cloud.google.com/billing/docs/how-to/manage-billing-account">', '</a>' ) . '</span></span>',
-                    esc_html__( 'Autocomplete supported', 'wp-store-locator' ),
-                    esc_html__( 'Bulk geocoding requests supported' , 'wp-store-locator' ) . ' *',
+                'badge'      => __( 'Free quota', 'wp-store-locator' ),
+                'badge_type' => 'quota',
+                'img'        => WPSL_URL . 'assets/img/admin/onboarding/gmaps-placeholder.jpg',
+                'features'   => [
+                    [ 'type' => 'key', 'label' => __( 'Two API keys required', 'wp-store-locator' ) ],
+                    [ 'type' => 'yes', 'label' => $autocomplete ],
+                    [ 'type' => 'yes', 'label' => $bulk_geocode ],
                 ],
+                /* translators: 1: opening link tag, 2: closing link tag, 3: opening link tag, 4: closing link tag */
+                'extra'      => sprintf( esc_html__( 'Free %1$smonthly usage caps%2$s. Needs a %3$sGoogle Cloud billing account%4$s.', 'wp-store-locator' ), '<a target="_blank" href="https://mapsplatform.google.com/pricing/#pay-as-you-go">', '</a>', '<a target="_blank" href="https://docs.cloud.google.com/billing/docs/how-to/manage-billing-account">', '</a>' ),
             ],
         ];
-    
+
+        $allowed_html = [ 'a' => [ 'href' => [], 'target' => [] ], 'strong' => [], 'br' => [] ];
+
+        $icons = [
+            'yes' => '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            'no'  => '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+            'key' => '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.5" cy="10.5" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.7 8.3L13 3M11 5l1.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        ];
+
+        // Unknown or empty saved service: start on the one that works without a key.
+        $selected = array_key_exists( $this->map_service, $map_providers ) ? $this->map_service : 'osm';
+
         foreach ( $map_providers as $key => $provider ) {
-            $selected_class = ( $this->map_service === $key ) ? ' wpsl-selected-provider' : '';
             ?>
-            <div class="wpsl-flex-box wpsl-onboarding-<?php echo esc_attr( $key ); ?>-provider<?php echo esc_attr( $selected_class ); ?>">
-                <h2><?php echo wp_kses( $provider['title'], [ 'span' => [] ] ); ?></h2>
-                <img data-name="<?php echo esc_attr( $key ); ?>" alt="<?php echo esc_attr( $provider['img_alt'] ); ?>" src="<?php echo esc_url( $provider['img'] ); ?>" />
-                <ul>
-                    <?php foreach ( $provider['features'] as $feature ) : ?>
-                        <li><?php echo wp_kses( $feature, [ 'a' => [ 'href' => [], 'target' => [] ], 'span' => [ 'class' => [] ], 'strong' => [] ] ); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
+            <label class="wpsl-provider-card wpsl-onboarding-<?php echo esc_attr( $key ); ?>-provider">
+                <input type="radio" class="screen-reader-text" name="wpsl_api[active_map_service]" value="<?php echo esc_attr( $key ); ?>" <?php checked( $selected, $key ); ?>>
+                <img src="<?php echo esc_url( $provider['img'] ); ?>" width="96" height="96" alt="">
+                <span class="wpsl-provider-body">
+                    <span class="wpsl-provider-head">
+                        <span class="wpsl-provider-toggle" aria-hidden="true">
+                            <span class="wpsl-provider-knob">
+                                <svg class="wpsl-knob-on" width="11" height="11" viewBox="0 0 16 16" focusable="false"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <svg class="wpsl-knob-off" width="9" height="9" viewBox="0 0 16 16" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+                            </span>
+                        </span>
+                        <span class="wpsl-provider-name"><?php echo esc_html( $service_names[ $key ] ); ?></span>
+                        <span class="wpsl-provider-badge wpsl-badge-<?php echo esc_attr( $provider['badge_type'] ); ?>"><?php echo esc_html( $provider['badge'] ); ?></span>
+                    </span>
+                    <span class="wpsl-provider-features">
+                        <?php foreach ( $provider['features'] as $feature ) { ?>
+                            <span class="wpsl-provider-feature wpsl-feature-<?php echo esc_attr( $feature['type'] ); ?>">
+                                <?php echo $icons[ $feature['type'] ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed SVG markup ?>
+                                <span>
+                                    <?php if ( $feature['type'] === 'no' ) { ?>
+                                        <span class="screen-reader-text"><?php esc_html_e( 'Not supported:', 'wp-store-locator' ); ?> </span>
+                                    <?php } ?>
+                                    <?php
+                                    // The info icon sits inside the label, so only its own margin separates them.
+                                    echo esc_html( $feature['label'] );
+
+                                    if ( ! empty( $feature['info'] ) ) {
+                                        ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php echo wp_kses( $feature['info'], $allowed_html ); ?></span></span><?php
+                                    }
+                                    ?>
+                                </span>
+                            </span>
+                        <?php } ?>
+                    </span>
+                    <span class="wpsl-provider-extra"><?php echo wp_kses( $provider['extra'], $allowed_html ); ?></span>
+                </span>
+            </label>
             <?php
         }
     }
@@ -859,106 +994,169 @@ class Manager {
      * @return void
      */
     public function render_api_key_fields() {
-        $api_settings = $this->settings->get_group( 'api' );
-        $map_service = $this->get_map_service();
-        
+        $api_settings  = $this->settings->get_group( 'api' );
+        $map_service   = $this->get_map_service();
+        $service_names = $this->map_service_names();
+
+        if ( ! isset( $service_names[ $map_service ] ) ) {
+            $map_service = 'osm';
+        }
+
+        if ( $map_service === 'osm' ) {
+            $title = __( 'In-map directions (optional)', 'wp-store-locator' );
+        } else {
+            /* translators: %s: the map service name, e.g. Google Maps */
+            $title = sprintf( __( 'Connect %s', 'wp-store-locator' ), $service_names[ $map_service ] );
+        }
+        ?>
+        <h1><?php echo esc_html( $title ); ?></h1>
+        <div class="wpsl-api-<?php echo esc_attr( $map_service ); ?>">
+        <?php
+
         switch ( $map_service ) {
             case 'gmaps':
                 ?>
-                <div class="wpsl-api-gmaps">
-                    <p><?php
-                        /* translators: 1: opening link tag, 2: closing link tag */
-                        echo sprintf( esc_html__( 'How to create the required API keys for Google Maps is explained in %1$sthis guide%2$s. If you don\'t want to create them now, then make sure to do so before using the store locator.', 'wp-store-locator' ), '<a target="_blank" href="https://wpstorelocator.co/document/create-google-api-keys/">', '</a>' ); ?></p>
+                <p class="wpsl-onboarding-intro"><?php
+                    /* translators: 1: opening link tag, 2: closing link tag */
+                    echo sprintf( esc_html__( 'Google Maps needs two API keys: the browser key shows the map, the server key turns store addresses into coordinates. %1$sHow to create both keys%2$s', 'wp-store-locator' ), '<a target="_blank" href="https://wpstorelocator.co/document/create-google-api-keys/">', '</a>' ); ?></p>
+                <?php $this->change_service_link(); ?>
 
-                    <div class="wpsl-onboarding-key-wrap">
-                        <p>
-                            <label for="wpsl-api-browser-key"><?php esc_html_e( 'Browser key', 'wp-store-locator' ); ?></label>
-                            <span class="wpsl-key-field">
-                                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $api_settings['gmaps_browser_key'] ); ?>" name="wpsl_api[gmaps_browser_key]" class="wpsl-key-input" id="wpsl-api-browser-key">
-                                <?php echo wpsl_key_visibility_toggle( 'wpsl-api-browser-key', $api_settings['gmaps_browser_key'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
-                            </span>
-                        </p>
-                        <p>
-                            <label for="wpsl-api-server-key"><?php esc_html_e( 'Server key', 'wp-store-locator' ); ?></label>
-                            <span class="wpsl-key-field">
-                                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $api_settings['gmaps_server_key'] ); ?>" name="wpsl_api[gmaps_server_key]" class="wpsl-key-input" id="wpsl-api-server-key">
-                                <?php echo wpsl_key_visibility_toggle( 'wpsl-api-server-key', $api_settings['gmaps_server_key'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
-                            </span>
-                        </p>
-                        <p class="wpsl-has-preloader">
-                            <input type="submit" value="Validate API Keys" class="wpsl-verify-keys button <?php if ( ! $api_settings['gmaps_browser_key'] && ! $api_settings['gmaps_server_key'] ) { echo 'disabled'; } ?>" id="wpsl-verify-gmaps-keys">
-                        </p>
-                    </div>
+                <div class="wpsl-onboarding-key-wrap">
+                    <?php
+                    $this->key_field( 'wpsl-api-browser-key', 'gmaps_browser_key', __( 'Browser key', 'wp-store-locator' ), __( 'Restrict it to your website\'s domain (HTTP referrers).', 'wp-store-locator' ), $api_settings['gmaps_browser_key'] );
+                    $this->key_field( 'wpsl-api-server-key', 'gmaps_server_key', __( 'Server key', 'wp-store-locator' ), __( 'Restrict it to your server\'s IP address, not to a domain.', 'wp-store-locator' ), $api_settings['gmaps_server_key'] );
+                    $this->verify_button( 'gmaps', __( 'Test API keys', 'wp-store-locator' ), ! $api_settings['gmaps_browser_key'] && ! $api_settings['gmaps_server_key'] );
+                    ?>
                 </div>
                 <?php
-
                 break;
             case 'mapbox':
                 ?>
-                <div class="wpsl-api-mapbox">
-                    <p><?php
-                        /* translators: 1: opening link tag, 2: closing link tag */
-                        echo sprintf( esc_html__( 'How to create the required API key for Mapbox is explained %1$shere%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://wpstorelocator.co/document/create-mapbox-api-key/">', '</a>' ); ?></p>
+                <p class="wpsl-onboarding-intro"><?php
+                    /* translators: 1: opening link tag, 2: closing link tag */
+                    echo sprintf( esc_html__( 'How to create the required API key for Mapbox is explained %1$shere%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://wpstorelocator.co/document/create-mapbox-api-key/">', '</a>' ); ?></p>
+                <?php $this->change_service_link(); ?>
 
-                    <div class="wpsl-onboarding-key-wrap">
-                        <p class="wpsl-has-preloader">
-                            <label for="wpsl-api-mapbox-key"><?php esc_html_e( 'API key', 'wp-store-locator' ); ?></label>
-                            <span class="wpsl-key-field">
-                                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $api_settings['mapbox_key'] ); ?>" name="wpsl_api[mapbox_key]" class="wpsl-key-input" id="wpsl-api-mapbox-key">
-                                <?php echo wpsl_key_visibility_toggle( 'wpsl-api-mapbox-key', $api_settings['mapbox_key'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
-                            </span>
-                            <input type="submit" value="Validate API Key" class="wpsl-verify-keys button <?php if ( ! $api_settings['mapbox_key'] ) { echo 'disabled'; } ?>" id="wpsl-verify-mapbox-keys">
-                        </p>
-                    </div>
+                <div class="wpsl-onboarding-key-wrap">
+                    <?php
+                    $this->key_field( 'wpsl-api-mapbox-key', 'mapbox_key', __( 'API key', 'wp-store-locator' ), '', $api_settings['mapbox_key'] );
+                    $this->verify_button( 'mapbox', __( 'Test API key', 'wp-store-locator' ), ! $api_settings['mapbox_key'] );
+                    ?>
                 </div>
                 <?php
-
                 break;
             case 'stadia':
                 ?>
-                <div class="wpsl-api-stadia">
-                    <p><?php
-                        /* translators: 1: opening link tag, 2: closing link tag */
-                        echo sprintf( esc_html__( 'A valid API key is required before you can use Stadia Maps. You can create one %1$shere%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://client.stadiamaps.com/signup/">', '</a>' ); ?></p>
+                <p class="wpsl-onboarding-intro"><?php
+                    /* translators: 1: opening link tag, 2: closing link tag */
+                    echo sprintf( esc_html__( 'A valid API key is required before you can use Stadia Maps. You can create one %1$shere%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://client.stadiamaps.com/signup/">', '</a>' ); ?></p>
+                <?php $this->change_service_link(); ?>
 
-                    <div class="wpsl-onboarding-key-wrap">
-                        <p class="wpsl-has-preloader">
-                            <label for="wpsl-api-stadia-key"><?php esc_html_e( 'API key', 'wp-store-locator' ); ?></label>
-                            <span class="wpsl-key-field">
-                                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $api_settings['stadia_key'] ); ?>" name="wpsl_api[stadia_key]" class="wpsl-key-input" id="wpsl-api-stadia-key">
-                                <?php echo wpsl_key_visibility_toggle( 'wpsl-api-stadia-key', $api_settings['stadia_key'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
-                            </span>
-                            <input type="submit" value="Validate API Key" class="wpsl-verify-keys button <?php if ( ! $api_settings['stadia_key'] ) { echo 'disabled'; } ?>" id="wpsl-verify-stadia-keys">
-                        </p>
-                    </div>
+                <div class="wpsl-onboarding-key-wrap">
+                    <?php
+                    $this->key_field( 'wpsl-api-stadia-key', 'stadia_key', __( 'API key', 'wp-store-locator' ), '', $api_settings['stadia_key'] );
+                    $this->verify_button( 'stadia', __( 'Test API key', 'wp-store-locator' ), ! $api_settings['stadia_key'] );
+                    ?>
                 </div>
                 <?php
-
                 break;
             default: // OSM
                 ?>
-                <div class="wpsl-api-osm">
-                    <p><?php
-                        /* translators: 1: opening link tag, 2: closing link tag */
-                        echo sprintf( esc_html__( 'OpenStreetMaps itself doesn\'t require an API key. But if you want to show the directions from the customers location to a store in the store locator itself, then this requires an %1$sAPI key from Openrouteservice%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://openrouteservice.org/dev/#/signup/">', '</a>' ); ?></p>
-                    <p><?php
-                        /* translators: 1: opening link tag, 2: closing link tag */
-                        echo sprintf( esc_html__( 'If no API key is provided, the user is redirected to %1$sOpenStreetMap%2$s for the directions.', 'wp-store-locator' ), '<a target="_blank" href="https://www.openstreetmap.org/directions">', '</a>' ); ?></p>
-                    <div class="wpsl-onboarding-key-wrap">
-                        <p class="wpsl-has-preloader">
-                            <label for="wpsl-api-openrouteservice-key"><?php esc_html_e( 'Openrouteservice key', 'wp-store-locator' ); ?></label>
-                            <span class="wpsl-key-field">
-                                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $api_settings['openrouteservice_key'] ); ?>" name="wpsl_api[openrouteservice_key]" class="wpsl-key-input" id="wpsl-api-openrouteservice-key">
-                                <?php echo wpsl_key_visibility_toggle( 'wpsl-api-openrouteservice-key', $api_settings['openrouteservice_key'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
-                            </span>
-                            <input type="submit" value="Validate API Keys" class="wpsl-verify-keys button <?php if ( ! $api_settings['openrouteservice_key'] ) { echo 'disabled'; } ?>" id="wpsl-verify-osm-keys">
-                        </p>
-                    </div>
+                <p class="wpsl-onboarding-intro"><?php
+                    /* translators: 1: opening link tag, 2: closing link tag */
+                    echo sprintf( esc_html__( 'OpenStreetMaps itself doesn\'t require an API key. But if you want to show the directions from the customers location to a store in the store locator itself, then this requires an %1$sAPI key from Openrouteservice%2$s.', 'wp-store-locator' ), '<a target="_blank" href="https://openrouteservice.org/dev/#/signup/">', '</a>' ); ?></p>
+                <p class="wpsl-onboarding-intro"><?php
+                    /* translators: 1: opening link tag, 2: closing link tag */
+                    echo sprintf( esc_html__( 'If no API key is provided, the user is redirected to %1$sOpenStreetMap%2$s for the directions.', 'wp-store-locator' ), '<a target="_blank" href="https://www.openstreetmap.org/directions">', '</a>' ); ?></p>
+                <?php $this->change_service_link(); ?>
+
+                <div class="wpsl-onboarding-key-wrap">
+                    <?php
+                    $this->key_field( 'wpsl-api-openrouteservice-key', 'openrouteservice_key', __( 'Openrouteservice key', 'wp-store-locator' ), '', $api_settings['openrouteservice_key'] );
+                    $this->verify_button( 'osm', __( 'Test API key', 'wp-store-locator' ), ! $api_settings['openrouteservice_key'] );
+                    ?>
                 </div>
                 <?php
-
                 break;
         }
+
+        // The results of the key test land here, below the fields they belong to.
+        ?>
+        <div class="wpsl-onboarding-key-status"></div>
+        <?php
+
+        if ( $map_service !== 'osm' ) {
+            ?>
+            <div class="wpsl-onboarding-callout">
+                <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 2.5l8 14H2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8v3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="14" r="0.9" fill="currentColor"/></svg>
+                <p><?php
+                    /* translators: 1: opening strong tag, 2: closing strong tag */
+                    echo sprintf( esc_html__( 'If you continue without a working API key, the store locator switches to %1$sOpenStreetMap%2$s so the map keeps working. You can add the key later in Settings.', 'wp-store-locator' ), '<strong>', '</strong>' ); ?></p>
+            </div>
+            <?php
+        }
+        ?>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render one API key field, with its label and an optional help text.
+     *
+     * @since  3.1.1
+     * @param  string $input_id The id of the input.
+     * @param  string $name     The key name inside wpsl_api[].
+     * @param  string $label    The field label.
+     * @param  string $help     The help text below the label, or an empty string.
+     * @param  string $value    The saved key.
+     * @return void
+     */
+    private function key_field( $input_id, $name, $label, $help, $value ) {
+        ?>
+        <div class="wpsl-onboarding-field">
+            <label for="<?php echo esc_attr( $input_id ); ?>"><?php echo esc_html( $label ); ?></label>
+            <?php if ( $help ) { ?>
+                <span class="wpsl-onboarding-field-help" id="<?php echo esc_attr( $input_id ); ?>-help"><?php echo esc_html( $help ); ?></span>
+            <?php } ?>
+            <span class="wpsl-key-field">
+                <input type="password" autocomplete="new-password" spellcheck="false" value="<?php echo esc_attr( $value ); ?>" name="wpsl_api[<?php echo esc_attr( $name ); ?>]" class="wpsl-key-input" id="<?php echo esc_attr( $input_id ); ?>"<?php echo $help ? ' aria-describedby="' . esc_attr( $input_id ) . '-help"' : ''; ?>>
+                <?php echo wpsl_key_visibility_toggle( $input_id, $value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper already escapes output ?>
+            </span>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render the button that tests the entered API keys.
+     *
+     * A plain button, so Enter in a key field submits the step instead.
+     *
+     * @since  3.1.1
+     * @param  string $map_service The map service the keys belong to.
+     * @param  string $label       The button label.
+     * @param  bool   $disabled    Whether there is nothing to test yet.
+     * @return void
+     */
+    private function verify_button( $map_service, $label, $disabled ) {
+        ?>
+        <p class="wpsl-has-preloader">
+            <button type="button" class="wpsl-verify-keys button<?php echo $disabled ? ' disabled' : ''; ?>" id="wpsl-verify-<?php echo esc_attr( $map_service ); ?>-keys"><?php echo esc_html( $label ); ?></button>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render the link back to the map service step.
+     *
+     * @since  3.1.1
+     * @return void
+     */
+    private function change_service_link() {
+        ?>
+        <p class="wpsl-onboarding-change-service"><?php
+            /* translators: 1: opening link tag, 2: closing link tag */
+            echo sprintf( esc_html__( 'Picked the wrong service? %1$sChange map service%2$s', 'wp-store-locator' ), '<a href="' . esc_url( add_query_arg( 'step', 'map-service', admin_url( 'index.php?page=wpsl-onboarding' ) ) ) . '">', '</a>' ); ?></p>
+        <?php
     }
 
     /**

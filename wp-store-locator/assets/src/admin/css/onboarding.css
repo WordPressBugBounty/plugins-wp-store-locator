@@ -2,97 +2,600 @@
     --wpsl-radius: 2px;
 }
 
-#wpsl-onboarding,
-.wpsl-onboarding-steps {
-    font-size: 14px;
+body.wpsl-onboarding {
+    background: #f0f0f1;
+    color: #1d2327;
 }
+
+#wpsl-onboarding,
+#wpsl-onboarding-header {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Header: the logo and the steps, in the colors of the settings pages header. */
+
+#wpsl-onboarding-header {
+    background: #43545f;
+    color: #fff;
+}
+
+.wpsl-onboarding-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    box-sizing: border-box;
+    max-width: calc( 880px + 32px );
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.wpsl-onboarding-header-inner img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.wpsl-onboarding-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.wpsl-onboarding-steps li {
+    margin: 0;
+}
+
+.wpsl-onboarding-steps .wpsl-step,
+.wpsl-onboarding-steps .wpsl-step a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpsl-onboarding-steps .wpsl-step {
+    padding: 6px;
+    border-radius: 6px;
+    color: #c3cad3;
+}
+
+.wpsl-onboarding-steps .wpsl-step a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.wpsl-onboarding-steps .wpsl-step a:hover {
+    text-decoration: underline;
+}
+
+.wpsl-onboarding-steps .wpsl-step a:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+    border-radius: 2px;
+    box-shadow: none;
+}
+
+.wpsl-onboarding-steps .wpsl-step-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #c3cad3;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.wpsl-onboarding-steps .wpsl-onboarding-done {
+    color: #fff;
+}
+
+.wpsl-onboarding-steps .wpsl-onboarding-active {
+    padding-inline-end: 12px;
+    background: #556875;
+    color: #fff;
+    font-weight: 600;
+}
+
+.wpsl-onboarding-steps .wpsl-onboarding-done .wpsl-step-marker,
+.wpsl-onboarding-steps .wpsl-onboarding-active .wpsl-step-marker {
+    border-color: #fff;
+    background: #fff;
+    color: #43545f;
+}
+
+.wpsl-onboarding-steps .wpsl-divider {
+    width: 20px;
+    height: 1px;
+    background: #7d8e9a;
+}
+
+.wpsl-onboarding-steps .wpsl-divider-done {
+    background: #fff;
+}
+
+/* The panel every step sits in. */
 
 #wpsl-onboarding {
-    margin: 50px auto 25px auto;
-    max-width: 40rem;
-    padding: 1.5rem;
+    box-sizing: border-box;
+    max-width: 880px;
+    margin: 40px auto 20px;
+    padding: 32px;
     background: #fff;
-    box-shadow: 0 1px 4px rgb(18 25 97/8%);
-    color: #000;
-    border-radius: var(--wpsl-radius, 3px);
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    color: #1d2327;
 }
 
-#wpsl-onboarding.wpsl-onboarding-welcome {
-    max-width: 62rem;
+@media screen and (max-width: 912px) {
+    #wpsl-onboarding {
+        margin-inline: 16px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    #wpsl-onboarding {
+        margin-block-start: 24px;
+        padding: 24px 16px;
+    }
+}
+
+#wpsl-onboarding h1 {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 26px;
+    line-height: 1.25;
+    font-weight: 600;
+}
+
+#wpsl-onboarding .wpsl-onboarding-intro {
+    max-width: 720px;
+    margin: 0 0 8px;
+    color: #3c434a;
+    line-height: 1.6;
+    text-wrap: pretty;
 }
 
 #wpsl-onboarding form {
     margin-bottom: 0;
 }
 
-#wpsl-onboarding input[type="submit"],
-#wpsl-onboarding .button-primary,
-#wpsl-onboarding .button-secondary {
-    padding: 4px 10px;
+#wpsl-onboarding fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
 
-#wpsl-onboarding.wpsl-onboarding-complete h1 {
-    text-align: center;
-    margin-block-end: 12px;
+#wpsl-onboarding .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-.wpsl-onboarding-hero {
-    text-align: center;
-    margin-block-end: 30px;
+#wpsl-onboarding .button.button-primary {
+    padding: 0 20px;
 }
 
-.wpsl-onboarding-hero p {
-    max-width: 32rem;
-    margin-inline: auto;
-}
+/* Footer: back / not now on the left, the step's buttons on the right. */
 
-.wpsl-onboarding-hero .wpsl-onboarding-cta {
+#wpsl-onboarding .submit {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0 0;
+    padding: 24px 0 0;
+    border-top: 1px solid #f0f0f1;
+    text-align: unset;
+}
+
+.wpsl-onboarding-previous {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wpsl-onboarding-actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
-    margin-block-start: 22px;
-    margin-block-end: 0;
+    align-items: center;
+    margin-inline-start: auto;
 }
 
-#wpsl-onboarding .wpsl-onboarding-cta .button {
-    padding: 6px 18px;
+/* Step 1: the map service cards. */
+
+#wpsl-onboarding-map-service {
+    margin-top: 24px;
 }
 
-.wpsl-onboarding-learn-more {
-    border-block-start: 1px solid #e6e6e6;
-    padding-block-start: 20px;
-    margin-block-start: 25px;
+#wpsl-onboarding.wpsl-onboarding-welcome .wpsl-onboarding-intro {
+    max-width: none;
+    margin-bottom: 0;
 }
 
-#wpsl-onboarding .wpsl-onboarding-learn-more h2 {
-    font-size: 15px;
-    margin-block-end: 10px;
+.wpsl-provider-grid {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax( 340px, 1fr ) );
+    gap: 16px;
 }
 
-#wpsl-onboarding .wpsl-onboarding-learn-more ul {
+@media screen and (max-width: 420px) {
+    .wpsl-provider-grid {
+        grid-template-columns: minmax( 0, 1fr );
+    }
+}
+
+.wpsl-provider-card {
+    position: relative;
     display: flex;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.wpsl-provider-card:hover {
+    border-color: #8c8f94;
+}
+
+.wpsl-provider-card:has( input:checked ) {
+    border-color: #6fac34;
+    box-shadow: 0 0 0 1px #6fac34;
+    background: #f6faf1;
+}
+
+.wpsl-provider-card:has( input:focus-visible ) {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+.wpsl-provider-card img {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+@media screen and (max-width: 420px) {
+    .wpsl-provider-card img {
+        width: 72px;
+        height: 72px;
+    }
+}
+
+.wpsl-provider-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.wpsl-provider-head {
+    display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 6px 22px;
-    list-style: none;
-    padding-inline-start: 0;
+    gap: 8px;
+}
+
+.wpsl-provider-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.wpsl-provider-badge {
+    margin-inline-start: auto;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.wpsl-badge-free {
+    background: #d7f2e3;
+    color: #145c36;
+}
+
+.wpsl-badge-quota {
+    background: #e3e9fc;
+    color: #1f3d9e;
+}
+
+.wpsl-badge-paid {
+    background: #fcefd4;
+    color: #6e4300;
+}
+
+/* The toggle switch of the settings pages ( .wpsl-toggle-wrap in style.css ), drawn for a card. */
+.wpsl-provider-toggle {
+    position: relative;
+    flex-shrink: 0;
+    width: 45px;
+    height: 25px;
+    border-radius: 100px;
+    background: #ddd;
+    transition: background-color 300ms ease;
+}
+
+.wpsl-provider-card:hover .wpsl-provider-toggle {
+    background: #e6e6e6;
+}
+
+.wpsl-provider-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: #fff;
+    color: #acacac;
+    transition: all 300ms ease;
+}
+
+.wpsl-provider-knob .wpsl-knob-on,
+.wpsl-provider-card:has( input:checked ) .wpsl-knob-off {
+    display: none;
+}
+
+.wpsl-provider-card:has( input:checked ) .wpsl-knob-on {
+    display: block;
+}
+
+.wpsl-provider-card:has( input:checked ) .wpsl-provider-toggle {
+    background: #6fac34;
+}
+
+.wpsl-provider-card:has( input:checked ):hover .wpsl-provider-toggle {
+    background: #79bb3a;
+}
+
+.wpsl-provider-card:has( input:checked ) .wpsl-provider-knob {
+    left: calc( 100% - 19px - 3px );
+    background: #578f20;
+    color: #fff;
+}
+
+.wpsl-provider-features {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpsl-provider-feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.wpsl-provider-feature svg {
+    flex-shrink: 0;
+}
+
+.wpsl-feature-yes svg {
+    color: #1a7f4b;
+}
+
+.wpsl-feature-no {
+    color: #646970;
+}
+
+.wpsl-feature-no svg {
+    color: #8c8f94;
+}
+
+.wpsl-feature-key svg {
+    color: #50575e;
+}
+
+.wpsl-provider-extra {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #50575e;
+    text-wrap: pretty;
+}
+
+.wpsl-onboarding-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 20px 0 0;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.wpsl-onboarding-hint svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Step 2: the API keys. */
+
+#wpsl-onboarding .wpsl-onboarding-change-service {
+    margin: 0 0 28px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+#wpsl-onboarding-api-keys * {
+    box-sizing: border-box;
+}
+
+.wpsl-onboarding-key-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 560px;
+}
+
+.wpsl-onboarding-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wpsl-onboarding-field label {
+    font-weight: 600;
+}
+
+.wpsl-onboarding-field-help {
+    font-size: 13px;
+    color: #50575e;
+}
+
+#wpsl-onboarding-api-keys .wpsl-key-field {
+    display: flex;
+    width: 100%;
+}
+
+#wpsl-onboarding-api-keys .wpsl-key-input {
+    width: 100%;
+    height: 40px;
     margin: 0;
 }
 
-.wpsl-onboarding-note {
-    margin-block-start: 14px;
-    margin-block-end: 0;
-    opacity: 0.85;
+#wpsl-onboarding-api-keys .wpsl-key-input.wpsl-error {
+    border-color: #d63638;
+    box-shadow: 0 0 0 1px #d63638;
 }
 
-#wpsl-onboarding.wpsl-onboarding-complete .submit {
-    margin-block-start: 25px;
+#wpsl-onboarding-api-keys .wpsl-has-preloader {
+    display: flex;
+    align-items: center;
+    margin: 0;
 }
 
-.wpsl-onboarding-complete h2 {
-    margin-block-start: 0;
-    margin-inline-start: 0;
-    margin-inline-end: 0;
+#wpsl-onboarding-api-keys .wpsl-preloader {
+    float: none;
+}
+
+.wpsl-onboarding-key-status {
+    max-width: 560px;
+}
+
+.wpsl-onboarding-key-status:not( :empty ) {
+    margin-top: 20px;
+}
+
+#wpsl-onboarding-api-keys .wpsl-onboarding-key-status .notice {
+    margin: 0 0 12px;
+}
+
+.wpsl-onboarding-callout {
+    display: flex;
+    gap: 10px;
+    max-width: 560px;
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid #f0c33c;
+    border-radius: 6px;
+    background: #fcf9e8;
+    font-size: 13px;
+}
+
+.wpsl-onboarding-callout svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #996800;
+}
+
+.wpsl-onboarding-callout p {
+    margin: 0;
+}
+
+/* Step 3: the start location. */
+
+.start-location-search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.wpsl-start-location-field {
+    display: flex;
+    flex: 1 1 280px;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    background: #fff;
+    color: #50575e;
+}
+
+.wpsl-start-location-field:focus-within {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+#wpsl-onboarding .wpsl-start-location-field input[type=text] {
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 14px;
+}
+
+#wpsl-onboarding-map {
+    height: 360px;
+    margin-top: 16px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* The closing step. */
+
+.wpsl-onboarding-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+#wpsl-onboarding .wpsl-onboarding-hero h1 {
+    margin: 4px 0 0;
+}
+
+.wpsl-onboarding-hero p {
+    max-width: 500px;
+    margin: 0;
+    color: #3c434a;
+}
+
+#wpsl-onboarding .wpsl-warning-callout {
+    margin-top: 24px;
 }
 
 #wpsl-onboarding .wpsl-warning-callout h2 {
@@ -100,8 +603,176 @@
     margin-block-end: 5px;
 }
 
+/* "Your setup" and "Next steps" */
+#wpsl-onboarding .wpsl-onboarding-section-title,
+#wpsl-onboarding .wpsl-onboarding-next-title {
+    margin: 32px 0 12px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* The choices made in the wizard, a bordered table with a header row. */
+.wpsl-onboarding-summary {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #dcdcde;
+    background: #fff;
+}
+
+.wpsl-onboarding-summary th,
+.wpsl-onboarding-summary td {
+    padding: 10px 14px;
+    border: 1px solid #dcdcde;
+    color: #1d2327;
+    font-weight: normal;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.wpsl-onboarding-summary thead th {
+    background: #f6f7f7;
+    font-weight: 600;
+}
+
+.wpsl-onboarding-summary tbody th {
+    width: 30%;
+    color: #50575e;
+}
+
+.wpsl-onboarding-summary td.wpsl-summary-edit {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.wpsl-onboarding-summary .wpsl-summary-ok svg,
+.wpsl-onboarding-summary .wpsl-summary-warning svg {
+    margin-right: 6px;
+    vertical-align: -3px;
+}
+
+.wpsl-summary-ok svg {
+    color: #1a7f4b;
+}
+
+.wpsl-summary-warning svg {
+    color: #d63638;
+}
+
+.wpsl-onboarding-next-steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.wpsl-onboarding-next-steps li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin: 0;
+    padding: 18px 20px;
+}
+
+.wpsl-onboarding-next-steps li + li {
+    border-top: 1px solid #dcdcde;
+}
+
+.wpsl-next-step-number {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid #2271b1;
+    border-radius: 50%;
+    color: #2271b1;
+    font-weight: 600;
+}
+
+.wpsl-onboarding-next-steps li:first-child .wpsl-next-step-number {
+    background: #2271b1;
+    color: #fff;
+}
+
+/* Match the buttons, which turned this blue in WordPress 7. */
+.wpsl-wp-7-plus .wpsl-next-step-number {
+    border-color: #3858e9;
+    color: #3858e9;
+}
+
+.wpsl-wp-7-plus .wpsl-onboarding-next-steps li:first-child .wpsl-next-step-number {
+    background: #3858e9;
+}
+
+.wpsl-next-step-text {
+    display: flex;
+    flex: 1 1 300px;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.wpsl-next-step-text strong {
+    font-size: 15px;
+}
+
+.wpsl-next-step-text > span {
+    font-size: 13px;
+    color: #50575e;
+}
+
+.wpsl-onboarding-next-steps .wpsl-shortcode-copy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.wpsl-shortcode-copy code {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #f6f7f7;
+    font-size: 13px;
+}
+
+#wpsl-onboarding .wpsl-shortcode-copy .button {
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+.wpsl-onboarding-learn-more {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f1;
+    font-size: 13px;
+}
+
+.wpsl-onboarding-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 20px;
+    margin: 0;
+}
+
+.wpsl-onboarding-note {
+    margin: 10px 0 0;
+    color: #50575e;
+}
+
 #wpsl-onboarding .wpsl-addon-notice {
-    margin: 0 0 15px 0;
+    margin: 24px 0 0;
     padding-top: 14px;
     padding-bottom: 14px;
     border-radius: var(--wpsl-radius, 3px);
@@ -115,280 +786,15 @@
     margin-bottom: 0;
 }
 
-#wpsl-onboarding .wpsl-onboarding-help {
-    float: inline-end;
-    margin-inline-end: 0;
-}
-
-#wpsl-onboarding .wpsl-flex-container {
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: space-around;
-}
-
-#wpsl-onboarding .wpsl-flex-box {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    flex: 1 1;
-}
-
-#wpsl-onboarding .wpsl-flex-box:first-child {
-    padding-inline-start: 0;
-}
-
-#wpsl-onboarding .wpsl-flex-box:last-child {
-    padding-inline-end: 0;
-}
-
-#wpsl-onboarding .submit {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-block-end: 0;
-    margin: 0;
-    text-align: unset;
-}
-
-.wpsl-onboarding-previous {
-    margin: 0;
-    flex-shrink: 0;
-}
-
-.wpsl-onboarding-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-inline-start: auto;
-}
-
-#wpsl-onboarding-map-service h2 {
-    margin-block-start: 1em;
-    margin-block-end: 1.20em;
-}
-
-#wpsl-onboarding-map-service h2 span {
-    float: inline-end;
-    font-size: 14px;
-    vertical-align: middle;
-    padding: 4px 9px 6px 8px;
-    margin-block-start: -3px;
-    color: #297057;
-    background: #c4eddc;
-    border-radius: var(--wpsl-radius, 3px);
-    font-weight: normal;
-}
-
-@media screen and (max-width: 782px) {
-    #wpsl-onboarding-map-service h2 span {
-        float: none;
-        display: block;
-        width: fit-content;
-        margin-block-start: 5px;
-        font-size: 13px;
-    }
-}
-
-#wpsl-onboarding-map-service img {
-    border-radius: var(--wpsl-radius, 3px);
-    opacity: 0.75;
-    max-width: 100%;
-    height: auto;
-}
-
-#wpsl-onboarding-map-service .wpsl-selected-provider img,
-#wpsl-onboarding-map-service img:hover {
-    outline: 1px solid #000;
-    cursor: pointer;
-    opacity: 1;
-}
-
-#wpsl-onboarding ul {
-    line-height: normal;
-    list-style-type: disc;
-    padding-inline-start: 18px;
-}
-
-#wpsl-onboarding-api-keys label,
-#wpsl-onboarding-api-keys input[type=text] {
-    display: inline-block;
-}
-
-#wpsl-onboarding-api-keys label {
-    width: auto;
-    margin-inline-end: 10px;
-}
-
-#wpsl-onboarding-api-keys .wpsl-api-gmaps label {
-    width: 78px;
-    margin-inline-end: 0;
-}
-
-#wpsl-onboarding-api-keys .wpsl-api-gmaps .wpsl-verify-keys {
-    margin-inline-start: 78px;
-}
-
-#wpsl-onboarding-api-keys .wpsl-preloader {
-    float: none;
-}
-
-.wpsl-onboarding-key-wrap {
-    margin-block-start: 20px;
-    margin-block-end: 20px;
-}
-
-#wpsl-onboarding-api-keys * {
-    box-sizing: border-box;
-}
-
-#wpsl-onboarding-api-keys input,
-#wpsl-onboarding-api-keys button {
-    margin: 0;
-}
-
-#wpsl-onboarding-api-keys .wpsl-verify-keys {
-    margin-inline-start: 10px;
-}
-
-#wpsl-verify-osm-keys.wpsl-verify-keys {
-    margin-inline-start: 10px;
-    vertical-align: bottom;
-}
-
-#wpsl-onboarding-api-keys input[type=text] {
-    width: 300px;
-}
-
-.wpsl-wp-7-plus #wpsl-onboarding input[type=text] {
-    height: 48px;
-}
-
-#wpsl-onboarding-api-keys .notice {
-    margin-block-start: 0;
-    margin-block-end: 20px;
-    margin-inline-start: 0;
-    margin-inline-end: 0;
-}
-
-#wpsl-onboarding-api-keys .error.notice ~ .wpsl-api-mapbox > p:first-child {
-    display: none;
-}
-
-.wpsl-onboarding-steps {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    overflow: hidden;
-    background: #fff;
-    padding-inline-start: 16px;
-    padding-inline-end: 16px;
-    counter-reset: onboarding-counter;
-    border-block-end: 1px solid #e6e6e6;
-}
-
-.wpsl-onboarding-steps a {
-    text-decoration: none;
-    color: #000;
-}
-
-.wpsl-onboarding-steps .wpsl-step {
-    display: flex;
-    align-items: center;
-    position: relative;
-    padding-block-start: 12px;
-    padding-inline-start: 10px;
-    padding-block-end: 12px;
-    padding-inline-end: 10px;
-    list-style-type: none;
-    background: none;
-}
-
-.wpsl-onboarding-steps .wpsl-step:before {
-    position: static;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-inline-end: 12px;
-    content: counter(onboarding-counter);
-    counter-increment: onboarding-counter;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    background-color: #eaeaea;
-    color: #7f7f7f;
-    font-size: 14px;
-    line-height: 1;
-    padding: 0;
-}
-
-.wpsl-onboarding-steps .wpsl-onboarding-active:before {
-    background: #43545f;
-    color: #fff;
-}
-
-.wpsl-onboarding-steps .wpsl-onboarding-done:before {
-    background: #43545f;
-    color: #fff;
-    font-family: 'dashicons';
-    font-size: 15px;
-    content: '\f15e';
-    line-height: normal;
-}
-
-.wpsl-divider {
-    flex-grow: 1;
-    border-block-end: 1px solid #f0f0f0;
-    align-self: center;;
-    height: 1px;
-}
-
-#wpsl-start-location {
-    width: 100%;
-    border: none;
-}
-
-#wpsl-start-location:focus {
-    outline: none;
-    border-radius: var(--wpsl-radius, 3px) 0 0 var(--wpsl-radius, 3px);
-}
-
-#wpsl-onboarding-map {
-    height: 250px;
-    margin-block-start: 20px;
-    margin-block-end: 10px;
-    border-radius: var(--wpsl-radius, 3px);
-}
-
-#wpsl-onboarding-location-preview {
-    margin-inline-start: 8px;
-    border-radius: var(--wpsl-radius, 3px);
-}
-
-.start-location-search {
-    display: flex;
-    flex-direction: row;
-    border-radius: var(--wpsl-radius, 3px);
-}
-
-#wpsl-onboarding .start-location-search input[type=text] {
-    border: 1px solid #d1d5db;
-    border-radius: var(--wpsl-radius, 3px);
-}
-
-.start-location-search input {
-    flex-grow: 2;
-    border: none;
+#wpsl-onboarding-footer {
+    padding-bottom: 32px;
 }
 
 #wpsl-onboarding-footer p {
     text-align: center;
 }
 
-.wpsl-onboarding-footnote {
-    margin: 0;
-    font-style: italic;
-    opacity: 0.9;
-}
+/* Info icons with a tooltip. */
 
 .wpsl-onboarding .wpsl-info {
     position: relative;

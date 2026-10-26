@@ -84,6 +84,15 @@ class Alerts {
     const GEOLOCATION_POLICY_ALERT = 'wpsl-geolocation-policy';
 
     /**
+     * The keys the outdated cached scripts alerts are filed under, see Asset_Cache.
+     *
+     * @since 3.1.1
+     * @var string
+     */
+    const STALE_SCRIPTS_ALERT = 'wpsl-stale-scripts';
+    const CDN_VERSION_ALERT   = 'wpsl-cdn-ignores-version';
+
+    /**
      * List of conflicting plugins
      *
      * @since 3.0.0
@@ -103,6 +112,9 @@ class Alerts {
         add_action( 'deactivated_plugin',         [ $this, 'handle_deactivated_plugin' ], 10, 1 );
         add_action( 'admin_init',                 [ $this, 'check_existing_plugins' ] );
         add_action( 'wp_ajax_wpsl_dismiss_alert', [ $this, 'dismiss_alert' ] );
+
+        // Here and not on the Home page: the Tools section reports to it as well.
+        add_action( 'wp_ajax_' . Asset_Cache::ACTION, [ Asset_Cache::class, 'ajax_save' ] );
 
         /*
          * The add-on scan reads the header of every installed plugin, and the
@@ -406,6 +418,91 @@ class Alerts {
     }
 
     /**
+     * Tell the admin that visitors get outdated store locator scripts.
+     *
+     * The result comes from the check the Home page runs in the browser, see
+     * Asset_Cache. Not dismissible: the store locator stays broken until the
+     * cache is purged, and the next check clears it once it is.
+     *
+     * @since  3.1.1
+     * @return array The alert, or an empty array when it does not apply
+     */
+    public function get_stale_scripts_alert() {
+        $result = Asset_Cache::get_result();
+
+        if ( empty( $result['stale'] ) ) {
+            return [];
+        }
+
+        $details  = '<p>' . esc_html__( 'Visitors get the scripts of the previous version together with the pages and settings of this one. The two don\'t work together, so searches can return no results and changed settings seem to be ignored.', 'wp-store-locator' ) . '</p>';
+        $details .= '<p>' . esc_html__( 'Purge the cache of your script optimizer, then your page cache, then your CDN ( on Amazon CloudFront: create an invalidation for /* ). Then reload this page. The alert goes away once visitors get the current scripts.', 'wp-store-locator' ) . '</p>';
+        $details .= '<p><a href="' . esc_url( Asset_Cache::DOCS_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'How to clear the cache', 'wp-store-locator' ) . '</a></p>';
+
+        return [
+            self::STALE_SCRIPTS_ALERT => [
+                'name'        => __( 'Outdated scripts', 'wp-store-locator' ),
+                'dismissible' => false,
+                'description' => sprintf(
+                    /* translators: %s: the script file name */
+                    esc_html__( 'Your CDN or cache serves an outdated version of %s, the store locator script. The store locator may not work for visitors until the cache is purged.', 'wp-store-locator' ),
+                    '<code>wpsl.min.js</code>'
+                ),
+                'details'     => $details,
+            ],
+        ];
+    }
+
+    /**
+     * Warn the admin that the CDN ignores the version in script URLs.
+     *
+     * Nothing is broken yet, but after the next update visitors keep getting
+     * the old scripts until the CDN cache expires. Dismissible: the admin may
+     * purge the CDN after every update instead.
+     *
+     * Not shown together with the outdated scripts alert, which already says
+     * what to do now.
+     *
+     * @since  3.1.1
+     * @return array The alert, or an empty array when it does not apply
+     */
+    public function get_cdn_version_alert() {
+        $result = Asset_Cache::get_result();
+
+        if ( empty( $result['ignores_version'] ) || ! empty( $result['stale'] ) ) {
+            return [];
+        }
+
+        $stored = get_option( 'wpsl_alerts', [] );
+
+        if ( is_array( $stored ) && ! empty( $stored['cdn_version']['dismissed'] ) ) {
+            return [];
+        }
+
+        $details  = '<p>' . esc_html__( 'WordPress adds the plugin version to every script URL, so an update gets new URLs that a cache has not stored yet. Your CDN answers a version it has never seen from its cache, so it treats every version as the same file.', 'wp-store-locator' ) . '</p>';
+        $details .= '<p>' . esc_html__( 'Change the CDN\'s cache key to include query strings ( on Amazon CloudFront: a cache policy with Query strings set to All ). This protects the other plugins and the theme as well.', 'wp-store-locator' ) . '</p>';
+        $details .= '<p><a href="' . esc_url( Asset_Cache::DOCS_URL ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'How to change the cache key', 'wp-store-locator' ) . '</a></p>';
+
+        $description = esc_html__( 'Your CDN ignores the version in script URLs. The store locator works now, but after the next update visitors get the old scripts until the CDN cache expires, which can stop it from working.', 'wp-store-locator' );
+
+        if ( ! empty( $result['header'] ) ) {
+            $description .= ' ' . sprintf(
+                /* translators: %s: the response header that showed the cached copy, for example "x-cache: Hit from cloudfront" */
+                esc_html__( 'A test URL came back with %s.', 'wp-store-locator' ),
+                '<code>' . esc_html( $result['header'] ) . '</code>'
+            );
+        }
+
+        return [
+            self::CDN_VERSION_ALERT => [
+                'name'        => __( 'CDN cache', 'wp-store-locator' ),
+                'dismissible' => true,
+                'description' => $description,
+                'details'     => $details,
+            ],
+        ];
+    }
+
+    /**
      * The long version of the Routes API alert: why it changed, what breaks
      * without it, and the steps to fix it.
      *
@@ -692,6 +789,8 @@ class Alerts {
         return array_merge(
             $active_alerts,
             $this->get_handler_alert(),
+            $this->get_stale_scripts_alert(),
+            $this->get_cdn_version_alert(),
             $this->get_geolocation_policy_alert(),
             $this->get_migrated_key_alert(),
             $this->get_routes_api_alert(),
@@ -762,6 +861,24 @@ class Alerts {
             }
 
             $alerts['routes_api'] = [ 'dismissed' => true ];
+
+            update_option( 'wpsl_alerts', $alerts, false );
+
+            wp_send_json_success( [
+                'message' => __( 'Alert dismissed.', 'wp-store-locator' ),
+                'count'   => $this->get_alert_count(),
+            ] );
+        }
+
+        // A plain opt-out: the admin may rather purge the CDN after every update.
+        if ( self::CDN_VERSION_ALERT === $plugin_basename ) {
+            $alerts = get_option( 'wpsl_alerts', [] );
+
+            if ( ! is_array( $alerts ) ) {
+                $alerts = [];
+            }
+
+            $alerts['cdn_version'] = [ 'dismissed' => true ];
 
             update_option( 'wpsl_alerts', $alerts, false );
 

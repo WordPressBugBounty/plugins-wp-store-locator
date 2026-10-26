@@ -1,6 +1,7 @@
 import { slData, config } from '../../../modules/wpsl-shared.js';
 import { helpers } from '../../../modules/wpsl-helpers.js';
 import { mapBootstrap } from '../../../modules/wpsl-map-bootstrap.js';
+import { fireMapReady } from '../../../modules/wpsl-map-ready.js';
 import { eventHandlers } from '../../../modules/wpsl-event-handlers.js';
 import { buttons } from '../../../modules/wpsl-buttons.js';
 import { markers } from './wpsl-markers.js';
@@ -120,6 +121,15 @@ export const map = {
 
                 eventHandlers.bindExpandingHours();
             });
+        }
+
+        const readyMap = slData.maps[mapIndex];
+        const onReady  = () => fireMapReady( readyMap, mapIndex, readyMap.getContainer() );
+
+        if ( readyMap.loaded() ) {
+            onReady();
+        } else {
+            readyMap.once( 'load', onReady );
         }
 
         this.mapControlIcons();

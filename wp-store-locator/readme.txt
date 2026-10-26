@@ -5,17 +5,23 @@ Tags: store locator, google maps, openstreetmap, store finder, dealer locator
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
-Store locator for OpenStreetMap, Stadia Maps, Mapbox and Google Maps with unlimited locations, custom fields and markers. No API key on OpenStreetMap.
+Free store locator with OpenStreetMap maps and no API key. Or use Google Maps, Mapbox or Stadia Maps. Unlimited locations, custom fields and markers.
 
 == Description ==
 
-**WP Store Locator** helps your customers find your nearest store, dealer, branch, clinic or office. Add unlimited locations, drop the `[wpsl]` shortcode or block on a page, and visitors can search by address, postcode, city or their current position, filter by category and get directions.
+**WP Store Locator** is a free store locator that helps your customers find your nearest store, dealer, branch, clinic or office. It runs on free OpenStreetMap maps out of the box, so there is no API key, no Google account and no credit card to set up. Add unlimited locations, drop the `[wpsl]` shortcode or block on a page, and visitors can search by address, postcode, city or their current position, filter by category and get directions.
 
-= Why WP Store Locator 3 =
+= 🆓 Free maps, no API key needed =
+
+Choose OpenStreetMap and your store locator works without Google Maps, as soon as you activate it. There is no Google Cloud project to create, no billing account to add and no API key to restrict. Address searches are geocoded on your server and cached, and the map, markers, Marker Studio, category filters, map shapes and location pages all work on OpenStreetMap.
+
+Need Google Maps, Mapbox or Stadia Maps later? Switch with one setting. Your locations do not need to be re-entered or re-geocoded.
+
+= Why WP Store Locator =
 
 * **Works without Google Maps.** Run the entire store locator on OpenStreetMap with no API key, no Google account and no credit card. Prefer Google Maps, Mapbox or Stadia Maps? Pick it from a dropdown. Your locations, settings and add-ons work with every provider.
 * **No code needed for custom data.** The Fields Manager adds your own fields to the store editor and the Section Editor places them in the results, the info window or anywhere else on the front end.
@@ -39,7 +45,7 @@ Switching provider is a single setting. Nothing needs to be re-entered or re-geo
 = 🔍 Search that finds the right store =
 
 * Search by address, postcode, city, state or country, or by store name.
-* Autocomplete as the visitor types.
+* Autocomplete as the visitor types, on Google Maps, Mapbox and Stadia Maps.
 * Detect the visitor's location automatically, on page load or after they click the locate button.
 * Radius, max results and category filters, as dropdowns or checkboxes.
 * Combine categories with AND or OR logic, or pre-select a default category.
@@ -53,13 +59,13 @@ Switching provider is a single setting. Nothing needs to be re-entered or re-geo
 
 = 📍 Unlimited locations with rich details =
 
+* **A landing page for every location, with one switch.** No pages to create, shortcodes to place or code to write: every location gets its own page with a clean URL, so search engines and customers can link straight to a store.
 * Address, phone, fax, email, URL, description, featured image and categories for every location.
 * Structured opening hours with a live **Open now / Closed** badge, expandable to the full week.
 * Custom hours text and a "special hours" field for holidays.
 * Mark a store permanently or temporarily closed, with an automatic reopen date.
 * Your own fields of any type: text, textarea, email, phone, URL, checkbox or dropdown, grouped the way you want them in the editor.
 * Drag the marker to the exact spot, or type coordinates in by hand.
-* A landing page for every location with clean URLs, so search engines and customers can link straight to a store.
 * Admin search by name, postcode, city, state or country, and sortable custom columns.
 
 = 🎨 Make it look like your site =
@@ -100,12 +106,12 @@ Switching provider is a single setting. Nothing needs to be re-entered or re-geo
 
 = 🏬 Made for every business with locations =
 
-Retail chains, dealer networks, franchises, bank branches, clinics and pharmacies, restaurants, gyms, real estate offices, schools, stockists and service centres. If people need to find you, WP Store Locator gets them there.
+Retail chains, dealer networks, franchises, bank branches, clinics and pharmacies, restaurants, gyms, real estate offices, schools, service centres, stockists and where-to-buy pages. If people need to find you, WP Store Locator gets them there.
 
 = 🚀 How it works =
 
 1. Install and activate the plugin.
-2. Follow the onboarding wizard: choose a map service, add a key if the service needs one, and set a start location.
+2. Follow the onboarding wizard. Pick **OpenStreetMap** to skip API keys entirely, or connect Google Maps, Mapbox or Stadia Maps. Then set a start location.
 3. Add your locations under **Store Locator > Add Store**, or import them with the [CSV Manager](https://wpstorelocator.co/add-ons/csv-manager/) from the Add-on Bundle.
 4. Add the **Store Locator** block or the `[wpsl]` shortcode to a page.
 
@@ -153,6 +159,18 @@ Bundles are available for 1, 5 or 20 sites. [Compare the bundles](https://wpstor
 = Do I need a Google Maps API key? =
 
 No. Choose **OpenStreetMap (Leaflet)** as the map service and the store locator runs without any API key. A key is only needed for Google Maps, Mapbox and Stadia Maps, or if you want routes drawn on the map with OpenStreetMap (free Openrouteservice key).
+
+= Is WP Store Locator free? =
+
+Yes. The plugin is free, with unlimited locations, and it runs on free OpenStreetMap maps without an API key. The CSV Manager, Search Widget and Statistics add-ons are optional paid extras.
+
+= What is the difference between OpenStreetMap and Google Maps? =
+
+Both show your locations, markers, categories, map shapes and location pages. The differences:
+
+* Address suggestions while the visitor types (autocomplete) are available on Google Maps, Mapbox and Stadia Maps, not on OpenStreetMap.
+* On OpenStreetMap the Directions link opens the route on openstreetmap.org. Add a free Openrouteservice key to draw the route on your own map instead.
+* Google Maps needs an API key from a Google Cloud project with billing enabled. OpenStreetMap needs no key or account.
 
 = Can I switch map providers later? =
 
@@ -217,7 +235,7 @@ Please report security bugs found in the source code of the WP Store Locator plu
 == Screenshots ==
 
 1. Pick the default, horizontal or vertical layout
-2. The API settings, run the map on OpenStreetMap, Mapbox, Stadia Maps or Google Maps
+2. Pick a map service: OpenStreetMap with no API key, or Mapbox, Stadia Maps and Google Maps
 3. The Fields Manager, add your own fields to the stores
 4. The Local Pages settings for the store landing pages and their permalinks
 5. The GDPR settings, ask visitors for consent before the map loads
@@ -236,6 +254,44 @@ Please report security bugs found in the source code of the WP Store Locator plu
 Major rewrite. Update the CSV Manager, Statistics, and Search Widget add-ons to version 2.0 or later. Older add-ons are automatically disabled on 3.0 until you update them. Google Maps directions now use the Routes API, which has to be enabled in your Google Cloud project: https://console.cloud.google.com/apis/library/routes.googleapis.com. Coming from a 3.0 beta? Purge every server, plugin and CDN cache after updating, or the browser keeps loading the old scripts and styles.
 
 == Changelog ==
+
+= 3.1.1 2026-10-26 =
+New
+* "Draw the search radius circle?" option ( Map settings ), with a color setting and the 'wpslRadiusCircleStyle' JS filter.
+* "Show locations at the same address as one marker?" option ( Markers settings ). Two or more locations at the same address share one marker. Its info window shows them one at a time, or as a list when there are more than five.
+* Detects outdated cached scripts after an update, with an admin notice, a check on the Home page and an "Outdated cached files" tool. See [how to clear the cache](https://wpstorelocator.co/document/clear-cdn-cache-after-update/).
+* "Enable the social media group?" option ( Editor settings ). Social media links per location ( X, YouTube, Instagram, Facebook, LinkedIn, TikTok, Pinterest, WhatsApp, Yelp, Tripadvisor or any other link ), shown as brand icons in the search results, the info windows and on the location pages. Developers: the {{wpsl_social_links}} template tag and a social attribute on [wpsl_address]. If the icons don't show up after turning it on, clear your page or server cache.
+* Quick setup on the Home page: the six main choices ( search method, countries, auto-locate, location pages, layout and search filters ), each saved as soon as it's picked. It's also the last step of the setup wizard. On updated sites it starts hidden.
+* Developers: the 'wpsl_full_search_region_meta_keys' and 'wpsl_status_report_server_details' filters.
+
+Changed
+* Featured locations sort first.
+* Distances under 1 km / 0.1 mi show in meters / feet, via a new 'distance_short' value.
+* Fills in missing country codes without geocoding.
+* The deactivation survey accepts an email address and longer error messages. Its technical details no longer check the Google API key live.
+* A redesigned setup wizard, with a fourth "Your Locator" step for the Quick setup choices.
+* Store categories are managed by users who can edit all locations ( administrators and the Store Locator Manager role ), instead of everyone with the manage_categories capability.
+* Password-protected locations are left out of the search results, as they already were from [wpsl_map], [wpsl_address] and [wpsl_hours].
+* On multisite, the server details in the status report are only shown to network administrators.
+
+Fixed
+* Country-restricted searches now include locations without a country code.
+* Whole-country or -state searches now return all locations, not just the max.
+* Google Maps: fixed a blank map behind consent tools, country lists in the 'wpsl_geocode_components' filter, and markers hiding behind others at the same address.
+* Featured locations are no longer dropped when more results match than the max.
+* Long category names wrap in the dropdown and search results.
+* Fixed setting combinations: name search with "Load locations on page load", auto-locate with "Load locations on page load", and "Ignore the default start location" with "Use my current location".
+* A single name-search result now zooms in.
+* [wpsl_map] without locations loads at its configured center ( OpenStreetMap, Stadia ).
+* Locator styles print with the shortcode, so cache and optimization plugins ( LiteSpeed, Cloudflare Rocket Loader ) no longer break them.
+* "Only show the category filter?" correctly hides the search field and lists a picked category's locations.
+* Picking a country or state from the address suggestions lists all its locations ( Google Maps, Mapbox, Stadia ).
+* Mapbox: whole-country or -state searches work with the Geocoding v6 response.
+* Stadia Maps: address suggestions include countries and regions.
+* Mapbox: the active marker shows on top, and clustered markers no longer bounce on hover.
+* Changing the restricted countries now clears the cached page load results, which kept showing the old locations for up to a day.
+* The bulk geocode tool only returns the names of locations the user can edit.
+* Google Maps: the start marker's info window and the shared-marker list escape names and addresses.
 
 = 3.1.0 2026-10-07 =
 New

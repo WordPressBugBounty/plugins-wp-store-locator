@@ -5,6 +5,7 @@ import { helpers } from '../../../modules/wpsl-helpers.js';
 import { search } from '../../../modules/wpsl-search.js';
 import { responseHandlers } from '../../../modules/wpsl-response-handlers.js';
 import { buttons } from '../../../modules/wpsl-buttons.js';
+import { markerGroups } from '../../../modules/wpsl-marker-groups.js';
 import { geojson } from './wpsl-geojson.js';
 import { infoWindow } from './wpsl-infowindow.js';
 import { layers } from './wpsl-layers.js';
@@ -131,29 +132,10 @@ export const api = {
                 userLocation = {};
 
             if ( ! format ) {
-                if ( response.features[0].id.indexOf( 'country' ) !== -1 ) {
-                    userLocation.fullSearch = {
-                        type: 'country'
-                    };
-                }
+                const fullSearch = this.getFullSearchType( response.features[0] );
 
-                if ( response.features[0].id.indexOf( 'region' ) !== -1 ) {
-                    userLocation.fullSearch = {
-                        type: 'state'
-                    };
-                }
-
-                if ( typeof userLocation.fullSearch === 'object' ) {
-                    const longName = response.features[0].text;
-                    let shortName = response.features[0].properties.short_code.toUpperCase();
-
-                    if ( userLocation.fullSearch.type === 'state' ) {
-                        const stateSplit = shortName.split( '-' );
-
-                        shortName = stateSplit[1];
-                    }
-
-                    userLocation.fullSearch.query = longName + ',' + shortName;
+                if ( fullSearch ) {
+                    userLocation.fullSearch = fullSearch;
                 }
             } else {
                 switch ( format ) {
@@ -178,6 +160,76 @@ export const api = {
             }
 
             return wp.hooks.applyFilters( 'wpslFilterResponse', userLocation );
+        },
+
+        /**
+         * Check if a geocode result is a whole country or state, and build the
+         * "Name,CODE" query the country / state search expects.
+         *
+         * Geocoding v6 sets the type on properties.feature_type and keeps the
+         * codes in properties.context. The v5 fields ( a "region.123" id and
+         * properties.short_code ) are still read for a response from v5.
+         *
+         * @since  3.1.1
+         * @param  {object} feature The first feature from the API response
+         * @return {object|undefined} fullSearch The search type and query, or undefined
+         */
+        getFullSearchType: function( feature ) {
+            feature = feature || {};
+
+            const properties = feature.properties || {};
+            const context    = properties.context || {};
+            const legacyType = ( typeof feature.id === 'string' ) ? feature.id.split( '.' )[0] : '';
+            const placeType  = properties.feature_type || legacyType;
+            const longName   = properties.name || feature.text || '';
+
+            let type, shortName;
+
+            if ( placeType === 'country' ) {
+                type      = 'country';
+                shortName = ( context.country && context.country.country_code ) || properties.short_code;
+            } else if ( placeType === 'region' ) {
+                type      = 'state';
+                shortName = ( context.region && context.region.region_code ) || properties.short_code;
+
+                // v5 short codes hold the country as well ( CA-BC ).
+                if ( typeof shortName === 'string' && shortName.indexOf( '-' ) !== -1 ) {
+                    shortName = shortName.split( '-' )[1];
+                }
+            }
+
+            if ( ! type || ! longName ) {
+                return;
+            }
+
+            const values = [ longName ];
+
+            /*
+             * Like the Google Maps search, also match the state the visitor typed,
+             * because the wpsl_state meta can use another language than the map.
+             * Input with a comma is left out, it would split into two values.
+             */
+            if ( type === 'state' ) {
+                const userInput = String( jQuery( '#wpsl-search-input' ).val() || '' ).trim();
+
+                if ( userInput && userInput.indexOf( ',' ) === -1 ) {
+                    values.push( userInput );
+                }
+            }
+
+            if ( typeof shortName === 'string' && shortName ) {
+                values.push( shortName.toUpperCase() );
+            }
+
+            // Drop duplicates ( "BC" typed for British Columbia, BC ), ignoring the case.
+            const query = values.filter( ( value, index ) => {
+                return values.findIndex( other => other.toUpperCase() === value.toUpperCase() ) === index;
+            });
+
+            return {
+                type: type,
+                query: query.join( ',' )
+            };
         },
 
         /**
@@ -296,7 +348,10 @@ export const api = {
             
             map.getSource( 'locations' ).setData( geojson.active );
 
-            slData.directions.destinationId = storeId;
+            // A location at a shared address is on the point it shares, the route ends there.
+            const pointId = markerGroups.leadId( storeId, 0 );
+
+            slData.directions.destinationId = pointId;
 
             slData.viewport = {
                 center: map.getCenter(),
@@ -307,8 +362,8 @@ export const api = {
                 if ( ! feature.properties ) {
                     return;
                 }
-                
-                if ( feature.properties.id === storeId ) {
+
+                if ( feature.properties.id === pointId ) {
                     destinationLatLng = feature.geometry.coordinates.join( ',' );
                 }
             });
@@ -687,11 +742,18 @@ export const api = {
             geocoder.on( 'result', ( e ) => {
                 if ( e.result?.geometry?.coordinates ) {
                     const coords = e.result.geometry.coordinates;
-                    
-                    slData.autoCompleteLatLng = {
-                        lng: coords[0],
-                        lat: coords[1]
-                    };
+
+                    // The result is a Geocoding API feature, so the check for a
+                    // whole country or state of a typed search applies as it is.
+                    let fullSearch;
+
+                    try {
+                        fullSearch = api.geocoding.filterResponse( { features: [ e.result ] } ).fullSearch;
+                    } catch ( error ) {
+                        fullSearch = undefined;
+                    }
+
+                    helpers.search.setAutoCompletePlace( { lng: coords[0], lat: coords[1] }, fullSearch );
                 }
 
                 if ( config.search.autoSubmitAutoComplete ) {

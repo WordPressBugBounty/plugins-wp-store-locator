@@ -15,6 +15,10 @@ export const geolocation = {
 
     // The running or last location attempt, see run().
     attempt: null,
+
+    // Shows the locator as it is without auto-locate, set by mapBootstrap.prepareWpsl().
+    // @since 3.1.1
+    showDefault: null,
     /**
      * Initialize geolocation based on trigger setting.
      * Either runs immediately, shows a dialog for user confirmation, or
@@ -155,13 +159,27 @@ export const geolocation = {
      * the location prompt ( or has no geolocation ), their approximate
      * location is unknown as well, and no results are showing.
      *
+     * With "Load locations on page load" enabled the visitor gets the
+     * locations that load without auto-locate, not a search within the
+     * default radius of the start location that ignores the autoload limit.
+     *
      * @since   3.0.0
+     * @since   3.1.1 Shows the autoloaded locations when autoload is enabled.
      * @returns {void}
      */
     searchStartLocation: function() {
         jQuery( '#wpsl-search-input' ).val( '' );
 
         slData.autoCompleteLatLng = '';
+
+        if ( config.search.autoLoad && typeof geolocation.showDefault === 'function' ) {
+            // The fallback is never a located search, also when one is still loading.
+            slData.geolocation.active = false;
+
+            geolocation.showDefault();
+
+            return;
+        }
 
         search.prepare( { latLng: config.map.startLatLng } );
     },
@@ -490,6 +508,11 @@ export const geolocation = {
                 position: args,
                 newRequest: true
             };
+
+            // Any location the visitor shares is their own search, not the first load,
+            // also when the locations were autoloaded before it.
+            slData.firstLoadInProgress = false;
+            slData.useBasicMode        = false;
         }
 
         search.prepare( args );

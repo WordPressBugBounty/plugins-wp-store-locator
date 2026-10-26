@@ -30,6 +30,7 @@ export const setup = {
 
             this.setState();
             this.setUnderscoreSettings();
+            this.showSectionSyncNotice();
             buttons.bindSearch();
         }
 
@@ -40,6 +41,35 @@ export const setup = {
             setTimeout( function() {
                 accessibility.map.init();
             }, 500 );
+        });
+    },
+
+    /**
+     * Show the notice about a customized template section that is out of sync.
+     *
+     * Only sent to a user who can edit the sections, see
+     * Resources::section_sync_notice(), which also escapes it.
+     *
+     * @since 3.1.1
+     * @returns {void}
+     */
+    showSectionSyncNotice: function() {
+        if ( typeof wpslSettings === 'undefined' || ! wpslSettings.sectionSyncNotice ) {
+            return;
+        }
+
+        jQuery( '#wpsl-wrap .wpsl-search' ).each( function() {
+            if ( jQuery( this ).children( '.wpsl-section-sync-notice' ).length ) {
+                return;
+            }
+
+            const $notice = jQuery( wpslSettings.sectionSyncNotice );
+
+            $notice.find( '.wpsl-inline-notice-close' ).on( 'click', function() {
+                $notice.remove();
+            });
+
+            jQuery( this ).append( $notice );
         });
     },
 
@@ -152,19 +182,22 @@ export const setup = {
                     lng = 0;
                 }
 
-                // With delayed loading of the dynamic map google.maps.LatLng
-                // isn't available yet, so keep a plain object and build the
-                // real instance once the user loads the map. Also guards
-                // against a stray window.google set by an unrelated script
-                // (e.g. GTM, a browser extension) without the Maps API.
-                if ( typeof google === 'object' && typeof google.maps === 'object' && typeof google.maps.LatLng === 'function' ) {
-                    setting = new google.maps.LatLng( lat, lng );
-                } else {
-                    setting = {
-                        lat: lat,
-                        lng: lng
-                    };
-                }
+                /*
+                 * Always a plain object, map.create() turns it into a
+                 * google.maps.LatLng once the Maps API has loaded.
+                 *
+                 * A google.maps.LatLng that exists now can't be trusted:
+                 * consent tools ( Usercentrics ) and other scripts put a stub
+                 * window.google.maps on the page before the real API loads,
+                 * and the stub's LatLng returns an empty object, which left
+                 * the map centered on NaN.
+                 *
+                 * @since 3.1.1
+                 */
+                setting = {
+                    lat: lat,
+                    lng: lng
+                };
             } else {
                 // For OSM/Mapbox, check if Leaflet is available. No start
                 // point ends at 0,0 below, the same as the Google branch.
@@ -274,6 +307,7 @@ export const setup = {
             `../maps/wpsl-${provider}.js` 
         ).then( providerModule => {
             slData.provider = providerModule[provider];
+            slData.providerName = provider;
             
             // Make provider globally accessible for cross-module references
             window[provider] = providerModule[provider];

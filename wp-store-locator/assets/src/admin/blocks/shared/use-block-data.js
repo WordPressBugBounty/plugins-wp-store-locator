@@ -79,7 +79,8 @@ export function useBlockData() {
  */
 export function useStoreCategories() {
     return useSelect( ( select ) => {
-        const terms = select( coreStore ).getEntityRecords( 'taxonomy', 'wpsl_store_category', { per_page: -1 } );
+        // 'view': core-data asks for 'edit' by default, which needs the store category edit_terms capability ( 3.1.1 ), and an editor only reads the names here.
+        const terms = select( coreStore ).getEntityRecords( 'taxonomy', 'wpsl_store_category', { per_page: -1, context: 'view' } );
 
         return ( terms || [] ).map( ( term ) => ( {
             slug: term.slug,

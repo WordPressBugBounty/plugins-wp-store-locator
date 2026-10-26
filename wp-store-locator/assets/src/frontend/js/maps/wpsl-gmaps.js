@@ -9,6 +9,7 @@ import { infoWindow } from './gmaps/modules/wpsl-infowindow.js';
 import { api } from './gmaps/modules/wpsl-api.js';
 import { search } from './gmaps/modules/wpsl-search.js';
 import { shapes } from './gmaps/modules/wpsl-shapes.js';
+import { radiusCircle } from './gmaps/modules/wpsl-radius-circle.js';
 
 /**
  * Google Maps implementation for WPSL frontend.
@@ -25,6 +26,7 @@ export const gmaps = {
     api,
     search,
     shapes,
+    radiusCircle,
 
     /**
      * Initialize Google Maps.

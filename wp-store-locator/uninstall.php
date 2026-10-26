@@ -74,6 +74,8 @@ function wpsl_uninstall() {
         'wpsl_convert_cpt',
         'wpsl_onboarding_finished',
         'wpsl_onboarding_key_fallback',
+        'wpsl_quick_setup_default',
+        'wpsl_country_iso_backfill_lock',
         'wpsl_updated_from',
         'wpsl_v3_migration_complete',
         'wpsl_license_data_migrated',
@@ -116,6 +118,10 @@ function wpsl_uninstall() {
     // Delete the user meta for all users, not just the one running the uninstall.
     delete_metadata( 'user', 0, 'wpsl_disable_location_warning', '', true );
     delete_metadata( 'user', 0, 'wpsl_stores_per_page', '', true ); // Not used in 2.x, but was used in 1.x
+
+    // The Quick setup card state: a user option per site, and the plain key a 3.1.1 development build used.
+    delete_metadata( 'user', 0, $wpdb->get_blog_prefix() . 'wpsl_quick_setup', '', true );
+    delete_metadata( 'user', 0, 'wpsl_quick_setup', '', true );
 
     /**
      * Remove wpsl_signup_pointer from dismissed_wp_pointers user meta.

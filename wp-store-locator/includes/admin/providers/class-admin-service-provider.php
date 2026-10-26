@@ -286,6 +286,13 @@ class Admin_Service_Provider implements Service_Provider {
             );
         });
 
+        // The six Quick setup choices on the Home page and in the setup wizard.
+        $container->register_shared( 'quick_setup', function( $container ) {
+            return new \WPSL\Admin\Home\Quick_Setup(
+                $container->get( 'wpsl_settings' )
+            );
+        });
+
         /**
          * Conditionally loaded tools.
          *
@@ -299,8 +306,8 @@ class Admin_Service_Provider implements Service_Provider {
         $wpsl_page        = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
         $wpsl_ajax_action = ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_POST['action'] ) ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
         $wpsl_report_ajax = ( 'wpsl_home_feedback' === $wpsl_ajax_action );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- routing only, Exit_Survey::deactivate() verifies the nonce
-        $wpsl_survey      = ( isset( $GLOBALS['pagenow'] ) && 'plugins.php' === $GLOBALS['pagenow'] && ! empty( $_REQUEST['wpsl_debug'] ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- routing only, Exit_Survey::ajax_submit() verifies the nonce
+        $wpsl_survey      = ( 'wpsl_exit_survey' === $wpsl_ajax_action && ! empty( $_POST['debug'] ) );
 
         if ( 'wpsl_tools' === $wpsl_page || $wpsl_report_ajax || $wpsl_survey ) {
             $container->register_shared( 'status_report', function( $container ) {

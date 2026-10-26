@@ -2243,6 +2243,215 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
     color: #b32d2e;
 }
 
+/* The Social Media block of the Fields Manager. */
+/* In its own tab, so the buttons end as close to the box edge as the ones below the custom fields. */
+#wpsl-social-fields {
+    margin-bottom: 0;
+}
+
+#wpsl-social-fields h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+#wpsl-social-fields .wpsl-social-field-actions {
+    justify-content: flex-end;
+}
+
+#wpsl-add-social-field {
+    margin-right: 8px;
+}
+
+/* The Social Media and Custom tabs of the Fields Manager, they look like the view switch of the Statistics add-on. */
+#wpsl-fields-manager .wpsl-fields-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding: 5px;
+    background: #f0f0f1;
+    border-radius: 3px;
+}
+
+/* The Groups Manager only manages the custom groups, so it has no tabs. */
+#wpsl-fields-manager .wpsl-fields-tabs.wpsl-hide,
+#wpsl-fields-manager.wpsl-groups-manager-open .wpsl-fields-tabs {
+    display: none;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #50575e;
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab:hover {
+    color: #1d2327;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab:focus {
+    outline: none;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab:focus-visible {
+    box-shadow: 0 0 0 2px #2271b1;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab.is-current {
+    font-weight: 600;
+    color: #1d2327;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+#wpsl-fields-manager .wpsl-fields-tab.is-current:focus-visible {
+    box-shadow: 0 0 0 2px #2271b1;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab-count {
+    padding: 0 7px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    color: #3c434a;
+    background: #dcdcde;
+    border-radius: 9px;
+    font-variant-numeric: tabular-nums;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab-count:empty {
+    display: none;
+}
+
+#wpsl-fields-manager .wpsl-fields-tab.is-current .wpsl-fields-tab-count {
+    color: #2759b8;
+    background: #e8f0fe;
+}
+
+.wpsl-fields-panel[hidden] {
+    display: none;
+}
+
+/* The Groups Manager title belongs to the Custom tab. */
+#wpsl-fields-manager.wpsl-fields-social-open .wpsl-groups-header {
+    display: none !important;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-top: 1px solid #eaecf0;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field:last-child {
+    border-bottom: 1px solid #eaecf0;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-icon {
+    display: flex;
+    flex: 0 0 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-icon {
+    width: 18px;
+    height: 18px;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-platform {
+    flex: 0 0 150px;
+    max-width: 150px;
+}
+
+/* More specific than the Fields Manager rule that caps its text inputs at 58%, so a single class input fills the row like the two of an Other field. */
+#wpsl-settings-content form #wpsl-fields-manager #wpsl-social-fields input[type="text"] {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+}
+
+#wpsl-fields-manager #wpsl-social-fields input[type="text"].wpsl-hide {
+    display: none;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-remove {
+    flex: 0 0 52px;
+    text-align: right;
+    color: #b32d2e;
+}
+
+/* The drag handle shows on the hovered row, like the one of the custom fields. */
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-handle {
+    display: flex;
+    flex: 0 0 8px;
+    align-items: center;
+    height: 19px;
+}
+
+#wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-handle svg {
+    display: none;
+}
+
+#wpsl-fields-manager #wpsl-social-field-list.wpsl-has-multiple-fields .wpsl-social-field:hover .wpsl-social-field-handle svg {
+    display: flex;
+    cursor: grab;
+}
+
+#wpsl-fields-manager #wpsl-social-field-list .wpsl-social-field.ui-sortable-helper {
+    background: #fff;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+}
+
+@media screen and (max-width: 782px) {
+    #wpsl-fields-manager #wpsl-social-fields .wpsl-social-field {
+        flex-wrap: wrap;
+    }
+
+    #wpsl-fields-manager #wpsl-social-fields .wpsl-social-field-platform {
+        flex: 1 1 120px;
+        max-width: none;
+    }
+
+    #wpsl-settings-content form #wpsl-fields-manager #wpsl-social-fields input[type="text"] {
+        flex: 1 1 100%;
+    }
+}
+
+/*
+ * Instagram's gradient, painted through a mask of the glyph. A gradient inside
+ * the svg would need an id, and the same id repeats for every location on the
+ * page. The svg keeps its solid fill for browsers without mask support.
+ */
+@supports ((mask-image: none) or (-webkit-mask-image: none)) {
+    svg.wpsl-social-icon-instagram {
+        fill: transparent;
+        background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+}
+
+/* The icon in front of a social media field label in the store editor. */
+#wpsl-meta-nav label .wpsl-social-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    vertical-align: text-bottom;
+}
+
 .wpsl-field-expanded a,
 .wpsl-field-expanded a:hover {
     color: #fff;
@@ -2552,6 +2761,17 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
     margin: auto 0;
 }
 
+/*
+ * A select is as wide as its longest option, so a long category name in
+ * "Default category filter selection" pushed it below its label. It may now
+ * shrink to the row like the other fields; the open list shows the full name.
+ */
+#wpsl-settings-content form p select {
+    min-width: 0;
+    max-width: 100%;
+    text-overflow: ellipsis;
+}
+
 #wpsl-settings-content form #wpsl-fields-manager input[type="text"],
 .wpsl-field-editor select {
     flex: 0 0 58%;
@@ -2740,6 +2960,11 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
     color: #2c3338
 }
 
+/* A platform another social media row uses can't be picked again, and looks like it. */
+#wpsl-settings-content #wpsl-social-fields .wpsl-social-field-platform option:disabled {
+    color: #a7aaad;
+}
+
 #wpsl-settings-content form .wpsl-cluster-colors p label {
     max-width: none;
 }
@@ -2796,6 +3021,12 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
 
 .wpsl-toggle-wrap input[type="checkbox"] {
     display: none;
+}
+
+/* A toggle that can't be changed, e.g. "Only show the category filter?" with the vertical template. */
+.wpsl-toggle-wrap:has( input[type="checkbox"]:disabled ) {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .wpsl-toggle-pending {
@@ -3319,191 +3550,6 @@ body[class*=' wpsl_stores_page_wpsl_'] #wpbody-content > [class*='error']:not(.w
     .wpsl-manage-period {
         background: none;
     }
-}
-
-.wpsl-multiselect-container {
-    width: 100%;
-    position: relative;
-}
-  
-.wpsl-multiselect-container > button {
-    width: 100%;
-    background-color: white;
-    border: 1px solid #d1d5db;
-    border-radius: var(--wpsl-radius, 3px);
-    padding: 12px 24px 12px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: #374151;
-    cursor: pointer;
-    position: relative;
-    outline: none;
-    text-align: left;
-    min-height: 38px;
-    background-image: url(data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%206l5%205%205-5%202%201-7%207-7-7%202-1z%22%20fill%3D%22%23555%22%2F%3E%3C%2Fsvg%3E);
-    background-position: right 6px top 50%;
-    background-size: 16px;
-    background-repeat: no-repeat;
-}
-  
-.wpsl-multiselect-container > button:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-}
-
-.wpsl-multiselect-content {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    border-radius: 8px;
-    background-color: #ffffff;
-}
-
-.wpsl-multiselect-container svg {
-    flex-shrink: 0;
-    margin: 1px 0 0 4px;
-    fill: #6b7280;
-}
-
-.wpsl-multiselect-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    margin-top: 4px;
-    background-color: white;
-    border: 1px solid #d1d5db;
-    border-radius: var(--wpsl-radius, 3px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    max-height: 240px;
-    overflow-y: auto;
-    z-index: 10;
-    display: none;
-}
-
-.wpsl-multiselect-menu.show {
-    display: block !important;
-}
-
-.wpsl-multiselect-menu li {
-    padding: 8px 12px;
-    list-style: none;
-}
-
-.wpsl-multiselect-menu li:hover {
-    background-color: #f3f4f6;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu li label,
-#wpsl-content-wrap .wpsl-multiselect-option .wpsl-multiselect-menu li label:first-child {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1 1 auto;
-    width: 100%;
-    max-width: none;
-    min-height: 0;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu li label span {
-    line-height: 16px;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu input[type="checkbox"] {
-    -webkit-appearance: none;
-    appearance: none;
-    position: relative;
-    flex: 0 0 auto;
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    margin: 0;
-    padding: 0;
-    border: 1px solid #d1d5db;
-    border-radius: var(--wpsl-radius, 3px);
-    background-color: #fff;
-    box-shadow: none;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu input[type="checkbox"]:hover {
-    border-color: #6fac34;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu input[type="checkbox"]:checked {
-    background-color: #6fac34;
-    border-color: #6fac34;
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu input[type="checkbox"]:checked::before {
-    content: "";
-    display: block;
-    position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 4px;
-    height: 8px;
-    margin: 0;
-    background: none;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-#wpsl-content-wrap .wpsl-multiselect-menu input[type="checkbox"]:focus-visible {
-    outline: 2px solid #6fac34;
-    outline-offset: 2px;
-}
-
-.wpsl-multiselect-tag {
-    display: flex;
-    align-items: center;
-    background-color: #dbeafe;
-    color: #1e40af;
-    font-size: 14px;
-    padding: 5px 5px 5px 8px;
-    border-radius: var(--wpsl-radius, 3px);
-    max-width: 100%;
-}
-
-.wpsl-multiselect-tag:hover {
-    background-color: #c8ddfa;
-}
-
-.wpsl-multiselect-tag-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
-    flex: 1;
-    height: 20px;
-    line-height: 20px;
-}
-
-.wpsl-multiselect-tag-remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border-radius: 50%;
-    transition: background-color 0.2s ease;
-    flex-shrink: 0;
-}
-
-.wpsl-multiselect-tag-remove:hover path {
-    fill: #000;
-}
-
-.wpsl-multiselect-tag-remove svg {
-    width: 12px;
-    height: 12px;
 }
 
 body:not( .block-editor-page ) #wpsl-meta-nav {
@@ -4923,7 +4969,9 @@ ol.wpsl-home-check li:last-child {
     margin-bottom: 0;
 }
 
+/* The same space under the title as above it, down to the line of the first step. */
 #wpsl-content-wrap .wpsl-home-setup .inside {
+    margin-top: 5px;
     padding-bottom: 0;
 }
 

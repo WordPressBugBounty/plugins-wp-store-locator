@@ -18,6 +18,7 @@ import { infoWindow } from './osm/modules/wpsl-infowindow.js';
 import { search as osmSearch } from './osm/modules/wpsl-search.js';
 import { api as osmApi } from './osm/modules/wpsl-api.js';
 import { shapes } from './osm/modules/wpsl-shapes.js';
+import { radiusCircle } from './osm/modules/wpsl-radius-circle.js';
 import { osm } from './wpsl-osm.js';
 
 /**
@@ -360,9 +361,20 @@ const api = {
 
             this.hideResults();
 
+            // A picked country or state lists all its locations, like a typed one.
+            // Suggestions only carry the name and the layer, the country code
+            // comes from the place details below.
+            let fullSearch;
+
+            if ( parsed.layer === 'country' && parsed.name ) {
+                fullSearch = { type: 'country', query: parsed.name + ( parsed.countryCode ? ',' + parsed.countryCode : '' ) };
+            } else if ( parsed.layer === 'region' && parsed.name ) {
+                fullSearch = { type: 'state', query: parsed.name };
+            }
+
             // When the suggestion already carries coordinates, use them directly.
             if ( typeof parsed.lat === 'number' && typeof parsed.lng === 'number' ) {
-                slData.autoCompleteLatLng = { lng: parsed.lng, lat: parsed.lat };
+                helpers.search.setAutoCompletePlace( { lng: parsed.lng, lat: parsed.lat }, fullSearch );
                 this.submitSelection();
 
                 return;
@@ -371,8 +383,19 @@ const api = {
             // Suggestions come back with null geometry, so the coordinates have
             // to be looked up via the Place Details endpoint.
             if ( gid ) {
-                this.fetchPlaceDetails( gid, function( coords ) {
-                    slData.autoCompleteLatLng = coords || '';
+                this.fetchPlaceDetails( gid, function( coords, details ) {
+
+                    // With the name alone, a location saved with the country code and a
+                    // different name ( "USA" ) is missed, while a typed search finds it.
+                    if ( fullSearch && fullSearch.type === 'country' && ! parsed.countryCode && details ) {
+                        const countryCode = parseStadiaFeature( details ).countryCode;
+
+                        if ( countryCode ) {
+                            fullSearch.query = parsed.name + ',' + countryCode;
+                        }
+                    }
+
+                    helpers.search.setAutoCompletePlace( coords || '', fullSearch );
                     self.submitSelection();
                 });
 
@@ -405,9 +428,11 @@ const api = {
          * Autocomplete answers with a feature id ( gid ) but null geometry.
          *
          * @since  3.0.0
+         * @since  3.1.1 The callback also receives the feature.
          * @see    https://docs.stadiamaps.com/geocoding-search-autocomplete/place-details/
          * @param  {string}   gid      The feature id, e.g. "geonames:locality:2872113".
-         * @param  {Function} callback Receives { lng, lat } on success, or null on failure.
+         * @param  {Function} callback Receives { lng, lat } on success, or null on failure,
+         *                             and the place details feature, or null.
          * @return {void}
          */
         fetchPlaceDetails: function( gid, callback ) {
@@ -422,12 +447,12 @@ const api = {
                 const feature = response && response.features && response.features[0];
                 const coords  = feature && feature.geometry && feature.geometry.coordinates; // [lng, lat]
                 if ( Array.isArray( coords ) && coords.length >= 2 ) {
-                    callback( { lng: coords[0], lat: coords[1] } );
+                    callback( { lng: coords[0], lat: coords[1] }, feature );
                 } else {
-                    callback( null );
+                    callback( null, feature || null );
                 }
             }).fail( function() {
-                callback( null );
+                callback( null, null );
             });
         },
 
@@ -1058,6 +1083,7 @@ export const stadia = {
     api,
     search: stadiaSearch,
     shapes,
+    radiusCircle,
 
     /**
      * Initialize Stadia Maps

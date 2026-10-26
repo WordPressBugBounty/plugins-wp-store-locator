@@ -214,6 +214,9 @@ $show_setup = $home->should_show_setup( $checklist );
         ?>
     </div>
 
+    <?php // The six choices that shape the locator, open, collapsed or hidden per user. ?>
+    <?php require WPSL_PLUGIN_DIR . 'includes/admin/home/templates/quick-setup-card.php'; ?>
+
     <?php
     /**
      * Room for an add-on's own full width block, below the row of counts.
@@ -303,6 +306,8 @@ $show_setup = $home->should_show_setup( $checklist );
             </div>
         </section>
     </div>
+
+    <?php require WPSL_PLUGIN_DIR . 'includes/admin/home/templates/quick-setup-start-over.php'; ?>
 
     <div class="modal micromodal-slide" id="wpsl-home-feedback" aria-hidden="true">
         <div class="modal__overlay" tabindex="-1" data-micromodal-close>

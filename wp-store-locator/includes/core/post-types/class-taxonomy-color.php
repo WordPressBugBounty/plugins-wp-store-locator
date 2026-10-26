@@ -150,11 +150,18 @@ class Taxonomy_Color {
             return '';
         }
 
-        // The hash opens the Search Results section, see restoreTabFromSession() in wpsl-appearance-editor.js.
-        $link = '<a href="' . esc_url( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_appearance#wpsl-search-results-tab' ) ) . '">';
+        // The hash opens the item with "Show categories?", see restoreTabFromSession() in wpsl-appearance-editor.js.
+        // The same filter as Appearance\Manager::has_result_card_item(), without loading the Appearance page.
+        $result_card = (bool) apply_filters( 'wpsl_appearance_result_card_item', false );
+        $link        = '<a href="' . esc_url( admin_url( 'edit.php?post_type=wpsl_stores&page=wpsl_appearance#' . ( $result_card ? 'wpsl-result-card-tab' : 'wpsl-search-results-tab' ) ) ) . '">';
 
-        /* translators: %1$s: opening link tag to the Appearance page, %2$s: closing link tag */
-        $text = sprintf( esc_html__( 'The color shows in the category filter. To also show the categories in the search results, turn on "Show categories?" under Search Results on the %1$sAppearance page%2$s.', 'wp-store-locator' ), $link, '</a>' );
+        if ( $result_card ) {
+            /* translators: %1$s: opening link tag to the Appearance page, %2$s: closing link tag */
+            $text = sprintf( esc_html__( 'The color shows in the category filter. To also show the categories in the search results, turn on "Show categories?" under Result Card on the %1$sAppearance page%2$s.', 'wp-store-locator' ), $link, '</a>' );
+        } else {
+            /* translators: %1$s: opening link tag to the Appearance page, %2$s: closing link tag */
+            $text = sprintf( esc_html__( 'The color shows in the category filter. To also show the categories in the search results, turn on "Show categories?" under Search Results on the %1$sAppearance page%2$s.', 'wp-store-locator' ), $link, '</a>' );
+        }
 
         return '<p class="description wpsl-category-color-hint">' . $text . '</p>';
     }

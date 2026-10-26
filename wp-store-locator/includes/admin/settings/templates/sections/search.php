@@ -189,8 +189,23 @@ $is_name_search = ( $section_settings['search_method'] === 'name' );
                 <input type="checkbox" value="" <?php checked( $section_settings['all_categories_required'], true ); ?> name="wpsl_search[all_categories_required]" id="wpsl-all-categories">
             </p>
             <p>
-                <label for="wpsl-category_only_filter"><?php esc_html_e( 'Only show the category filter?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Enabling this option will automatically hide the location input field and the max results and radius filters.', 'wp-store-locator' ); ?></span></span></label>
-                <input type="checkbox" value="" <?php checked( $section_settings['category_filter_only'], true ); ?> name="wpsl_search[category_filter_only]" id="wpsl-category_only_filter">
+                <label for="wpsl-category_only_filter"><?php esc_html_e( 'Only show the category filter?', 'wp-store-locator' ); ?><span class="wpsl-info"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Enabling this option will automatically hide the location input field and the max results and radius filters.', 'wp-store-locator' ); ?></span></span><?php if ( $has_panel ) : ?><span class="wpsl-info wpsl-warning"><span class="wpsl-info-text wpsl-hide"><?php esc_html_e( 'Not available with the vertical template. Choose another template on the Appearance page to use it.', 'wp-store-locator' ); ?></span></span><?php endif; ?></label>
+                <?php if ( $has_panel ) : ?>
+                    <?php
+                    /*
+                     * The vertical template has its own search field and filter panel, which the
+                     * option doesn't cover ( Filters::is_category_filter_only() ignores it there ).
+                     * A disabled checkbox isn't posted, so the saved value goes in a hidden field
+                     * and comes back when another template is chosen.
+                     */
+                    ?>
+                    <input type="checkbox" value="" <?php checked( $section_settings['category_filter_only'], true ); ?> id="wpsl-category_only_filter" disabled>
+                    <?php if ( $section_settings['category_filter_only'] ) : ?>
+                        <input type="hidden" value="1" name="wpsl_search[category_filter_only]">
+                    <?php endif; ?>
+                <?php else : ?>
+                    <input type="checkbox" value="" <?php checked( $section_settings['category_filter_only'], true ); ?> name="wpsl_search[category_filter_only]" id="wpsl-category_only_filter">
+                <?php endif; ?>
             </p>
         </div>
         <p <?php if ( $is_name_search ) { echo 'style="display:none;"'; } ?>>
@@ -202,7 +217,7 @@ $is_name_search = ( $section_settings['search_method'] === 'name' );
             <input type="checkbox" value="" <?php checked( $section_settings['full_search'], true ); ?> name="wpsl_search[full_search]" id="wpsl-full-search">
         </p>
         <p>
-            <label for="wpsl-number-results"><?php esc_html_e( 'Show the number of returned results?', 'wp-store-locator' ); ?></label>
+            <label for="wpsl-number-results"><?php esc_html_e( 'Show the number of results?', 'wp-store-locator' ); ?></label>
             <input type="checkbox" value="" <?php checked( $section_settings['number_results'], true ); ?> name="wpsl_search[number_results]" id="wpsl-number-results">
         </p>
         <p <?php if ( $is_name_search ) { echo 'style="display:none;"'; } ?>>

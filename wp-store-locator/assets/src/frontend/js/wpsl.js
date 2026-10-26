@@ -34,6 +34,14 @@ window.wpsl = window.wpsl || {};
 // Expose public API methods under wpsl.api namespace
 window.wpsl.api = api;
 
+// The id of the build this bundle comes from. The inline script that
+// Assets\Manager::add_build_check() prints after it compares it with the
+// installed plugin, to catch a CDN or cache serving an outdated wpsl.min.js.
+// Running from assets/src ( SCRIPT_DEBUG ) there is no build, and no check.
+if ( typeof __webpack_hash__ !== 'undefined' ) {
+    window.wpsl.build = __webpack_hash__.slice( 0, 8 );
+}
+
 /**
  * Prepare WPSL Frontend
  * 
